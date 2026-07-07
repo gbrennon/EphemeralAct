@@ -1,0 +1,26 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.iml
+.vim/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment
+.env
+.env.local
+
+# Build artifacts
+*.o
+*.so
+*.dylib
