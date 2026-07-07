@@ -1,8 +1,12 @@
+pub mod act_run_config;
 pub mod ephemeral_repository;
 pub mod errors;
 pub mod repository;
 pub mod value_objects;
 
+pub use self::act_run_config::{
+    ActEvent, ActExtraArg, ActInput, ActJob, ActRunConfig, ActWorkflow, Secret,
+};
 pub use self::ephemeral_repository::{EphemeralRepository, TempDirTemplate};
 pub use self::errors::CoreError;
 pub use self::repository::Repository;
