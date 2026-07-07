@@ -1,21 +1,31 @@
-use crate::core::value_objects::{RepoPath, RepositoryId, RepositoryName};
+use crate::core::value_objects::{RepoPath, RepositoryName};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Repository {
-    pub id: RepositoryId,
-    pub name: RepositoryName,
-    pub path: RepoPath,
-    pub created_at: chrono::DateTime<chrono::Utc>,
+    path: RepoPath,
+    name: RepositoryName,
+    created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl Repository {
     pub fn new(path: RepoPath, name: RepositoryName) -> Self {
         Self {
-            id: RepositoryId::new(),
-            name,
             path,
+            name,
             created_at: chrono::Utc::now(),
         }
+    }
+
+    pub fn path(&self) -> &RepoPath {
+        &self.path
+    }
+
+    pub fn name(&self) -> &RepositoryName {
+        &self.name
+    }
+
+    pub fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
+        &self.created_at
     }
 }
 
@@ -40,16 +50,8 @@ mod tests {
 
         let repo = Repository::new(path.clone(), name.clone());
 
-        assert_eq!(repo.path, path);
-        assert_eq!(repo.name, name);
-    }
-
-    #[test]
-    fn new_generates_unique_ids() {
-        let repo1 = Repository::new(repo_path(), repo_name());
-        let repo2 = Repository::new(repo_path(), repo_name());
-
-        assert_ne!(repo1.id, repo2.id);
+        assert_eq!(repo.path(), &path);
+        assert_eq!(repo.name(), &name);
     }
 
     #[test]
@@ -58,7 +60,7 @@ mod tests {
         let repo = Repository::new(repo_path(), repo_name());
         let after = chrono::Utc::now();
 
-        assert!(repo.created_at >= before);
-        assert!(repo.created_at <= after);
+        assert!(repo.created_at() >= &before);
+        assert!(repo.created_at() <= &after);
     }
 }
