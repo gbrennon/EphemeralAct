@@ -3,7 +3,7 @@ use std::fmt;
 use crate::core::errors::CoreError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RepositoryName(pub String);
+pub struct RepositoryName(String);
 
 impl RepositoryName {
     pub fn new(name: String) -> Result<Self, CoreError> {
@@ -12,6 +12,21 @@ impl RepositoryName {
         } else {
             Ok(Self(name))
         }
+    }
+
+    pub fn from_repo_path(repo_path: &super::repo_path::RepoPath) -> Result<Self, CoreError> {
+        let name = repo_path
+            .as_path()
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("")
+            .to_string();
+
+        Self::new(name)
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
     }
 }
 
@@ -24,11 +39,14 @@ impl fmt::Display for RepositoryName {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::env;
+
+    use super::super::repo_path::RepoPath;
 
     #[test]
     fn new_with_valid_name_succeeds() {
         let name = RepositoryName::new("my-repo".into()).unwrap();
-        assert_eq!(name.0, "my-repo");
+        assert_eq!(name.as_str(), "my-repo");
     }
 
     #[test]
@@ -38,8 +56,22 @@ mod tests {
     }
 
     #[test]
+    fn from_repo_path_derives_name_from_path() {
+        let crate_root = env::var("CARGO_MANIFEST_DIR").unwrap();
+        let repo_path = RepoPath::new(crate_root).unwrap();
+        let name = RepositoryName::from_repo_path(&repo_path).unwrap();
+        assert!(!name.as_str().is_empty());
+    }
+
+    #[test]
     fn display_formats_inner_string() {
         let name = RepositoryName::new("my-repo".into()).unwrap();
         assert_eq!(format!("{}", name), "my-repo");
+    }
+
+    #[test]
+    fn as_str_returns_inner() {
+        let name = RepositoryName::new("my-repo".into()).unwrap();
+        assert_eq!(name.as_str(), "my-repo");
     }
 }
