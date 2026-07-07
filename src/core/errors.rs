@@ -10,4 +10,7 @@ pub enum CoreError {
 
     #[error("repository name must not be empty")]
     EmptyRepositoryName,
+
+    #[error("unknown container engine '{0}' (expected podman or docker)")]
+    UnknownContainerEngine(String),
 }
