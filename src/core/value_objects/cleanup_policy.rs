@@ -5,6 +5,15 @@ pub enum CleanupPolicy {
 }
 
 impl CleanupPolicy {
+    /// Returns `true` if the ephemeral repository should be cleaned up after execution.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ephemeral_act::core::value_objects::CleanupPolicy;
+    /// assert!(CleanupPolicy::CleanupOnExit.should_cleanup());
+    /// assert!(!CleanupPolicy::Preserve.should_cleanup());
+    /// ```
     pub fn should_cleanup(&self) -> bool {
         matches!(self, CleanupPolicy::CleanupOnExit)
     }
