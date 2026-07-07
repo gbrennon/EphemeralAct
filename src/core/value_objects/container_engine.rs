@@ -7,6 +7,18 @@ pub enum ContainerEngine {
 }
 
 impl ContainerEngine {
+    /// Parses a container engine from its CLI name.
+    ///
+    /// Returns [`CoreError::UnknownContainerEngine`] for unrecognized values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ephemeral_act::core::value_objects::ContainerEngine;
+    /// assert!(ContainerEngine::from_str("podman").is_ok());
+    /// assert!(ContainerEngine::from_str("docker").is_ok());
+    /// assert!(ContainerEngine::from_str("lxc").is_err());
+    /// ```
     pub fn from_str(engine: &str) -> Result<Self, CoreError> {
         match engine {
             "podman" => Ok(Self::Podman),
@@ -22,12 +34,18 @@ mod tests {
 
     #[test]
     fn from_str_podman_returns_podman() {
-        assert_eq!(ContainerEngine::from_str("podman"), Ok(ContainerEngine::Podman));
+        assert_eq!(
+            ContainerEngine::from_str("podman"),
+            Ok(ContainerEngine::Podman)
+        );
     }
 
     #[test]
     fn from_str_docker_returns_docker() {
-        assert_eq!(ContainerEngine::from_str("docker"), Ok(ContainerEngine::Docker));
+        assert_eq!(
+            ContainerEngine::from_str("docker"),
+            Ok(ContainerEngine::Docker)
+        );
     }
 
     #[test]
