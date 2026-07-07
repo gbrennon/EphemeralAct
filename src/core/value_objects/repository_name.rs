@@ -6,6 +6,17 @@ use crate::core::errors::CoreError;
 pub struct RepositoryName(String);
 
 impl RepositoryName {
+    /// Creates a repository name from a string.
+    ///
+    /// Returns [`CoreError::EmptyRepositoryName`] if the string is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ephemeral_act::core::value_objects::RepositoryName;
+    /// let name = RepositoryName::new("my-repo".into()).unwrap();
+    /// assert_eq!(name.as_str(), "my-repo");
+    /// ```
     pub fn new(name: String) -> Result<Self, CoreError> {
         if name.is_empty() {
             Err(CoreError::EmptyRepositoryName)
@@ -14,6 +25,20 @@ impl RepositoryName {
         }
     }
 
+    /// Derives a repository name from the final component of a [`RepoPath`].
+    ///
+    /// Returns [`CoreError::EmptyRepositoryName`] if the path has no file name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ephemeral_act::core::value_objects::{RepoPath, RepositoryName};
+    /// # use std::env;
+    /// # let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    /// let repo_path = RepoPath::new(dir).unwrap();
+    /// let name = RepositoryName::from_repo_path(&repo_path).unwrap();
+    /// assert!(!name.as_str().is_empty());
+    /// ```
     pub fn from_repo_path(repo_path: &super::repo_path::RepoPath) -> Result<Self, CoreError> {
         let name = repo_path
             .as_path()
@@ -25,12 +50,14 @@ impl RepositoryName {
         Self::new(name)
     }
 
+    /// Returns the repository name as a string slice.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
 impl fmt::Display for RepositoryName {
+    /// Formats the repository name using its inner string.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
