@@ -15,6 +15,22 @@ pub struct RepoPath {
 }
 
 impl RepoPath {
+    /// Validates and canonicalizes a path to a git repository.
+    ///
+    /// Returns [`CoreError::InvalidRepositoryPath`] if the path is not a directory
+    /// or cannot be resolved. Returns [`CoreError::NotAGitRepository`] if no `.git`
+    /// entry exists. Detects whether `.git` is a directory (standalone) or a file
+    /// (worktree).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ephemeral_act::core::value_objects::RepoPath;
+    /// # use std::env;
+    /// # let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    /// let repo = RepoPath::new(dir).unwrap();
+    /// assert!(repo.is_standalone() || repo.is_worktree());
+    /// ```
     pub fn new(path: impl Into<PathBuf>) -> Result<Self, CoreError> {
         let path: PathBuf = path.into();
 
@@ -25,13 +41,9 @@ impl RepoPath {
             )));
         }
 
-        let canonical = path
-            .canonicalize()
-            .map_err(|e| CoreError::InvalidRepositoryPath(format!(
-                "cannot resolve '{}': {}",
-                path.display(),
-                e
-            )))?;
+        let canonical = path.canonicalize().map_err(|e| {
+            CoreError::InvalidRepositoryPath(format!("cannot resolve '{}': {}", path.display(), e))
+        })?;
 
         let git_dir = canonical.join(".git");
         let git_dir_kind = if git_dir.is_dir() {
@@ -50,18 +62,22 @@ impl RepoPath {
         })
     }
 
+    /// Returns the canonical filesystem path.
     pub fn as_path(&self) -> &Path {
         &self.path
     }
 
+    /// Returns whether this is a standalone or worktree repository.
     pub fn git_dir_kind(&self) -> GitDirKind {
         self.git_dir_kind
     }
 
+    /// Returns `true` if `.git` is a directory (standalone repository).
     pub fn is_standalone(&self) -> bool {
         self.git_dir_kind == GitDirKind::Standalone
     }
 
+    /// Returns `true` if `.git` is a file (git worktree).
     pub fn is_worktree(&self) -> bool {
         self.git_dir_kind == GitDirKind::Worktree
     }
