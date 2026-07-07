@@ -1,5 +1,5 @@
-use crate::core::value_objects::{CleanupPolicy, RepositoryName};
 use crate::core::Repository;
+use crate::core::value_objects::{CleanupPolicy, RepositoryName};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TempDirTemplate(String);
@@ -9,6 +9,7 @@ impl TempDirTemplate {
         Self(format!("act-run-{}-XXXXXX", name.as_str()))
     }
 
+    /// Returns the template string (e.g. `act-run-my-repo-XXXXXX`).
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -22,6 +23,24 @@ pub struct EphemeralRepository {
 }
 
 impl EphemeralRepository {
+    /// Creates an ephemeral repository descriptor from a source repository.
+    ///
+    /// Detects whether the source is a worktree and sets
+    /// [`needs_standalone_conversion`](Self::needs_standalone_conversion) accordingly.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ephemeral_act::core::value_objects::{CleanupPolicy, RepoPath, RepositoryName};
+    /// # use ephemeral_act::core::{EphemeralRepository, Repository};
+    /// # use std::env;
+    /// # let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    /// let source = Repository::new(
+    ///     RepoPath::new(dir).unwrap(),
+    ///     RepositoryName::new("my-repo".into()).unwrap(),
+    /// );
+    /// let ephemeral = EphemeralRepository::new(&source, CleanupPolicy::CleanupOnExit);
+    /// ```
     pub fn new(source: &Repository, cleanup_policy: CleanupPolicy) -> Self {
         let needs_standalone_conversion = source.path().is_worktree();
 
@@ -32,14 +51,17 @@ impl EphemeralRepository {
         }
     }
 
+    /// Returns the temp directory template.
     pub fn temp_dir_template(&self) -> &TempDirTemplate {
         &self.temp_dir_template
     }
 
+    /// Returns `true` if the source is a worktree and needs conversion to a standalone repo.
     pub fn needs_standalone_conversion(&self) -> bool {
         self.needs_standalone_conversion
     }
 
+    /// Returns the cleanup policy for this ephemeral repository.
     pub fn cleanup_policy(&self) -> &CleanupPolicy {
         &self.cleanup_policy
     }
@@ -63,10 +85,12 @@ mod tests {
         let source = source_repo();
         let ephemeral = EphemeralRepository::new(&source, CleanupPolicy::CleanupOnExit);
 
-        assert!(ephemeral
-            .temp_dir_template()
-            .as_str()
-            .starts_with("act-run-"));
+        assert!(
+            ephemeral
+                .temp_dir_template()
+                .as_str()
+                .starts_with("act-run-")
+        );
     }
 
     #[test]
