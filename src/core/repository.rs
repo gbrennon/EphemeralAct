@@ -4,28 +4,34 @@ use crate::core::value_objects::{RepoPath, RepositoryName};
 pub struct Repository {
     path: RepoPath,
     name: RepositoryName,
-    created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl Repository {
+    /// Creates a repository from a validated path and name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ephemeral_act::core::value_objects::{RepoPath, RepositoryName};
+    /// # use ephemeral_act::core::Repository;
+    /// # use std::env;
+    /// # let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    /// let path = RepoPath::new(dir).unwrap();
+    /// let name = RepositoryName::new("my-repo".into()).unwrap();
+    /// let repo = Repository::new(path, name);
+    /// ```
     pub fn new(path: RepoPath, name: RepositoryName) -> Self {
-        Self {
-            path,
-            name,
-            created_at: chrono::Utc::now(),
-        }
+        Self { path, name }
     }
 
+    /// Returns the repository's canonical path.
     pub fn path(&self) -> &RepoPath {
         &self.path
     }
 
+    /// Returns the repository's name.
     pub fn name(&self) -> &RepositoryName {
         &self.name
-    }
-
-    pub fn created_at(&self) -> &chrono::DateTime<chrono::Utc> {
-        &self.created_at
     }
 }
 
@@ -52,15 +58,5 @@ mod tests {
 
         assert_eq!(repo.path(), &path);
         assert_eq!(repo.name(), &name);
-    }
-
-    #[test]
-    fn new_sets_created_at() {
-        let before = chrono::Utc::now();
-        let repo = Repository::new(repo_path(), repo_name());
-        let after = chrono::Utc::now();
-
-        assert!(repo.created_at() >= &before);
-        assert!(repo.created_at() <= &after);
     }
 }
