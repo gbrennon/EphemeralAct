@@ -2,10 +2,6 @@ use crate::core::value_objects::{
     ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerEngine, Secret,
 };
 
-// ---------------------------------------------------------------------------
-// Aggregate
-// ---------------------------------------------------------------------------
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActRunConfig {
     container_engine: ContainerEngine,
@@ -141,10 +137,6 @@ impl ActRunConfig {
         self.bind
     }
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
