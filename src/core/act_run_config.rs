@@ -17,6 +17,7 @@ pub struct ActRunConfig {
     bind: bool,
 }
 
+/// Constructors for [`ActRunConfig`].
 impl ActRunConfig {
     /// Creates a new config with the given container engine, daemon socket, and
     /// sensible defaults.
@@ -51,7 +52,10 @@ impl ActRunConfig {
             bind: true,
         }
     }
+}
 
+/// Builder API — fluent setters that consume and return `Self`.
+impl ActRunConfig {
     /// Sets the workflow file to run (`-w`).
     pub fn with_workflow(mut self, workflow: ActWorkflow) -> Self {
         self.workflow = Some(workflow);
@@ -100,14 +104,18 @@ impl ActRunConfig {
         self
     }
 
-    /// Returns the container daemon socket path.
-    pub fn container_daemon_socket(&self) -> &ContainerDaemonSocket {
-        &self.container_daemon_socket
-    }
     /// Sets whether `--bind` is passed to act (default: `true`).
     pub fn with_bind(mut self, bind: bool) -> Self {
         self.bind = bind;
         self
+    }
+}
+
+/// Read-only access to each field of [`ActRunConfig`].
+impl ActRunConfig {
+    /// Returns the container daemon socket path.
+    pub fn container_daemon_socket(&self) -> &ContainerDaemonSocket {
+        &self.container_daemon_socket
     }
 
     /// Returns the container engine.
@@ -155,6 +163,11 @@ impl ActRunConfig {
         self.bind
     }
 }
+
+/// Validate a fully-built [`ActRunConfig`] before it is passed to the act
+/// runner.  No checks are implemented yet — the block exists as a home for
+/// future invariants (e.g. required fields, conflicting flags).
+impl ActRunConfig {}
 
 #[cfg(test)]
 mod tests {
