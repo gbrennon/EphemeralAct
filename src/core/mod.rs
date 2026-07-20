@@ -3,6 +3,7 @@ pub mod ephemeral_repository;
 pub mod errors;
 pub mod repository;
 pub mod value_objects;
+pub mod shared_types;
 
 pub use self::act_run_config::ActRunConfig;
 pub use self::ephemeral_repository::{EphemeralRepository, TempDirTemplate};
