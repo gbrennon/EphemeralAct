@@ -1,4 +1,5 @@
 use std::process::Command;
+pub use crate::core::shared_types::ExecutionResult;
 
 pub fn execute_act_command(args: Vec<String>) -> Result<ExecutionResult, String> {
     let output = Command::new("act")
@@ -6,7 +7,7 @@ pub fn execute_act_command(args: Vec<String>) -> Result<ExecutionResult, String>
         .output()
         .map_err(|e| e.to_string())?;
 
-    
+
     let result = ExecutionResult {
         success: output.status.success(),
         stdout: String::from_utf8_lossy(&output.stdout).to_string(),
@@ -14,10 +15,4 @@ pub fn execute_act_command(args: Vec<String>) -> Result<ExecutionResult, String>
     };
 
     Ok(result)
-}
-
-pub struct ExecutionResult {
-    pub success: bool,
-    pub stdout: String,
-    pub stderr: String,
 }

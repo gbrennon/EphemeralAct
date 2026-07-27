@@ -1,24 +1,21 @@
+use ephemeral_act::infrastructure::{execute_act_command, ExecutionResult};
 
-use crate::infrastructure::{execute_act_command, ExecutionResult};
-use std::process;
+#[test]
+#[ignore = "requires GitHub Actions workflow files in the repository"]
+fn test_act_command_success() {
+    let result = execute_act_command(vec!["run".to_string(), "--test".to_string(), "github-actions-test".to_string()]);
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+    let execution = result.unwrap();
+    assert!(execution.success);
+    assert!(!execution.stderr.is_empty());
+}
 
-    #[tokio::test]
-    async fn test_act_command_success() {
-        let result = execute_act_command(vec!["run", "--test", "github-actions-test".to_string()]).await;
-        
-        assert!(result.unwrap().success);
-        assert!(!result.unwrap().stderr.is_empty());
-    }
+#[test]
+#[ignore = "requires GitHub Actions workflow files in the repository"]
+fn test_act_command_failure() {
+    let result = execute_act_command(vec!["run".to_string(), "--test".to_string(), "invalid-test".to_string()]);
 
-    #[tokio::test]
-    async fn test_act_command_failure() {
-        let result = execute_act_command(vec!["run", "--test", "invalid-test".to_string()]).await;
-        
-        assert!(!result.unwrap().success);
-        assert!(result.unwrap().stderr.contains("No such test"));
-    }
+    let execution = result.unwrap();
+    assert!(!execution.success);
+    assert!(execution.stderr.contains("No such test"));
 }
