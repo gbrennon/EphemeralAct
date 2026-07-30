@@ -1,4 +1,5 @@
 use crate::core::errors::CoreError;
+use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ContainerEngine {
@@ -6,7 +7,9 @@ pub enum ContainerEngine {
     Docker,
 }
 
-impl ContainerEngine {
+impl FromStr for ContainerEngine {
+    type Err = CoreError;
+
     /// Parses a container engine from its CLI name.
     ///
     /// Returns [`CoreError::UnknownContainerEngine`] for unrecognized values.
@@ -14,12 +17,13 @@ impl ContainerEngine {
     /// # Examples
     ///
     /// ```
+    /// # use std::str::FromStr;
     /// # use ephemeral_act::core::value_objects::ContainerEngine;
     /// assert!(ContainerEngine::from_str("podman").is_ok());
     /// assert!(ContainerEngine::from_str("docker").is_ok());
     /// assert!(ContainerEngine::from_str("lxc").is_err());
     /// ```
-    pub fn from_str(engine: &str) -> Result<Self, CoreError> {
+    fn from_str(engine: &str) -> Result<Self, Self::Err> {
         match engine {
             "podman" => Ok(Self::Podman),
             "docker" => Ok(Self::Docker),
