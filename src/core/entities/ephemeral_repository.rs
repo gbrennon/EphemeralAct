@@ -1,4 +1,4 @@
-use crate::core::Repository;
+use super::repository::Repository;
 use crate::core::value_objects::{CleanupPolicy, RepositoryName};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
