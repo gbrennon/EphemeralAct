@@ -1,5 +1,2 @@
-pub struct ExecutionResult {
-    pub success: bool,
-    pub stdout: String,
-    pub stderr: String,
-}
+pub mod execution_result;
+pub use execution_result::ExecutionResult;
