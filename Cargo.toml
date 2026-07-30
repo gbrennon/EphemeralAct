@@ -7,3 +7,12 @@ edition = "2024"
 chrono = "0.4.45"
 thiserror = "2.0.18"
 uuid = { version = "1.23.4", features = ["v4"] }
+clap = { version = "4", features = ["derive"] }
+
+[[test]]
+name = "core_services_run_act_service"
+path = "tests/core/services/run_act_service_tests.rs"
+
+[[test]]
+name = "infrastructure_act_wrapper"
+path = "tests/infrastructure/act_wrapper_tests.rs"
