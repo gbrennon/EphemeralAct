@@ -1,9 +1,13 @@
-use ephemeral_act::infrastructure::{execute_act_command, ExecutionResult};
+use ephemeral_act::infrastructure::{ExecutionResult, execute_act_command};
 
 #[test]
 #[ignore = "requires GitHub Actions workflow files in the repository"]
 fn test_act_command_success() {
-    let result = execute_act_command(vec!["run".to_string(), "--test".to_string(), "github-actions-test".to_string()]);
+    let result = execute_act_command(vec![
+        "run".to_string(),
+        "--test".to_string(),
+        "github-actions-test".to_string(),
+    ]);
 
     let execution = result.unwrap();
     assert!(execution.success);
@@ -13,7 +17,11 @@ fn test_act_command_success() {
 #[test]
 #[ignore = "requires GitHub Actions workflow files in the repository"]
 fn test_act_command_failure() {
-    let result = execute_act_command(vec!["run".to_string(), "--test".to_string(), "invalid-test".to_string()]);
+    let result = execute_act_command(vec![
+        "run".to_string(),
+        "--test".to_string(),
+        "invalid-test".to_string(),
+    ]);
 
     let execution = result.unwrap();
     assert!(!execution.success);

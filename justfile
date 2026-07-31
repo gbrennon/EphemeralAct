@@ -1,12 +1,21 @@
 # EphemeralAct — task runner
 # Requires: cargo, cargo-llvm-cov, rustfmt, clippy
 
-# Default: check formatting, lint, then run tests with coverage
-default: fmt-check lint test
+# Default: show available recipes
+default:
+    @just --list
 
 # Build the project
 build:
     cargo build
+
+# Install debug binary (fast, for local iteration)
+install-dev:
+    cargo install --path . --debug
+
+# Install release binary to ~/.cargo/bin
+install:
+    cargo install --path .
 
 # Run all tests with coverage
 test:
