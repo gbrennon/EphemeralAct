@@ -1,9 +1,9 @@
 use crate::core::ports::outbound::ActExecutor;
 use crate::core::shared_types::ExecutionResult;
 use crate::core::{ActRunConfig, Repository};
+use crate::infrastructure::act_wrappers::CiPlatform;
 use crate::infrastructure::act_wrappers::forgejo_act_wrapper::ForgejoActWrapper;
 use crate::infrastructure::act_wrappers::github_act_wrapper::GitHubActWrapper;
-use crate::infrastructure::act_wrappers::CiPlatform;
 
 /// Dispatches workflow execution to the correct CI adapter using pattern matching
 /// on the detected platform directory layout.
