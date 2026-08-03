@@ -8,32 +8,41 @@ use ephemeral_act::core::value_objects::{
 };
 use ephemeral_act::core::{ActRunConfig, Repository};
 use std::cell::RefCell;
-use std::env;
 use std::rc::Rc;
 
-/// Lightweight fake that records received args and returns a pre-configured result.
+/// Lightweight fake that records received config + repository and returns a
+/// pre-configured result.
 struct FakeActExecutor {
-    captured_args: Rc<RefCell<Vec<String>>>,
+    captured_config: Rc<RefCell<Option<ActRunConfig>>>,
+    captured_repo: Rc<RefCell<Option<Repository>>>,
     result: Rc<Result<ExecutionResult, String>>,
 }
 
 impl ActExecutor for FakeActExecutor {
-    fn execute(&self, args: &[String]) -> Result<ExecutionResult, String> {
-        *self.captured_args.borrow_mut() = args.to_vec();
+    fn execute_act(
+        &self,
+        config: &ActRunConfig,
+        repository: &Repository,
+    ) -> Result<ExecutionResult, String> {
+        *self.captured_config.borrow_mut() = Some(config.clone());
+        *self.captured_repo.borrow_mut() = Some(repository.clone());
         self.result.as_ref().clone()
     }
 }
 
 fn fake_executor(
     result: Result<ExecutionResult, String>,
-) -> (FakeActExecutor, Rc<RefCell<Vec<String>>>) {
-    let args = Rc::new(RefCell::new(Vec::new()));
+) -> (FakeActExecutor, Rc<RefCell<Option<ActRunConfig>>>, Rc<RefCell<Option<Repository>>>) {
+    let captured_config = Rc::new(RefCell::new(None));
+    let captured_repo = Rc::new(RefCell::new(None));
     (
         FakeActExecutor {
-            captured_args: Rc::clone(&args),
+            captured_config: Rc::clone(&captured_config),
+            captured_repo: Rc::clone(&captured_repo),
             result: Rc::new(result),
         },
-        args,
+        captured_config,
+        captured_repo,
     )
 }
 
@@ -46,10 +55,10 @@ fn ok_result() -> ExecutionResult {
 }
 
 fn test_repository() -> Repository {
-    let crate_root = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let path = RepoPath::new(crate_root).unwrap();
-    let name = RepositoryName::new("test-repo".into()).unwrap();
-    Repository::new(path, name)
+    Repository::new(
+        RepoPath::new(env!("CARGO_MANIFEST_DIR").to_string()).unwrap(),
+        RepositoryName::new("test-repo".into()).unwrap(),
+    )
 }
 
 fn minimal_config() -> ActRunConfig {
@@ -60,145 +69,120 @@ fn minimal_config() -> ActRunConfig {
 }
 
 #[test]
-fn passes_repo_path_as_positional_arg() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_repository_to_executor() {
+    let (fake, _, captured_repo) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let repo = test_repository();
 
-    service.run_act(minimal_config(), repo).unwrap();
+    service.run_act(minimal_config(), repo.clone()).unwrap();
 
-    let args = captured.borrow();
-    let expected_path = test_repository()
-        .path()
-        .as_path()
-        .to_string_lossy()
-        .into_owned();
-    assert_eq!(args[0], expected_path);
+    let captured = captured_repo.borrow();
+    assert_eq!(captured.as_ref().unwrap().path(), repo.path());
+    assert_eq!(captured.as_ref().unwrap().name(), repo.name());
 }
 
 #[test]
-fn includes_container_engine_flag() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_container_daemon_socket_config() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
 
     service
         .run_act(minimal_config(), test_repository())
         .unwrap();
 
-    let args = captured.borrow();
-    let engine_pos = args
-        .iter()
-        .position(|a| a == "--container-engine")
-        .expect("missing --container-engine");
-    assert_eq!(args[engine_pos + 1], "podman");
+    let config = captured_config.borrow();
+    assert_eq!(
+        config.as_ref().unwrap().container_daemon_socket().as_str(),
+        "unix:///run/podman/podman.sock"
+    );
 }
 
 #[test]
-fn includes_container_daemon_socket_flag() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_default_rm_and_bind_flags() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
 
     service
         .run_act(minimal_config(), test_repository())
         .unwrap();
 
-    let args = captured.borrow();
-    let socket_pos = args
-        .iter()
-        .position(|a| a == "--container-daemon-socket")
-        .expect("missing --container-daemon-socket");
-    assert_eq!(args[socket_pos + 1], "unix:///run/podman/podman.sock");
+    let config = captured_config.borrow();
+    assert!(config.as_ref().unwrap().rm());
+    assert!(config.as_ref().unwrap().bind());
 }
 
 #[test]
-fn defaults_rm_and_bind_to_true() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-
-    service
-        .run_act(minimal_config(), test_repository())
-        .unwrap();
-
-    let args = captured.borrow();
-    assert!(args.contains(&"--rm".to_string()), "expected --rm flag");
-    assert!(args.contains(&"--bind".to_string()), "expected --bind flag");
-}
-
-#[test]
-fn respects_rm_false() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_rm_false_when_disabled() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = minimal_config().with_rm(false);
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    assert!(!args.contains(&"--rm".to_string()));
+    let captured = captured_config.borrow();
+    assert!(!captured.as_ref().unwrap().rm());
 }
 
 #[test]
-fn respects_bind_false() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_bind_false_when_disabled() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = minimal_config().with_bind(false);
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    assert!(!args.contains(&"--bind".to_string()));
+    let captured = captured_config.borrow();
+    assert!(!captured.as_ref().unwrap().bind());
 }
 
 #[test]
-fn includes_workflow_when_set() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_workflow_when_set() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = minimal_config().with_workflow(ActWorkflow::new("ci.yaml".into()));
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    let wf_pos = args
-        .iter()
-        .position(|a| a == "--workflow")
-        .expect("missing --workflow");
-    assert_eq!(args[wf_pos + 1], "ci.yaml");
+    let captured = captured_config.borrow();
+    assert_eq!(
+        captured.as_ref().unwrap().workflow().unwrap().as_str(),
+        "ci.yaml"
+    );
 }
 
 #[test]
-fn includes_job_when_set() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_job_when_set() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = minimal_config().with_job(ActJob::new("build".into()));
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    let job_pos = args
-        .iter()
-        .position(|a| a == "--job")
-        .expect("missing --job");
-    assert_eq!(args[job_pos + 1], "build");
+    let captured = captured_config.borrow();
+    assert_eq!(
+        captured.as_ref().unwrap().job().unwrap().as_str(),
+        "build"
+    );
 }
 
 #[test]
-fn includes_event_when_set() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_event_when_set() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = minimal_config().with_event(ActEvent::new("push".into()));
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    let ev_pos = args
-        .iter()
-        .position(|a| a == "--event")
-        .expect("missing --event");
-    assert_eq!(args[ev_pos + 1], "push");
+    let captured = captured_config.borrow();
+    assert_eq!(
+        captured.as_ref().unwrap().event().unwrap().as_str(),
+        "push"
+    );
 }
 
 #[test]
-fn includes_inputs_as_key_equals_value() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_inputs() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = minimal_config()
         .add_input(ActInput::new("debug".into(), "true".into()))
@@ -206,36 +190,32 @@ fn includes_inputs_as_key_equals_value() {
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    let input_indices: Vec<_> = args
-        .iter()
-        .enumerate()
-        .filter(|(_, a)| *a == "--input")
-        .collect();
-    assert_eq!(input_indices.len(), 2);
-    assert_eq!(args[input_indices[0].0 + 1], "debug=true");
-    assert_eq!(args[input_indices[1].0 + 1], "target=x86_64");
+    let captured = captured_config.borrow();
+    let inputs = captured.as_ref().unwrap().inputs();
+    assert_eq!(inputs.len(), 2);
+    assert_eq!(inputs[0].key(), "debug");
+    assert_eq!(inputs[0].value(), "true");
+    assert_eq!(inputs[1].key(), "target");
+    assert_eq!(inputs[1].value(), "x86_64");
 }
 
 #[test]
-fn includes_secrets() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_secrets() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = minimal_config().add_secret(Secret::new("GITHUB_TOKEN".into()));
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    let sec_pos = args
-        .iter()
-        .position(|a| a == "--secret")
-        .expect("missing --secret");
-    assert_eq!(args[sec_pos + 1], "GITHUB_TOKEN");
+    let captured = captured_config.borrow();
+    let secrets = captured.as_ref().unwrap().secrets();
+    assert_eq!(secrets.len(), 1);
+    assert_eq!(secrets[0].as_str(), "GITHUB_TOKEN");
 }
 
 #[test]
-fn includes_extra_args() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_extra_args() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = minimal_config()
         .add_extra_arg(ActExtraArg::new("--verbose".into()))
@@ -243,20 +223,16 @@ fn includes_extra_args() {
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    let extra_indices: Vec<_> = args
-        .iter()
-        .enumerate()
-        .filter(|(_, a)| *a == "--extra-arg")
-        .collect();
-    assert_eq!(extra_indices.len(), 2);
-    assert_eq!(args[extra_indices[0].0 + 1], "--verbose");
-    assert_eq!(args[extra_indices[1].0 + 1], "--dryrun");
+    let captured = captured_config.borrow();
+    let extra_args = captured.as_ref().unwrap().extra_args();
+    assert_eq!(extra_args.len(), 2);
+    assert_eq!(extra_args[0].as_str(), "--verbose");
+    assert_eq!(extra_args[1].as_str(), "--dryrun");
 }
 
 #[test]
-fn includes_docker_engine_when_configured() {
-    let (fake, captured) = fake_executor(Ok(ok_result()));
+fn passes_docker_daemon_socket() {
+    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
     let service = RunActService::new(fake);
     let config = ActRunConfig::new(
         ContainerEngine::Docker,
@@ -265,18 +241,17 @@ fn includes_docker_engine_when_configured() {
 
     service.run_act(config, test_repository()).unwrap();
 
-    let args = captured.borrow();
-    let engine_pos = args
-        .iter()
-        .position(|a| a == "--container-engine")
-        .expect("missing --container-engine");
-    assert_eq!(args[engine_pos + 1], "docker");
+    let captured = captured_config.borrow();
+    assert_eq!(
+        captured.as_ref().unwrap().container_daemon_socket().as_str(),
+        "unix:///var/run/docker.sock"
+    );
 }
 
 #[test]
 fn propagates_executor_error() {
     let error_msg = "act: command not found".to_string();
-    let (fake, _captured) = fake_executor(Err(error_msg.clone()));
+    let (fake, _, _) = fake_executor(Err(error_msg.clone()));
     let service = RunActService::new(fake);
 
     let result = service.run_act(minimal_config(), test_repository());
@@ -297,7 +272,7 @@ fn returns_executor_success_result() {
         stdout: expected.stdout.clone(),
         stderr: expected.stderr.clone(),
     };
-    let (fake, _captured) = fake_executor(Ok(result_clone));
+    let (fake, _, _) = fake_executor(Ok(result_clone));
     let service = RunActService::new(fake);
 
     let result = service
