@@ -12,12 +12,7 @@ impl CiPlatform {
     /// - `.forgejo/` directory present → Forgejo
     /// - Otherwise → GitHub (default)
     pub fn detect(repository: &Repository) -> Self {
-        if repository
-            .path()
-            .as_path()
-            .join(".forgejo")
-            .is_dir()
-        {
+        if repository.path().as_path().join(".forgejo").is_dir() {
             CiPlatform::Forgejo
         } else {
             CiPlatform::GitHub
