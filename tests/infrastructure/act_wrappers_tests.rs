@@ -1,3 +1,7 @@
+use ephemeral_act::core::ports::outbound::ActExecutor;
+use ephemeral_act::infrastructure::actions_executor::ActionsExecutor;
+
+
 use std::fs;
 
 use ephemeral_act::core::value_objects::{
@@ -336,4 +340,80 @@ fn omits_forgejo_bind_flag_when_false() {
     let config = test_config().with_bind(false);
     let args = ForgejoActWrapper::build_args(&config, &repo);
     assert!(!args.contains(&"--bind".to_string()));
+}
+
+// ---------------------------------------------------------------------------
+// ActionsExecutor construction
+// ---------------------------------------------------------------------------
+
+#[test]
+fn actions_executor_new_creates_instance() {
+    let _executor = ActionsExecutor::new();
+}
+
+#[test]
+fn actions_executor_default_works() {
+    let _executor: ActionsExecutor = Default::default();
+}
+
+// ---------------------------------------------------------------------------
+// GitHubActWrapper::execute_act (act binary is installed)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn github_execute_act_runs_act_binary() {
+    let (_tmp, repo) = setup_repo(true, false);
+    let config = test_config();
+    let result = GitHubActWrapper.execute_act(&config, &repo);
+    // act binary is available — returns Ok(ExecutionResult) even on no workflows
+    assert!(result.is_ok(), "expected Ok when act is installed; got {:?}", result.err());
+    let execution = result.unwrap();
+    assert!(!execution.success, "no workflows found, should report failure");
+    assert!(!execution.stderr.is_empty());
+}
+
+// ---------------------------------------------------------------------------
+// ForgejoActWrapper::execute_act error path
+// ---------------------------------------------------------------------------
+
+#[test]
+fn forgejo_execute_act_errors_when_act_runner_binary_absent() {
+    let (_tmp, repo) = setup_repo(false, true);
+    let config = test_config();
+    let result = ForgejoActWrapper.execute_act(&config, &repo);
+    assert!(result.is_err(), "expected error when act_runner is not installed; got {:?}", result.ok());
+}
+
+// ---------------------------------------------------------------------------
+// ActionsExecutor::execute_act dispatch
+// ---------------------------------------------------------------------------
+
+#[test]
+fn actions_executor_dispatches_to_github_on_github_repo() {
+    let (_tmp, repo) = setup_repo(true, false);
+    let executor = ActionsExecutor::new();
+    let config = test_config();
+    let result = executor.execute_act(&config, &repo);
+    // act binary is available — dispatch succeeds but reports failure (no workflows)
+    assert!(result.is_ok());
+    let execution = result.unwrap();
+    assert!(!execution.success);
+}
+
+#[test]
+fn actions_executor_dispatches_to_forgejo_on_forgejo_repo() {
+    let (_tmp, repo) = setup_repo(false, true);
+    let executor = ActionsExecutor::new();
+    let config = test_config();
+    let result = executor.execute_act(&config, &repo);
+    assert!(result.is_err());
+}
+
+#[test]
+fn actions_executor_dispatches_to_forgejo_when_both_dirs_present() {
+    let (_tmp, repo) = setup_repo(true, true);
+    let executor = ActionsExecutor::new();
+    let config = test_config();
+    let result = executor.execute_act(&config, &repo);
+    assert!(result.is_err());
 }
