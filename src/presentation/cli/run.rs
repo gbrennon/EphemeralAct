@@ -78,7 +78,7 @@ impl RunArgs {
             config = config.with_event(ActEvent::new(event.clone()));
         }
         for input_str in &self.inputs {
-            let (k, v) = parse_key_value(input_str)?;
+            let (k, v) = Self::parse_key_value(input_str)?;
             config = config.add_input(ActInput::new(k, v));
         }
         for secret_str in &self.secrets {
@@ -96,29 +96,29 @@ impl RunArgs {
 
         Ok((config, repository))
     }
-}
 
-fn parse_key_value(s: &str) -> Result<(String, String), String> {
-    s.split_once('=')
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
-}
+    fn parse_key_value(s: &str) -> Result<(String, String), String> {
+        s.split_once('=')
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
+    }
 
-pub fn execute<U: RunActUseCase>(
-    args: RunArgs,
-    use_case: U,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let (config, repository) = args.to_domain()?;
-    let result = use_case.run_act(config, repository)?;
+    pub fn execute<U: RunActUseCase>(
+        self,
+        use_case: U,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let (config, repository) = self.to_domain()?;
+        let result = use_case.run_act(config, repository)?;
 
-    if !result.stdout.is_empty() {
-        println!("{}", result.stdout);
+        if !result.stdout.is_empty() {
+            println!("{}", result.stdout);
+        }
+        if !result.stderr.is_empty() {
+            eprintln!("{}", result.stderr);
+        }
+        if !result.success {
+            std::process::exit(1);
+        }
+        Ok(())
     }
-    if !result.stderr.is_empty() {
-        eprintln!("{}", result.stderr);
-    }
-    if !result.success {
-        std::process::exit(1);
-    }
-    Ok(())
 }

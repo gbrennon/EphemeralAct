@@ -1,4 +1,3 @@
-mod args;
 mod run;
 
 use crate::core::ports::inbound::run_act_port::RunActUseCase;
@@ -19,9 +18,12 @@ enum Command {
     Run(run::RunArgs),
 }
 
-pub fn run<U: RunActUseCase>(use_case: U) -> Result<(), Box<dyn std::error::Error>> {
-    let cli = Cli::parse();
-    match cli.command {
-        Command::Run(args) => run::execute(args, use_case),
+
+impl Cli {
+    pub fn run<U: RunActUseCase>(use_case: U) -> Result<(), Box<dyn std::error::Error>> {
+        let cli = Self::parse();
+        match cli.command {
+            Command::Run(args) => args.execute(use_case),
+        }
     }
 }
