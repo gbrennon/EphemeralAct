@@ -9,10 +9,13 @@ thiserror = "2.0.18"
 uuid = { version = "1.23.4", features = ["v4"] }
 clap = { version = "4", features = ["derive"] }
 
+[dev-dependencies]
+tempfile = "3"
+
 [[test]]
 name = "core_services_run_act_service"
 path = "tests/core/services/run_act_service_tests.rs"
 
 [[test]]
-name = "infrastructure_act_wrapper"
-path = "tests/infrastructure/act_wrapper_tests.rs"
+name = "infrastructure_act_wrappers"
+path = "tests/infrastructure/act_wrappers_tests.rs"
