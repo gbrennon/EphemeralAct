@@ -32,7 +32,11 @@ impl ActExecutor for FakeActExecutor {
 
 fn fake_executor(
     result: Result<ExecutionResult, String>,
-) -> (FakeActExecutor, Rc<RefCell<Option<ActRunConfig>>>, Rc<RefCell<Option<Repository>>>) {
+) -> (
+    FakeActExecutor,
+    Rc<RefCell<Option<ActRunConfig>>>,
+    Rc<RefCell<Option<Repository>>>,
+) {
     let captured_config = Rc::new(RefCell::new(None));
     let captured_repo = Rc::new(RefCell::new(None));
     (
@@ -159,10 +163,7 @@ fn passes_job_when_set() {
     service.run_act(config, test_repository()).unwrap();
 
     let captured = captured_config.borrow();
-    assert_eq!(
-        captured.as_ref().unwrap().job().unwrap().as_str(),
-        "build"
-    );
+    assert_eq!(captured.as_ref().unwrap().job().unwrap().as_str(), "build");
 }
 
 #[test]
@@ -174,10 +175,7 @@ fn passes_event_when_set() {
     service.run_act(config, test_repository()).unwrap();
 
     let captured = captured_config.borrow();
-    assert_eq!(
-        captured.as_ref().unwrap().event().unwrap().as_str(),
-        "push"
-    );
+    assert_eq!(captured.as_ref().unwrap().event().unwrap().as_str(), "push");
 }
 
 #[test]
@@ -243,7 +241,11 @@ fn passes_docker_daemon_socket() {
 
     let captured = captured_config.borrow();
     assert_eq!(
-        captured.as_ref().unwrap().container_daemon_socket().as_str(),
+        captured
+            .as_ref()
+            .unwrap()
+            .container_daemon_socket()
+            .as_str(),
         "unix:///var/run/docker.sock"
     );
 }
