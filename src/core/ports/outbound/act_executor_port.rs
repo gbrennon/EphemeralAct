@@ -1,5 +1,14 @@
 use crate::core::shared_types::ExecutionResult;
+use crate::core::{ActRunConfig, Repository};
 
+/// Outbound port for executing CI workflows.
+///
+/// Adapters receive the full configuration and repository and are responsible
+/// for translating the domain objects into platform-specific CLI invocations.
 pub trait ActExecutor {
-    fn execute(&self, args: &[String]) -> Result<ExecutionResult, String>;
+    fn execute_act(
+        &self,
+        config: &ActRunConfig,
+        repository: &Repository,
+    ) -> Result<ExecutionResult, String>;
 }
