@@ -29,15 +29,14 @@ impl ActExecutor for GitHubActWrapper {
 impl GitHubActWrapper {
     /// Builds GitHub Actions-specific `act` CLI arguments.
     pub fn build_args(config: &ActRunConfig, repository: &Repository) -> Vec<String> {
-        let mut args = Vec::new();
-
-        // Working directory
-        args.push("-C".to_string());
-        args.push(repository.path().as_path().to_string_lossy().into_owned());
-
-        // Container daemon socket
-        args.push("--container-daemon-socket".to_string());
-        args.push(config.container_daemon_socket().as_str().to_string());
+        let mut args = vec![
+            // Working directory
+            "-C".to_string(),
+            repository.path().as_path().to_string_lossy().into_owned(),
+            // Container daemon socket
+            "--container-daemon-socket".to_string(),
+            config.container_daemon_socket().as_str().to_string(),
+        ];
 
         // Workflow (if set)
         if let Some(workflow) = config.workflow() {

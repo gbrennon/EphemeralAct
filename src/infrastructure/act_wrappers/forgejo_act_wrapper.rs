@@ -32,19 +32,17 @@ impl ForgejoActWrapper {
     /// Uses `--workflows .forgejo/workflows/` to point at the Forgejo workflow
     /// directory since `act_runner` does not auto-detect `.forgejo/`.
     pub fn build_args(config: &ActRunConfig, repository: &Repository) -> Vec<String> {
-        let mut args = Vec::new();
-
-        // Working directory
-        args.push("-C".to_string());
-        args.push(repository.path().as_path().to_string_lossy().into_owned());
-
-        // Container daemon socket
-        args.push("--container-daemon-socket".to_string());
-        args.push(config.container_daemon_socket().as_str().to_string());
-
-        // Point at Forgejo workflows directory
-        args.push("--workflows".to_string());
-        args.push(".forgejo/workflows/".to_string());
+        let mut args = vec![
+            // Working directory
+            "-C".to_string(),
+            repository.path().as_path().to_string_lossy().into_owned(),
+            // Container daemon socket
+            "--container-daemon-socket".to_string(),
+            config.container_daemon_socket().as_str().to_string(),
+            // Point at Forgejo workflows directory
+            "--workflows".to_string(),
+            ".forgejo/workflows/".to_string(),
+        ];
 
         // Workflow (if set) — overrides the directory default
         if let Some(workflow) = config.workflow() {
