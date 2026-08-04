@@ -1,6 +1,5 @@
 use crate::core::value_objects::{
-    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerDaemonSocket, RepoPath,
-    RepositoryName, Secret,
+    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
 };
 use crate::core::{ActRunConfig, Repository};
 use clap::Args;
@@ -20,11 +19,6 @@ pub struct RunArgs {
     /// Container engine to use: `podman` (default) or `docker`.
     #[arg(long, default_value = "podman")]
     container_engine: String,
-
-    /// URI of the container daemon socket
-    /// (default: `unix:///run/podman/podman.sock`).
-    #[arg(long, default_value = "unix:///run/podman/podman.sock")]
-    container_daemon_socket: String,
 
     /// Path to the workflow file to execute (e.g. `ci.yml`).
     #[arg(long)]
@@ -46,18 +40,9 @@ pub struct RunArgs {
     #[arg(long = "secret")]
     secrets: Vec<String>,
 
-    /// Extra arguments forwarded directly to the `act` / `act_runner` binary
-    /// (repeatable).
+    /// Extra arguments forwarded directly to `act-ephemeral.sh` (repeatable).
     #[arg(long = "extra-arg")]
     extra_args: Vec<String>,
-
-    /// Remove the container after execution completes (default: `true`).
-    #[arg(long, default_value = "true", action = clap::ArgAction::Set)]
-    rm: bool,
-
-    /// Bind-mount the working directory into the container (default: `true`).
-    #[arg(long, default_value = "true", action = clap::ArgAction::Set)]
-    bind: bool,
 
     /// Preserve the ephemeral repository after execution instead of cleaning
     /// it up.
@@ -75,12 +60,11 @@ impl RunArgs {
     /// repository path is not a valid git repository.
     pub fn to_domain(&self) -> Result<(ActRunConfig, Repository), Box<dyn std::error::Error>> {
         let container_engine = self.container_engine.parse()?;
-        let daemon_socket = ContainerDaemonSocket::new(self.container_daemon_socket.clone());
         let repo_path = RepoPath::new(self.path.clone())?;
         let repo_name = RepositoryName::from_repo_path(&repo_path)?;
         let repository = Repository::new(repo_path, repo_name);
 
-        let mut config = ActRunConfig::new(container_engine, daemon_socket);
+        let mut config = ActRunConfig::new(container_engine);
 
         if let Some(ref wf) = self.workflow {
             config = config.with_workflow(ActWorkflow::new(wf.clone()));
@@ -101,22 +85,14 @@ impl RunArgs {
         for arg_str in &self.extra_args {
             config = config.add_extra_arg(ActExtraArg::new(arg_str.clone()));
         }
-        if !self.rm {
-            config = config.with_rm(false);
-        }
-        if !self.bind {
-            config = config.with_bind(false);
-        }
 
         Ok((config, repository))
     }
 
     /// Splits a `KEY=VALUE` string into its key and value components.
     ///
-    /// # Errors
-    ///
-    /// Returns a description if the string does not contain an `=` sign.
-    pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
+    /// Returns an error string if the input doesn't contain `=`.
+    fn parse_key_value(s: &str) -> Result<(String, String), String> {
         s.split_once('=')
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
@@ -153,10 +129,8 @@ mod tests {
     #[test]
     fn to_domain_defaults() {
         let args = parse_run_args(&[]);
-        let (config, repo) = args.to_domain().unwrap();
+        let (_config, repo) = args.to_domain().unwrap();
         assert!(!repo.name().as_str().is_empty());
-        assert!(config.rm());
-        assert!(config.bind());
     }
 
     #[test]
@@ -216,20 +190,6 @@ mod tests {
     }
 
     #[test]
-    fn to_domain_rm_false() {
-        let args = parse_run_args(&["--rm=false"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        assert!(!config.rm());
-    }
-
-    #[test]
-    fn to_domain_bind_false() {
-        let args = parse_run_args(&["--bind=false"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        assert!(!config.bind());
-    }
-
-    #[test]
     fn to_domain_container_engine_docker() {
         let args = parse_run_args(&["--container-engine", "docker"]);
         let (config, _repo) = args.to_domain().unwrap();
@@ -244,15 +204,5 @@ mod tests {
         let args = parse_run_args(&["--container-engine", "invalid"]);
         let err = args.to_domain().unwrap_err();
         assert!(err.to_string().contains("invalid"));
-    }
-
-    #[test]
-    fn to_domain_custom_socket() {
-        let args = parse_run_args(&["--container-daemon-socket", "unix:///custom.sock"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        assert_eq!(
-            config.container_daemon_socket().as_str(),
-            "unix:///custom.sock"
-        );
     }
 }

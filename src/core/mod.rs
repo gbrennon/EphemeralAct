@@ -12,8 +12,8 @@ pub use self::entities::ephemeral_repository::{EphemeralRepository, TempDirTempl
 pub use self::entities::repository::Repository;
 pub use self::errors::CoreError;
 pub use self::value_objects::{
-    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, CleanupPolicy, ContainerDaemonSocket,
-    ContainerEngine, GitDirKind, RepoPath, RepositoryName, Secret,
+    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, CleanupPolicy, ContainerEngine,
+    GitDirKind, RepoPath, RepositoryName, Secret,
 };
 pub use shared_types::ExecutionResult;
 
