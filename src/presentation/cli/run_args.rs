@@ -1,4 +1,3 @@
-use crate::core::ports::inbound::run_act_port::RunActUseCase;
 use crate::core::value_objects::{
     ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerDaemonSocket, RepoPath,
     RepositoryName, Secret,
@@ -7,58 +6,73 @@ use crate::core::{ActRunConfig, Repository};
 use clap::Args;
 use std::path::PathBuf;
 
+/// CLI arguments for the `run` subcommand.
+///
+/// Parses all user-supplied options (workflow, job, event, inputs, secrets,
+/// container engine, etc.) and maps them into the domain model via
+/// [`to_domain`](Self::to_domain).
 #[derive(Args)]
 pub struct RunArgs {
-    /// Path to the repository
+    /// Path to the repository (defaults to the current directory).
     #[arg(default_value = ".")]
     path: PathBuf,
 
-    /// Container engine (podman or docker)
+    /// Container engine to use: `podman` (default) or `docker`.
     #[arg(long, default_value = "podman")]
     container_engine: String,
 
-    /// Container daemon socket URI
+    /// URI of the container daemon socket
+    /// (default: `unix:///run/podman/podman.sock`).
     #[arg(long, default_value = "unix:///run/podman/podman.sock")]
     container_daemon_socket: String,
 
-    /// Workflow file path
+    /// Path to the workflow file to execute (e.g. `ci.yml`).
     #[arg(long)]
     workflow: Option<String>,
 
-    /// Job name
+    /// Specific job name to run from the workflow.
     #[arg(long)]
     job: Option<String>,
 
-    /// Event name
+    /// Event name that triggers the workflow (e.g. `push`, `pull_request`).
     #[arg(long)]
     event: Option<String>,
 
-    /// Inputs in key=value format (repeatable)
+    /// Workflow inputs in `KEY=VALUE` format (repeatable).
     #[arg(long = "input", value_name = "KEY=VALUE")]
     inputs: Vec<String>,
 
-    /// Secrets (repeatable)
+    /// Secrets to inject into the workflow (repeatable).
     #[arg(long = "secret")]
     secrets: Vec<String>,
 
-    /// Extra arguments passed through to act (repeatable)
+    /// Extra arguments forwarded directly to the `act` / `act_runner` binary
+    /// (repeatable).
     #[arg(long = "extra-arg")]
     extra_args: Vec<String>,
 
-    /// Remove container after execution (default: true)
+    /// Remove the container after execution completes (default: `true`).
     #[arg(long, default_value = "true", action = clap::ArgAction::Set)]
     rm: bool,
 
-    /// Bind mount working directory (default: true)
+    /// Bind-mount the working directory into the container (default: `true`).
     #[arg(long, default_value = "true", action = clap::ArgAction::Set)]
     bind: bool,
 
-    /// Preserve the ephemeral repository after execution
+    /// Preserve the ephemeral repository after execution instead of cleaning
+    /// it up.
     #[arg(long)]
     preserve: bool,
 }
 
 impl RunArgs {
+    /// Converts CLI arguments into the domain model: an [`ActRunConfig`] and a
+    /// [`Repository`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the container engine string is unrecognised or the
+    /// repository path is not a valid git repository.
     pub fn to_domain(&self) -> Result<(ActRunConfig, Repository), Box<dyn std::error::Error>> {
         let container_engine = self.container_engine.parse()?;
         let daemon_socket = ContainerDaemonSocket::new(self.container_daemon_socket.clone());
@@ -97,68 +111,34 @@ impl RunArgs {
         Ok((config, repository))
     }
 
-    fn parse_key_value(s: &str) -> Result<(String, String), String> {
+    /// Splits a `KEY=VALUE` string into its key and value components.
+    ///
+    /// # Errors
+    ///
+    /// Returns a description if the string does not contain an `=` sign.
+    pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
         s.split_once('=')
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
-    }
-
-    pub fn execute<U: RunActUseCase>(self, use_case: U) -> Result<(), Box<dyn std::error::Error>> {
-        let (config, repository) = self.to_domain()?;
-        let result = use_case.run_act(config, repository)?;
-
-        if !result.stdout.is_empty() {
-            println!("{}", result.stdout);
-        }
-        if !result.stderr.is_empty() {
-            eprintln!("{}", result.stderr);
-        }
-        if !result.success {
-            return Err("workflow failed".into());
-        }
-        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::ports::inbound::run_act_port::RunActUseCase;
-    use crate::core::shared_types::ExecutionResult;
     use clap::Parser;
-
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
-
-    struct StubUseCase {
-        result: Result<ExecutionResult, String>,
-    }
-
-    impl RunActUseCase for StubUseCase {
-        fn run_act(
-            &self,
-            _config: ActRunConfig,
-            _repository: Repository,
-        ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
-            self.result
-                .clone()
-                .map_err(|e| Box::<dyn std::error::Error>::from(e))
-        }
-    }
 
     fn parse_run_args(args: &[&str]) -> RunArgs {
         let mut full: Vec<&str> = vec!["ephemeral-act", "run"];
         full.extend_from_slice(args);
-        let cli = crate::presentation::cli::Cli::parse_from(&full);
+        let cli = crate::presentation::cli::CliParser::parse_from(&full);
         match cli.command {
-            crate::presentation::cli::Command::Run(args) => args,
+            crate::presentation::cli::Command::Run(args) => *args,
+            crate::presentation::cli::Command::Usage => {
+                panic!("expected Run subcommand, got Usage")
+            }
         }
     }
-
-    // -----------------------------------------------------------------------
-    // parse_key_value
-    // -----------------------------------------------------------------------
 
     #[test]
     fn parse_key_value_with_equals() {
@@ -172,10 +152,6 @@ mod tests {
         let err = RunArgs::parse_key_value("no_equals").unwrap_err();
         assert!(err.contains("KEY=VALUE"));
     }
-
-    // -----------------------------------------------------------------------
-    // to_domain
-    // -----------------------------------------------------------------------
 
     #[test]
     fn to_domain_defaults() {
@@ -255,6 +231,7 @@ mod tests {
         let (config, _repo) = args.to_domain().unwrap();
         assert!(!config.bind());
     }
+
     #[test]
     fn to_domain_container_engine_docker() {
         let args = parse_run_args(&["--container-engine", "docker"]);
@@ -276,48 +253,9 @@ mod tests {
     fn to_domain_custom_socket() {
         let args = parse_run_args(&["--container-daemon-socket", "unix:///custom.sock"]);
         let (config, _repo) = args.to_domain().unwrap();
-        assert_eq!(config.container_daemon_socket().as_str(), "unix:///custom.sock");
-    }
-
-    // -----------------------------------------------------------------------
-    // execute
-    // -----------------------------------------------------------------------
-
-    #[test]
-    fn execute_success_with_output() {
-        let args = parse_run_args(&[]);
-        let use_case = StubUseCase {
-            result: Ok(ExecutionResult {
-                success: true,
-                stdout: "build completed".into(),
-                stderr: String::new(),
-            }),
-        };
-        let result = args.execute(use_case);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn execute_failure_with_stderr() {
-        let args = parse_run_args(&[]);
-        let use_case = StubUseCase {
-            result: Ok(ExecutionResult {
-                success: false,
-                stdout: String::new(),
-                stderr: "error: build failed".into(),
-            }),
-        };
-        let err = args.execute(use_case).unwrap_err();
-        assert!(err.to_string().contains("workflow failed"));
-    }
-
-    #[test]
-    fn execute_use_case_error_propagates() {
-        let args = parse_run_args(&[]);
-        let use_case = StubUseCase {
-            result: Err("something broke".into()),
-        };
-        let err = args.execute(use_case).unwrap_err();
-        assert!(err.to_string().contains("something broke"));
+        assert_eq!(
+            config.container_daemon_socket().as_str(),
+            "unix:///custom.sock"
+        );
     }
 }
