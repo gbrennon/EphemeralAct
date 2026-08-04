@@ -7,6 +7,24 @@ pub enum ContainerEngine {
     Docker,
 }
 
+impl ContainerEngine {
+    /// Returns the CLI name for the container engine.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use ephemeral_act::core::value_objects::ContainerEngine;
+    /// assert_eq!(ContainerEngine::Podman.as_str(), "podman");
+    /// assert_eq!(ContainerEngine::Docker.as_str(), "docker");
+    /// ```
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Podman => "podman",
+            Self::Docker => "docker",
+        }
+    }
+}
+
 impl FromStr for ContainerEngine {
     type Err = CoreError;
 

@@ -33,7 +33,7 @@ impl ActExecutor for ActionsExecutor {
         config: &ActRunConfig,
         repository: &Repository,
     ) -> Result<ExecutionResult, String> {
-        let platform = CiPlatform::detect(repository);
+        let platform = CiPlatform::detect(repository)?;
         match platform {
             CiPlatform::Forgejo => self.forgejo.execute_act(config, repository),
             CiPlatform::GitHub => self.github.execute_act(config, repository),
