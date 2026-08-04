@@ -115,7 +115,7 @@ mod tests {
         ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
             self.result
                 .clone()
-                .map_err(|e| Box::<dyn std::error::Error>::from(e))
+                .map_err(Box::<dyn std::error::Error>::from)
         }
     }
 
