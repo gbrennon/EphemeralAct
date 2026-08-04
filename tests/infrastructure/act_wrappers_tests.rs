@@ -1,7 +1,6 @@
 use ephemeral_act::core::ports::outbound::ActExecutor;
 use ephemeral_act::infrastructure::actions_executor::ActionsExecutor;
 
-
 use std::fs;
 
 use ephemeral_act::core::value_objects::{
@@ -366,9 +365,16 @@ fn github_execute_act_runs_act_binary() {
     let config = test_config();
     let result = GitHubActWrapper.execute_act(&config, &repo);
     // act binary is available — returns Ok(ExecutionResult) even on no workflows
-    assert!(result.is_ok(), "expected Ok when act is installed; got {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "expected Ok when act is installed; got {:?}",
+        result.err()
+    );
     let execution = result.unwrap();
-    assert!(!execution.success, "no workflows found, should report failure");
+    assert!(
+        !execution.success,
+        "no workflows found, should report failure"
+    );
     assert!(!execution.stderr.is_empty());
 }
 
@@ -381,7 +387,11 @@ fn forgejo_execute_act_errors_when_act_runner_binary_absent() {
     let (_tmp, repo) = setup_repo(false, true);
     let config = test_config();
     let result = ForgejoActWrapper.execute_act(&config, &repo);
-    assert!(result.is_err(), "expected error when act_runner is not installed; got {:?}", result.ok());
+    assert!(
+        result.is_err(),
+        "expected error when act_runner is not installed; got {:?}",
+        result.ok()
+    );
 }
 
 // ---------------------------------------------------------------------------
