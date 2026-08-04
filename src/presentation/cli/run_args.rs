@@ -134,9 +134,6 @@ mod tests {
         let cli = crate::presentation::cli::CliParser::parse_from(&full);
         match cli.command {
             crate::presentation::cli::Command::Run(args) => *args,
-            crate::presentation::cli::Command::Usage => {
-                panic!("expected Run subcommand, got Usage")
-            }
         }
     }
 

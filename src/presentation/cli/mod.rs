@@ -1,9 +1,9 @@
-mod help_handler;
 mod run_args;
 mod run_handler;
 
 use crate::core::ports::inbound::run_act_port::RunActUseCase;
 use clap::{Parser, Subcommand};
+use std::io::Write;
 
 /// CLI argument parser backed by clap.
 ///
@@ -12,7 +12,20 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(
     name = "ephemeral-act",
-    about = "Run GitHub Actions locally in ephemeral repositories"
+    about = "Run GitHub Actions locally in ephemeral repositories",
+    long_about = "Runs GitHub Actions (`act`) or Forgejo Actions (`act_runner`) \
+                  workflows in an ephemeral copy of a repository. The CI host is \
+                  auto-detected from the repository layout; see `run --help` for \
+                  the available options.",
+    arg_required_else_help = true,
+    after_long_help = r#"EXAMPLES:
+    ephemeral-act run
+    ephemeral-act run --workflow ci.yml --job test
+    ephemeral-act run --event push --secret TOKEN=abc123
+    ephemeral-act run --container-engine docker --rm=false
+
+The `run` subcommand wraps `act` (GitHub Actions) or `act_runner` (Forgejo).
+EphemeralAct auto-detects the CI host by inspecting the repository layout."#
 )]
 struct CliParser {
     #[command(subcommand)]
@@ -23,8 +36,6 @@ struct CliParser {
 pub(crate) enum Command {
     /// Execute a CI workflow in an ephemeral repository.
     Run(Box<run_args::RunArgs>),
-    /// Print usage information and examples.
-    Usage,
 }
 
 /// Entry point for the presentation layer.
@@ -46,10 +57,22 @@ impl Cli {
 
     /// Parses CLI arguments and dispatches to the appropriate handler.
     ///
+    /// Running without arguments prints the help to stdout and exits cleanly.
     /// On workflow failure the error is printed to stderr and the process
     /// exits with code 1 (matching the behaviour of `act` / `act_runner`).
     pub fn run(self) -> Result<(), Box<dyn std::error::Error>> {
-        let cli = CliParser::parse();
+        let cli = match CliParser::try_parse() {
+            Ok(cli) => cli,
+            Err(e)
+                if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand =>
+            {
+                let mut stdout = std::io::stdout();
+                write!(stdout, "{e}").map_err(|io| io.to_string())?;
+                stdout.flush().map_err(|io| io.to_string())?;
+                return Ok(());
+            }
+            Err(e) => e.exit(),
+        };
         match cli.command {
             Command::Run(args) => {
                 if let Err(e) = run_handler::RunHandler::handle(*args, &*self.use_case) {
@@ -58,7 +81,6 @@ impl Cli {
                 }
                 Ok(())
             }
-            Command::Usage => help_handler::HelpHandler::handle(),
         }
     }
 }
@@ -73,7 +95,6 @@ pub(crate) fn parse_run_test_args(args: &[&str]) -> run_args::RunArgs {
     let cli = CliParser::parse_from(&full);
     match cli.command {
         Command::Run(args) => *args,
-        Command::Usage => panic!("expected Run subcommand, got Usage"),
     }
 }
 
@@ -126,8 +147,15 @@ mod tests {
     }
 
     #[test]
-    fn usage_subcommand_parses() {
-        let cli = CliParser::parse_from(&["ephemeral-act", "usage"]);
-        assert!(matches!(cli.command, Command::Usage));
+    fn no_args_displays_help() {
+        let result = CliParser::try_parse_from(["ephemeral-act"]);
+        let err = match result {
+            Ok(_) => panic!("expected missing-command error"),
+            Err(e) => e,
+        };
+        assert_eq!(
+            err.kind(),
+            clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+        );
     }
 }
