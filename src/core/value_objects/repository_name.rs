@@ -25,7 +25,7 @@ impl RepositoryName {
         }
     }
 
-    /// Derives a repository name from the final component of a [`RepoPath`].
+    /// Derives a repository name from the final component of a [`RepoPath`](super::repo_path::RepoPath).
     ///
     /// Returns [`CoreError::EmptyRepositoryName`] if the path has no file name.
     ///
