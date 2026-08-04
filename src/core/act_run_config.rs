@@ -1,11 +1,9 @@
 use crate::core::value_objects::{
-    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerDaemonSocket, ContainerEngine,
-    Secret,
+    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerEngine, Secret,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActRunConfig {
-    container_daemon_socket: ContainerDaemonSocket,
     container_engine: ContainerEngine,
     workflow: Option<ActWorkflow>,
     job: Option<ActJob>,
@@ -13,43 +11,30 @@ pub struct ActRunConfig {
     inputs: Vec<ActInput>,
     secrets: Vec<Secret>,
     extra_args: Vec<ActExtraArg>,
-    rm: bool,
-    bind: bool,
 }
 
 /// Constructors for [`ActRunConfig`].
 impl ActRunConfig {
-    /// Creates a new config with the given container engine, daemon socket, and
-    /// sensible defaults.
-    ///
-    /// Both `--rm` and `--bind` default to `true`, matching the act CLI's typical
-    /// invocation.
+    /// Creates a new config with the given container engine and sensible
+    /// defaults.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::{ContainerDaemonSocket, ContainerEngine};
+    /// # use ephemeral_act::core::value_objects::ContainerEngine;
     /// # use ephemeral_act::core::ActRunConfig;
-    /// let config = ActRunConfig::new(
-    ///     ContainerEngine::Podman,
-    ///     ContainerDaemonSocket::new("unix:///run/podman/podman.sock".into()),
-    /// );
-    /// assert!(config.rm());
-    pub fn new(
-        container_engine: ContainerEngine,
-        container_daemon_socket: ContainerDaemonSocket,
-    ) -> Self {
+    /// let config = ActRunConfig::new(ContainerEngine::Podman);
+    /// assert_eq!(config.container_engine(), &ContainerEngine::Podman);
+    /// ```
+    pub fn new(container_engine: ContainerEngine) -> Self {
         Self {
             container_engine,
-            container_daemon_socket,
             workflow: None,
             job: None,
             event: None,
             inputs: Vec::new(),
             secrets: Vec::new(),
             extra_args: Vec::new(),
-            rm: true,
-            bind: true,
         }
     }
 }
@@ -86,38 +71,15 @@ impl ActRunConfig {
         self
     }
 
-    /// Adds an extra argument passed after `--` to act.
+    /// Adds an extra argument passed after `--` to act-ephemeral.sh.
     pub fn add_extra_arg(mut self, arg: ActExtraArg) -> Self {
         self.extra_args.push(arg);
-        self
-    }
-
-    /// Sets whether `--rm` is passed to act (default: `true`).
-    pub fn with_rm(mut self, rm: bool) -> Self {
-        self.rm = rm;
-        self
-    }
-
-    /// Sets the container daemon socket path (`--container-daemon-socket`).
-    pub fn with_container_daemon_socket(mut self, socket: ContainerDaemonSocket) -> Self {
-        self.container_daemon_socket = socket;
-        self
-    }
-
-    /// Sets whether `--bind` is passed to act (default: `true`).
-    pub fn with_bind(mut self, bind: bool) -> Self {
-        self.bind = bind;
         self
     }
 }
 
 /// Read-only access to each field of [`ActRunConfig`].
 impl ActRunConfig {
-    /// Returns the container daemon socket path.
-    pub fn container_daemon_socket(&self) -> &ContainerDaemonSocket {
-        &self.container_daemon_socket
-    }
-
     /// Returns the container engine.
     pub fn container_engine(&self) -> &ContainerEngine {
         &self.container_engine
@@ -152,16 +114,6 @@ impl ActRunConfig {
     pub fn extra_args(&self) -> &[ActExtraArg] {
         &self.extra_args
     }
-
-    /// Returns whether `--rm` is enabled.
-    pub fn rm(&self) -> bool {
-        self.rm
-    }
-
-    /// Returns whether `--bind` is enabled.
-    pub fn bind(&self) -> bool {
-        self.bind
-    }
 }
 
 /// Validate a fully-built [`ActRunConfig`] before it is passed to the act
@@ -175,34 +127,22 @@ mod tests {
 
     #[test]
     fn new_config_starts_with_defaults() {
-        let config = ActRunConfig::new(
-            ContainerEngine::Podman,
-            ContainerDaemonSocket::new("unix:///tmp/test.sock".into()),
-        );
+        let config = ActRunConfig::new(ContainerEngine::Podman);
         assert_eq!(config.container_engine(), &ContainerEngine::Podman);
-        assert_eq!(
-            config.container_daemon_socket().as_str(),
-            "unix:///tmp/test.sock"
-        );
         assert!(config.workflow().is_none());
         assert!(config.job().is_none());
         assert!(config.event().is_none());
         assert!(config.inputs().is_empty());
         assert!(config.secrets().is_empty());
         assert!(config.extra_args().is_empty());
-        assert!(config.rm());
-        assert!(config.bind());
     }
 
     #[test]
     fn builder_adds_workflow_job_and_event() {
-        let config = ActRunConfig::new(
-            ContainerEngine::Docker,
-            ContainerDaemonSocket::new("unix:///tmp/test.sock".into()),
-        )
-        .with_workflow(ActWorkflow::new(".github/workflows/ci.yml".into()))
-        .with_job(ActJob::new("test".into()))
-        .with_event(ActEvent::new("push".into()));
+        let config = ActRunConfig::new(ContainerEngine::Docker)
+            .with_workflow(ActWorkflow::new(".github/workflows/ci.yml".into()))
+            .with_job(ActJob::new("test".into()))
+            .with_event(ActEvent::new("push".into()));
 
         assert_eq!(
             config.workflow().unwrap().as_str(),
@@ -214,47 +154,12 @@ mod tests {
 
     #[test]
     fn builder_adds_inputs_and_extra_args() {
-        let config = ActRunConfig::new(
-            ContainerEngine::Podman,
-            ContainerDaemonSocket::new("unix:///tmp/test.sock".into()),
-        )
-        .add_input(ActInput::new("environment".into(), "staging".into()))
-        .add_extra_arg(ActExtraArg::new("--verbose".into()));
+        let config = ActRunConfig::new(ContainerEngine::Podman)
+            .add_input(ActInput::new("environment".into(), "staging".into()))
+            .add_extra_arg(ActExtraArg::new("--verbose".into()));
 
         assert_eq!(config.inputs()[0].key(), "environment");
         assert_eq!(config.inputs()[0].value(), "staging");
         assert_eq!(config.extra_args()[0].as_str(), "--verbose");
-    }
-
-    #[test]
-    fn with_rm_overrides_default() {
-        let config = ActRunConfig::new(
-            ContainerEngine::Podman,
-            ContainerDaemonSocket::new("unix:///tmp/test.sock".into()),
-        )
-        .with_rm(false);
-        assert!(!config.rm());
-    }
-
-    #[test]
-    fn with_bind_overrides_default() {
-        let config = ActRunConfig::new(
-            ContainerEngine::Podman,
-            ContainerDaemonSocket::new("unix:///tmp/test.sock".into()),
-        )
-        .with_bind(false);
-        assert!(!config.bind());
-    }
-
-    #[test]
-    fn new_config_stores_socket() {
-        let config = ActRunConfig::new(
-            ContainerEngine::Podman,
-            ContainerDaemonSocket::new("unix:///run/user/1000/podman/podman.sock".into()),
-        );
-        assert_eq!(
-            config.container_daemon_socket().as_str(),
-            "unix:///run/user/1000/podman/podman.sock"
-        );
     }
 }

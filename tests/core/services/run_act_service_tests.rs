@@ -3,8 +3,8 @@ use ephemeral_act::core::ports::outbound::ActExecutor;
 use ephemeral_act::core::services::run_act_service::RunActService;
 use ephemeral_act::core::shared_types::ExecutionResult;
 use ephemeral_act::core::value_objects::{
-    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerDaemonSocket, ContainerEngine,
-    RepoPath, RepositoryName, Secret,
+    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerEngine, RepoPath,
+    RepositoryName, Secret,
 };
 use ephemeral_act::core::{ActRunConfig, Repository};
 use std::cell::RefCell;
@@ -29,14 +29,15 @@ impl ActExecutor for FakeActExecutor {
         self.result.as_ref().clone()
     }
 }
-
-fn fake_executor(
-    result: Result<ExecutionResult, String>,
-) -> (
+type ExecutorFixture = (
     FakeActExecutor,
     Rc<RefCell<Option<ActRunConfig>>>,
     Rc<RefCell<Option<Repository>>>,
-) {
+);
+
+fn fake_executor(
+    result: Result<ExecutionResult, String>,
+) -> ExecutorFixture {
     let captured_config = Rc::new(RefCell::new(None));
     let captured_repo = Rc::new(RefCell::new(None));
     (
@@ -66,10 +67,7 @@ fn test_repository() -> Repository {
 }
 
 fn minimal_config() -> ActRunConfig {
-    ActRunConfig::new(
-        ContainerEngine::Podman,
-        ContainerDaemonSocket::new("unix:///run/podman/podman.sock".into()),
-    )
+    ActRunConfig::new(ContainerEngine::Podman)
 }
 
 #[test]
@@ -83,60 +81,6 @@ fn passes_repository_to_executor() {
     let captured = captured_repo.borrow();
     assert_eq!(captured.as_ref().unwrap().path(), repo.path());
     assert_eq!(captured.as_ref().unwrap().name(), repo.name());
-}
-
-#[test]
-fn passes_container_daemon_socket_config() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-
-    service
-        .run_act(minimal_config(), test_repository())
-        .unwrap();
-
-    let config = captured_config.borrow();
-    assert_eq!(
-        config.as_ref().unwrap().container_daemon_socket().as_str(),
-        "unix:///run/podman/podman.sock"
-    );
-}
-
-#[test]
-fn passes_default_rm_and_bind_flags() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-
-    service
-        .run_act(minimal_config(), test_repository())
-        .unwrap();
-
-    let config = captured_config.borrow();
-    assert!(config.as_ref().unwrap().rm());
-    assert!(config.as_ref().unwrap().bind());
-}
-
-#[test]
-fn passes_rm_false_when_disabled() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = minimal_config().with_rm(false);
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    assert!(!captured.as_ref().unwrap().rm());
-}
-
-#[test]
-fn passes_bind_false_when_disabled() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = minimal_config().with_bind(false);
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    assert!(!captured.as_ref().unwrap().bind());
 }
 
 #[test]
@@ -226,28 +170,6 @@ fn passes_extra_args() {
     assert_eq!(extra_args.len(), 2);
     assert_eq!(extra_args[0].as_str(), "--verbose");
     assert_eq!(extra_args[1].as_str(), "--dryrun");
-}
-
-#[test]
-fn passes_docker_daemon_socket() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = ActRunConfig::new(
-        ContainerEngine::Docker,
-        ContainerDaemonSocket::new("unix:///var/run/docker.sock".into()),
-    );
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    assert_eq!(
-        captured
-            .as_ref()
-            .unwrap()
-            .container_daemon_socket()
-            .as_str(),
-        "unix:///var/run/docker.sock"
-    );
 }
 
 #[test]

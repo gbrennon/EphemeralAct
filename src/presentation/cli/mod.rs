@@ -13,19 +13,18 @@ use std::io::Write;
 #[command(
     name = "ephemeral-act",
     about = "Run GitHub Actions locally in ephemeral repositories",
-    long_about = "Runs GitHub Actions (`act`) or Forgejo Actions (`act_runner`) \
-                  workflows in an ephemeral copy of a repository. The CI host is \
-                  auto-detected from the repository layout; see `run --help` for \
-                  the available options.",
+    long_about = "Runs CI workflows in an ephemeral copy of a repository using \
+                  `act-ephemeral.sh`. The CI host is auto-detected from the \
+                  repository layout; see `run --help` for the available options.",
     arg_required_else_help = true,
     after_long_help = r#"EXAMPLES:
     ephemeral-act run
     ephemeral-act run --workflow ci.yml --job test
     ephemeral-act run --event push --secret TOKEN=abc123
-    ephemeral-act run --container-engine docker --rm=false
+    ephemeral-act run --container-engine docker
 
-The `run` subcommand wraps `act` (GitHub Actions) or `act_runner` (Forgejo).
-EphemeralAct auto-detects the CI host by inspecting the repository layout."#
+The `run` subcommand delegates to `act-ephemeral.sh`, which auto-detects the
+CI host from the repository layout and manages ephemeral copies internally."#
 )]
 struct CliParser {
     #[command(subcommand)]
@@ -116,7 +115,7 @@ mod tests {
         ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
             self.result
                 .clone()
-                .map_err(|e| Box::<dyn std::error::Error>::from(e))
+                .map_err(Box::<dyn std::error::Error>::from)
         }
     }
 
