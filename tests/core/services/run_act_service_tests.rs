@@ -1,14 +1,15 @@
-use ephemeral_act::core::ports::inbound::run_act_port::RunActUseCase;
-use ephemeral_act::core::ports::outbound::ActExecutor;
-use ephemeral_act::core::services::run_act_service::RunActService;
-use ephemeral_act::core::shared_types::ExecutionResult;
-use ephemeral_act::core::value_objects::{
-    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerEngine, RepoPath,
-    RepositoryName, Secret,
+use std::{cell::RefCell, rc::Rc};
+
+use ephemeral_act::core::{
+    ActRunConfig, Repository,
+    ports::{inbound::run_act_port::RunActUseCase, outbound::ActExecutor},
+    services::run_act_service::RunActService,
+    shared_types::ExecutionResult,
+    value_objects::{
+        ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerEngine, RepoPath,
+        RepositoryName, Secret,
+    },
 };
-use ephemeral_act::core::{ActRunConfig, Repository};
-use std::cell::RefCell;
-use std::rc::Rc;
 
 /// Lightweight fake that records received config + repository and returns a
 /// pre-configured result.
@@ -35,9 +36,7 @@ type ExecutorFixture = (
     Rc<RefCell<Option<Repository>>>,
 );
 
-fn fake_executor(
-    result: Result<ExecutionResult, String>,
-) -> ExecutorFixture {
+fn fake_executor(result: Result<ExecutionResult, String>) -> ExecutorFixture {
     let captured_config = Rc::new(RefCell::new(None));
     let captured_repo = Rc::new(RefCell::new(None));
     (

@@ -1,5 +1,4 @@
-use ephemeral_act::infrastructure::Container;
-use ephemeral_act::presentation::composition_root::CompositionRoot;
+use ephemeral_act::{infrastructure::Container, presentation::composition_root::CompositionRoot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let use_case = Container::build();

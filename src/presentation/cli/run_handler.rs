@@ -1,6 +1,5 @@
-use crate::core::ports::inbound::run_act_port::RunActUseCase;
-
 use super::run_args::RunArgs;
+use crate::core::ports::inbound::run_act_port::RunActUseCase;
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
 /// application use case.
