@@ -1,9 +1,13 @@
-use crate::core::value_objects::{
-    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
-};
-use crate::core::{ActRunConfig, Repository};
-use clap::Args;
 use std::path::PathBuf;
+
+use clap::Args;
+
+use crate::core::{
+    ActRunConfig, Repository,
+    value_objects::{
+        ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
+    },
+};
 
 /// CLI arguments for the `run` subcommand.
 ///
@@ -101,8 +105,9 @@ impl RunArgs {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use clap::Parser;
+
+    use super::*;
 
     fn parse_run_args(args: &[&str]) -> RunArgs {
         let mut full: Vec<&str> = vec!["ephemeral-act", "run"];

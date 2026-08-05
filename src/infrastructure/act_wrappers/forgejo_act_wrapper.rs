@@ -1,7 +1,8 @@
-use crate::core::ports::outbound::ActExecutor;
-use crate::core::shared_types::ExecutionResult;
-use crate::core::{ActRunConfig, Repository};
 use std::process::Command;
+
+use crate::core::{
+    ActRunConfig, Repository, ports::outbound::ActExecutor, shared_types::ExecutionResult,
+};
 
 /// Executes Forgejo Actions workflows via the `act-ephemeral.sh` wrapper.
 pub struct ForgejoActWrapper;

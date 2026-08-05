@@ -37,8 +37,9 @@ impl Repository {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::env;
+
+    use super::*;
 
     fn repo_path() -> RepoPath {
         let crate_root = env::var("CARGO_MANIFEST_DIR").unwrap();

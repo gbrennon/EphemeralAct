@@ -1,9 +1,11 @@
 mod run_args;
 mod run_handler;
 
-use crate::core::ports::inbound::run_act_port::RunActUseCase;
-use clap::{Parser, Subcommand};
 use std::io::Write;
+
+use clap::{Parser, Subcommand};
+
+use crate::core::ports::inbound::run_act_port::RunActUseCase;
 
 /// CLI argument parser backed by clap.
 ///
@@ -100,8 +102,7 @@ pub(crate) fn parse_run_test_args(args: &[&str]) -> run_args::RunArgs {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::ports::inbound::run_act_port::RunActUseCase;
-    use crate::core::shared_types::ExecutionResult;
+    use crate::core::{ports::inbound::run_act_port::RunActUseCase, shared_types::ExecutionResult};
 
     struct StubUseCase {
         result: Result<ExecutionResult, String>,

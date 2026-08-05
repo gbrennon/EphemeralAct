@@ -85,8 +85,9 @@ impl RepoPath {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::env;
+
+    use super::*;
 
     #[test]
     fn new_with_valid_git_repo_succeeds() {

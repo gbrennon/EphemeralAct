@@ -1,5 +1,4 @@
-use crate::core::shared_types::ExecutionResult;
-use crate::core::{ActRunConfig, Repository};
+use crate::core::{ActRunConfig, Repository, shared_types::ExecutionResult};
 
 /// Outbound port for executing CI workflows.
 ///

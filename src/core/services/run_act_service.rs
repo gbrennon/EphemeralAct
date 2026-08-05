@@ -1,7 +1,8 @@
-use crate::core::ports::inbound::run_act_port::RunActUseCase;
-use crate::core::ports::outbound::ActExecutor;
-use crate::core::shared_types::ExecutionResult;
-use crate::core::{ActRunConfig, Repository};
+use crate::core::{
+    ActRunConfig, Repository,
+    ports::{inbound::run_act_port::RunActUseCase, outbound::ActExecutor},
+    shared_types::ExecutionResult,
+};
 
 /// Application service that delegates CI workflow execution to an
 /// [`ActExecutor`] adapter.

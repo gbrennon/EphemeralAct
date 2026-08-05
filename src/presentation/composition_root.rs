@@ -1,5 +1,4 @@
-use crate::core::ports::inbound::run_act_port::RunActUseCase;
-use crate::presentation::cli::Cli;
+use crate::{core::ports::inbound::run_act_port::RunActUseCase, presentation::cli::Cli};
 
 /// Fully-wired presentation layer, returned by [`CompositionRoot::compose`].
 ///
