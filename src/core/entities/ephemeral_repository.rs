@@ -69,9 +69,10 @@ impl EphemeralRepository {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
     use super::*;
     use crate::core::value_objects::RepoPath;
-    use std::env;
 
     fn source_repo() -> Repository {
         let crate_root = env::var("CARGO_MANIFEST_DIR").unwrap();

@@ -9,13 +9,15 @@ pub mod repo_path;
 pub mod repository_name;
 pub mod secret;
 
-pub use self::act_event::ActEvent;
-pub use self::act_extra_arg::ActExtraArg;
-pub use self::act_input::ActInput;
-pub use self::act_job::ActJob;
-pub use self::act_workflow::ActWorkflow;
-pub use self::cleanup_policy::CleanupPolicy;
-pub use self::container_engine::ContainerEngine;
-pub use self::repo_path::{GitDirKind, RepoPath};
-pub use self::repository_name::RepositoryName;
-pub use self::secret::Secret;
+pub use self::{
+    act_event::ActEvent,
+    act_extra_arg::ActExtraArg,
+    act_input::ActInput,
+    act_job::ActJob,
+    act_workflow::ActWorkflow,
+    cleanup_policy::CleanupPolicy,
+    container_engine::ContainerEngine,
+    repo_path::{GitDirKind, RepoPath},
+    repository_name::RepositoryName,
+    secret::Secret,
+};

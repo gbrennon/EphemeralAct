@@ -65,10 +65,9 @@ impl fmt::Display for RepositoryName {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::env;
 
-    use super::super::repo_path::RepoPath;
+    use super::{super::repo_path::RepoPath, *};
 
     #[test]
     fn new_with_valid_name_succeeds() {
