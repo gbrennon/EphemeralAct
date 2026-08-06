@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Source common functions
+# shellcheck source=scripts/lib/common.sh
 source "$(dirname "$0")/lib/common.sh"
 
 readonly COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD:-80}"

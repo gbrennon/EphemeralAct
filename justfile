@@ -50,4 +50,12 @@ tools:
 clean:
     cargo clean
 
+# Lint Forgejo Actions workflows
+lint-workflows:
+    actionlint -config-file .actionlint.yaml .forgejo/workflows/*.yml
+
+# Install lefthook pre-commit hooks
+install-hooks:
+    lefthook install
+
 set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
