@@ -1,10 +1,9 @@
 use crate::core::value_objects::{
-    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerEngine, Secret,
+    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, Secret,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActRunConfig {
-    container_engine: ContainerEngine,
     workflow: Option<ActWorkflow>,
     job: Option<ActJob>,
     event: Option<ActEvent>,
@@ -15,20 +14,17 @@ pub struct ActRunConfig {
 
 /// Constructors for [`ActRunConfig`].
 impl ActRunConfig {
-    /// Creates a new config with the given container engine and sensible
-    /// defaults.
+    /// Creates a new config with sensible defaults.
     ///
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::ContainerEngine;
     /// # use ephemeral_act::core::ActRunConfig;
-    /// let config = ActRunConfig::new(ContainerEngine::Podman);
-    /// assert_eq!(config.container_engine(), &ContainerEngine::Podman);
+    /// let config = ActRunConfig::new();
+    /// assert!(config.workflow().is_none());
     /// ```
-    pub fn new(container_engine: ContainerEngine) -> Self {
+    pub fn new() -> Self {
         Self {
-            container_engine,
             workflow: None,
             job: None,
             event: None,
@@ -80,11 +76,6 @@ impl ActRunConfig {
 
 /// Read-only access to each field of [`ActRunConfig`].
 impl ActRunConfig {
-    /// Returns the container engine.
-    pub fn container_engine(&self) -> &ContainerEngine {
-        &self.container_engine
-    }
-
     /// Returns the workflow, if set.
     pub fn workflow(&self) -> Option<&ActWorkflow> {
         self.workflow.as_ref()
@@ -127,8 +118,7 @@ mod tests {
 
     #[test]
     fn new_config_starts_with_defaults() {
-        let config = ActRunConfig::new(ContainerEngine::Podman);
-        assert_eq!(config.container_engine(), &ContainerEngine::Podman);
+        let config = ActRunConfig::new();
         assert!(config.workflow().is_none());
         assert!(config.job().is_none());
         assert!(config.event().is_none());
@@ -136,10 +126,9 @@ mod tests {
         assert!(config.secrets().is_empty());
         assert!(config.extra_args().is_empty());
     }
-
     #[test]
     fn builder_adds_workflow_job_and_event() {
-        let config = ActRunConfig::new(ContainerEngine::Docker)
+        let config = ActRunConfig::new()
             .with_workflow(ActWorkflow::new(".github/workflows/ci.yml".into()))
             .with_job(ActJob::new("test".into()))
             .with_event(ActEvent::new("push".into()));
@@ -154,7 +143,7 @@ mod tests {
 
     #[test]
     fn builder_adds_inputs_and_extra_args() {
-        let config = ActRunConfig::new(ContainerEngine::Podman)
+        let config = ActRunConfig::new()
             .add_input(ActInput::new("environment".into(), "staging".into()))
             .add_extra_arg(ActExtraArg::new("--verbose".into()));
 
