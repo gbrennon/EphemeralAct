@@ -44,7 +44,7 @@ pub struct RunArgs {
     #[arg(long = "secret")]
     secrets: Vec<String>,
 
-    /// Extra arguments forwarded directly to `act-ephemeral.sh` (repeatable).
+    /// Extra arguments forwarded directly to `act` (repeatable).
     #[arg(long = "extra-arg")]
     extra_args: Vec<String>,
 
