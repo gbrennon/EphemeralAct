@@ -1,10 +1,14 @@
 pub mod act_run_config;
 pub mod entities;
 pub mod errors;
+pub mod event;
+pub mod expression;
+pub mod planner;
 pub mod ports;
 pub mod services;
 pub mod shared_types;
 pub mod value_objects;
+pub mod workflow;
 
 // Domain re-exports
 // Application-layer re-exports
