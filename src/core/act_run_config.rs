@@ -71,7 +71,7 @@ impl ActRunConfig {
         self
     }
 
-    /// Adds an extra argument passed after `--` to act-ephemeral.sh.
+    /// Adds an extra argument passed directly to `act`.
     pub fn add_extra_arg(mut self, arg: ActExtraArg) -> Self {
         self.extra_args.push(arg);
         self
