@@ -44,6 +44,17 @@ fn test_config() -> ActRunConfig {
     ActRunConfig::new(ContainerEngine::Podman)
 }
 
+/// Returns `true` when `act` is on `PATH` so integration tests
+/// that shell out to it can run.  In CI containers the binary is absent and
+/// these tests are skipped rather than failed.
+fn act_available() -> bool {
+    std::process::Command::new("which")
+        .arg("act")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
 // ---------------------------------------------------------------------------
 // CiPlatform::detect
 // ---------------------------------------------------------------------------
@@ -74,34 +85,25 @@ fn detect_errors_when_neither_platform_dir_exists() {
 }
 
 // ---------------------------------------------------------------------------
-// GitHubActWrapper::build_args — act-ephemeral.sh interface
+// GitHubActWrapper::build_args — act CLI interface
 // ---------------------------------------------------------------------------
 
-/// Repo path is the first positional argument (no `-C` flag).
+/// Repo path is passed via `-C` flag.
 #[test]
-fn repo_path_is_first_positional_arg() {
+fn repo_path_uses_c_flag() {
     let (_tmp, repo) = setup_repo(true, false);
     let args = GitHubActWrapper::build_args(&test_config(), &repo);
-    assert_eq!(args[0], repo.path().as_path().to_string_lossy());
-    assert!(!args.contains(&"-C".to_string()));
+    assert_eq!(args[0], "-C");
+    assert_eq!(args[1], repo.path().as_path().to_string_lossy());
 }
 
-/// Container engine passed via `-c`.
-#[test]
-fn includes_container_engine_flag() {
-    let (_tmp, repo) = setup_repo(true, false);
-    let args = GitHubActWrapper::build_args(&test_config(), &repo);
-    let c_pos = args.iter().position(|a| a == "-c").unwrap();
-    assert_eq!(args[c_pos + 1], "podman");
-}
-
-/// Workflow name passed via `-w` (was `-W`).
+/// Workflow name passed via `-W`.
 #[test]
 fn includes_workflow_flag_when_set() {
     let (_tmp, repo) = setup_repo(true, false);
     let config = test_config().with_workflow(ActWorkflow::new("ci.yaml".into()));
     let args = GitHubActWrapper::build_args(&config, &repo);
-    let wf_pos = args.iter().position(|a| a == "-w").unwrap();
+    let wf_pos = args.iter().position(|a| a == "-W").unwrap();
     assert_eq!(args[wf_pos + 1], "ci.yaml");
 }
 
@@ -109,7 +111,7 @@ fn includes_workflow_flag_when_set() {
 fn omits_workflow_flag_when_none() {
     let (_tmp, repo) = setup_repo(true, false);
     let args = GitHubActWrapper::build_args(&test_config(), &repo);
-    assert!(!args.contains(&"-w".to_string()));
+    assert!(!args.contains(&"-W".to_string()));
 }
 
 #[test]
@@ -128,38 +130,31 @@ fn omits_job_flag_when_none() {
     assert!(!args.contains(&"-j".to_string()));
 }
 
-/// Event is now a flagged arg (`-e push`) rather than positional.
+/// Event is positional (no `-e` flag).  It appears last, before extra args.
 #[test]
-fn includes_event_as_flagged_arg() {
+fn includes_event_as_positional_arg() {
     let (_tmp, repo) = setup_repo(true, false);
     let config = test_config().with_event(ActEvent::new("push".into()));
     let args = GitHubActWrapper::build_args(&config, &repo);
-    let e_pos = args.iter().position(|a| a == "-e").unwrap();
-    assert_eq!(args[e_pos + 1], "push");
-}
-
-#[test]
-fn omits_event_flag_when_none() {
-    let (_tmp, repo) = setup_repo(true, false);
-    let args = GitHubActWrapper::build_args(&test_config(), &repo);
     assert!(!args.contains(&"-e".to_string()));
+    assert!(args.contains(&"push".to_string()));
 }
 
-/// Inputs use `-i` (was `--input`).
+/// Inputs use `--input`.
 #[test]
-fn includes_inputs_with_i_flag() {
+fn includes_inputs_with_input_flag() {
     let (_tmp, repo) = setup_repo(true, false);
     let config = test_config()
         .add_input(ActInput::new("debug".into(), "true".into()))
         .add_input(ActInput::new("target".into(), "x86_64".into()));
     let args = GitHubActWrapper::build_args(&config, &repo);
 
-    let first_pos = args.iter().position(|a| a == "-i").unwrap();
+    let first_pos = args.iter().position(|a| a == "--input").unwrap();
     assert_eq!(args[first_pos + 1], "debug=true");
 
     let second_pos = args[first_pos + 2..]
         .iter()
-        .position(|a| a == "-i")
+        .position(|a| a == "--input")
         .unwrap()
         + first_pos
         + 2;
@@ -175,77 +170,58 @@ fn includes_secrets_with_s_flag() {
     assert_eq!(args[s_pos + 1], "GITHUB_TOKEN=xxx");
 }
 
-/// Extra args are passed after `--`.
+/// Extra args are passed directly to `act` (no `--` separator).
 #[test]
-fn passes_extra_args_after_double_dash() {
+fn passes_extra_args_directly() {
     let (_tmp, repo) = setup_repo(true, false);
     let config = test_config()
         .add_extra_arg(ActExtraArg::new("--verbose".into()))
         .add_extra_arg(ActExtraArg::new("--dryrun".into()));
     let args = GitHubActWrapper::build_args(&config, &repo);
 
-    let dash_pos = args.iter().position(|a| a == "--").unwrap();
-    assert_eq!(args[dash_pos + 1], "--verbose");
-    assert_eq!(args[dash_pos + 2], "--dryrun");
+    assert!(args.contains(&"--verbose".to_string()));
+    assert!(args.contains(&"--dryrun".to_string()));
 }
 
-/// No `--` separator when there are no extra args.
+/// `--rm` and `--bind` are always emitted.
 #[test]
-fn no_double_dash_when_no_extra_args() {
+fn emits_rm_and_bind_flags() {
     let (_tmp, repo) = setup_repo(true, false);
     let args = GitHubActWrapper::build_args(&test_config(), &repo);
-    assert!(!args.contains(&"--".to_string()));
-}
-
-/// Script handles `--rm` and `--bind` internally — wrapper never emits them.
-#[test]
-fn does_not_emit_rm_or_bind_flags() {
-    let (_tmp, repo) = setup_repo(true, false);
-    let args = GitHubActWrapper::build_args(&test_config(), &repo);
-    assert!(!args.contains(&"--rm".to_string()));
-    assert!(!args.contains(&"--bind".to_string()));
+    assert!(args.contains(&"--rm".to_string()));
+    assert!(args.contains(&"--bind".to_string()));
 }
 
 // ---------------------------------------------------------------------------
-// ForgejoActWrapper::build_args — act-ephemeral.sh interface
+// ForgejoActWrapper::build_args — act CLI interface
 // ---------------------------------------------------------------------------
 
-/// Repo path is the first positional argument (no `-C` flag).
+/// Repo path is passed via `-C` flag.
 #[test]
-fn forgejo_repo_path_is_first_positional_arg() {
+fn forgejo_repo_path_uses_c_flag() {
     let (_tmp, repo) = setup_repo(false, true);
     let args = ForgejoActWrapper::build_args(&test_config(), &repo);
-    assert_eq!(args[0], repo.path().as_path().to_string_lossy());
-    assert!(!args.contains(&"-C".to_string()));
+    assert_eq!(args[0], "-C");
+    assert_eq!(args[1], repo.path().as_path().to_string_lossy());
 }
 
-/// Container engine passed via `-c`.
+/// `--workflows .forgejo/workflows/` is a direct act flag.
 #[test]
-fn forgejo_includes_container_engine_flag() {
-    let (_tmp, repo) = setup_repo(false, true);
-    let args = ForgejoActWrapper::build_args(&test_config(), &repo);
-    let c_pos = args.iter().position(|a| a == "-c").unwrap();
-    assert_eq!(args[c_pos + 1], "podman");
-}
-
-/// `--workflows .forgejo/workflows/` appears after the `--` separator.
-#[test]
-fn includes_workflows_directory_after_double_dash() {
+fn includes_workflows_directory_flag() {
     let (_tmp, repo) = setup_repo(false, true);
     let args = ForgejoActWrapper::build_args(&test_config(), &repo);
 
-    let dash_pos = args.iter().position(|a| a == "--").unwrap();
     let wf_pos = args.iter().position(|a| a == "--workflows").unwrap();
-    assert!(wf_pos > dash_pos, "--workflows must come after --");
     assert_eq!(args[wf_pos + 1], ".forgejo/workflows/");
 }
 
+/// Workflow name passed via `-W`.
 #[test]
 fn forgejo_includes_workflow_flag_when_set() {
     let (_tmp, repo) = setup_repo(false, true);
     let config = test_config().with_workflow(ActWorkflow::new("ci.yaml".into()));
     let args = ForgejoActWrapper::build_args(&config, &repo);
-    let wf_pos = args.iter().position(|a| a == "-w").unwrap();
+    let wf_pos = args.iter().position(|a| a == "-W").unwrap();
     assert_eq!(args[wf_pos + 1], "ci.yaml");
 }
 
@@ -253,7 +229,7 @@ fn forgejo_includes_workflow_flag_when_set() {
 fn forgejo_omits_workflow_flag_when_none() {
     let (_tmp, repo) = setup_repo(false, true);
     let args = ForgejoActWrapper::build_args(&test_config(), &repo);
-    assert!(!args.contains(&"-w".to_string()));
+    assert!(!args.contains(&"-W".to_string()));
 }
 
 #[test]
@@ -272,28 +248,23 @@ fn forgejo_omits_job_flag_when_none() {
     assert!(!args.contains(&"-j".to_string()));
 }
 
+/// Event is positional (no `-e` flag).
 #[test]
-fn forgejo_includes_event_as_flagged_arg() {
+fn forgejo_includes_event_as_positional_arg() {
     let (_tmp, repo) = setup_repo(false, true);
     let config = test_config().with_event(ActEvent::new("push".into()));
     let args = ForgejoActWrapper::build_args(&config, &repo);
-    let e_pos = args.iter().position(|a| a == "-e").unwrap();
-    assert_eq!(args[e_pos + 1], "push");
-}
-
-#[test]
-fn forgejo_omits_event_flag_when_none() {
-    let (_tmp, repo) = setup_repo(false, true);
-    let args = ForgejoActWrapper::build_args(&test_config(), &repo);
     assert!(!args.contains(&"-e".to_string()));
+    assert!(args.contains(&"push".to_string()));
 }
 
+/// Inputs use `--input`.
 #[test]
-fn forgejo_includes_inputs_with_i_flag() {
+fn forgejo_includes_inputs_with_input_flag() {
     let (_tmp, repo) = setup_repo(false, true);
     let config = test_config().add_input(ActInput::new("debug".into(), "true".into()));
     let args = ForgejoActWrapper::build_args(&config, &repo);
-    let input_pos = args.iter().position(|a| a == "-i").unwrap();
+    let input_pos = args.iter().position(|a| a == "--input").unwrap();
     assert_eq!(args[input_pos + 1], "debug=true");
 }
 
@@ -306,35 +277,26 @@ fn forgejo_includes_secrets_with_s_flag() {
     assert_eq!(args[s_pos + 1], "GITHUB_TOKEN=xxx");
 }
 
-/// Extra args appear after `--workflows .forgejo/workflows/`.
+/// Extra args are passed directly to `act` (no `--` separator).
 #[test]
-fn forgejo_passes_extra_args_after_workflows() {
+fn forgejo_passes_extra_args_directly() {
     let (_tmp, repo) = setup_repo(false, true);
     let config = test_config()
         .add_extra_arg(ActExtraArg::new("--verbose".into()))
         .add_extra_arg(ActExtraArg::new("--dryrun".into()));
     let args = ForgejoActWrapper::build_args(&config, &repo);
 
-    let wf_pos = args.iter().position(|a| a == "--workflows").unwrap();
-    let verbose_pos = args.iter().position(|a| a == "--verbose").unwrap();
-    let dryrun_pos = args.iter().position(|a| a == "--dryrun").unwrap();
-    assert!(
-        verbose_pos > wf_pos,
-        "extra args must come after --workflows"
-    );
-    assert!(
-        dryrun_pos > wf_pos,
-        "extra args must come after --workflows"
-    );
+    assert!(args.contains(&"--verbose".to_string()));
+    assert!(args.contains(&"--dryrun".to_string()));
 }
 
-/// Script handles `--rm` and `--bind` internally — wrapper never emits them.
+/// `--rm` and `--bind` are always emitted.
 #[test]
-fn forgejo_does_not_emit_rm_or_bind_flags() {
+fn forgejo_emits_rm_and_bind_flags() {
     let (_tmp, repo) = setup_repo(false, true);
     let args = ForgejoActWrapper::build_args(&test_config(), &repo);
-    assert!(!args.contains(&"--rm".to_string()));
-    assert!(!args.contains(&"--bind".to_string()));
+    assert!(args.contains(&"--rm".to_string()));
+    assert!(args.contains(&"--bind".to_string()));
 }
 // ---------------------------------------------------------------------------
 // ActionsExecutor construction
@@ -351,18 +313,21 @@ fn actions_executor_default_works() {
 }
 
 // ---------------------------------------------------------------------------
-// GitHubActWrapper::execute_act (act-ephemeral.sh is installed)
+// GitHubActWrapper::execute_act (act is installed)
 // ---------------------------------------------------------------------------
 
 #[test]
-fn github_execute_act_runs_ephemeral_script() {
+fn github_execute_act_runs_act() {
+    if !act_available() {
+        return;
+    }
     let (_tmp, repo) = setup_repo(true, false);
     let config = test_config();
     let result = GitHubActWrapper.execute_act(&config, &repo);
-    // act-ephemeral.sh is available — returns Ok even on no workflows
+    // act is available — returns Ok even on no workflows
     assert!(
         result.is_ok(),
-        "expected Ok when act-ephemeral.sh is installed; got {:?}",
+        "expected Ok when act is installed; got {:?}",
         result.err()
     );
     let execution = result.unwrap();
@@ -374,18 +339,21 @@ fn github_execute_act_runs_ephemeral_script() {
 }
 
 // ---------------------------------------------------------------------------
-// ForgejoActWrapper::execute_act (act-ephemeral.sh is installed)
+// ForgejoActWrapper::execute_act (act is installed)
 // ---------------------------------------------------------------------------
 
 #[test]
-fn forgejo_execute_act_runs_ephemeral_script() {
+fn forgejo_execute_act_runs_act() {
+    if !act_available() {
+        return;
+    }
     let (_tmp, repo) = setup_repo(false, true);
     let config = test_config();
     let result = ForgejoActWrapper.execute_act(&config, &repo);
-    // act-ephemeral.sh is available — returns Ok even on no workflows
+    // act is available — returns Ok even on no workflows
     assert!(
         result.is_ok(),
-        "expected Ok when act-ephemeral.sh is installed; got {:?}",
+        "expected Ok when act is installed; got {:?}",
         result.err()
     );
     let execution = result.unwrap();
@@ -399,11 +367,14 @@ fn forgejo_execute_act_runs_ephemeral_script() {
 
 #[test]
 fn actions_executor_dispatches_to_github_on_github_repo() {
+    if !act_available() {
+        return;
+    }
     let (_tmp, repo) = setup_repo(true, false);
     let executor = ActionsExecutor::new();
     let config = test_config();
     let result = executor.execute_act(&config, &repo);
-    // act-ephemeral.sh is available — dispatch succeeds but reports failure (no workflows)
+    // act is available — dispatch succeeds but reports failure (no workflows)
     assert!(result.is_ok());
     let execution = result.unwrap();
     assert!(!execution.success);
@@ -411,20 +382,26 @@ fn actions_executor_dispatches_to_github_on_github_repo() {
 
 #[test]
 fn actions_executor_dispatches_to_forgejo_on_forgejo_repo() {
+    if !act_available() {
+        return;
+    }
     let (_tmp, repo) = setup_repo(false, true);
     let executor = ActionsExecutor::new();
     let config = test_config();
     let result = executor.execute_act(&config, &repo);
-    // act-ephemeral.sh is available for both platforms now
+    // act is available for both platforms now
     assert!(result.is_ok());
 }
 
 #[test]
 fn actions_executor_dispatches_to_forgejo_when_both_dirs_present() {
+    if !act_available() {
+        return;
+    }
     let (_tmp, repo) = setup_repo(true, true);
     let executor = ActionsExecutor::new();
     let config = test_config();
     let result = executor.execute_act(&config, &repo);
-    // Both use act-ephemeral.sh — dispatch succeeds
+    // Both use act — dispatch succeeds
     assert!(result.is_ok());
 }
