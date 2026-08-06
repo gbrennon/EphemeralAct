@@ -1,0 +1,19 @@
+# EphemeralAct lefthook configuration
+# Install: pipx install lefthook && lefthook install
+
+pre-commit:
+  parallel: false
+  jobs:
+    - name: Auto-fix staged files
+      run: |
+        STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(rs|toml)$' | tr '\n' ' ')
+        if [ -n "$STAGED_FILES" ]; then
+          just fmt -- $STAGED_FILES
+        fi
+        just lint-fix
+
+    - name: Check for auto-fixed files
+      run: |
+        if ! git diff --quiet; then
+          echo "Auto-fixed files detected. Run: git add -A && git commit --amend --no-edit"
+        fi

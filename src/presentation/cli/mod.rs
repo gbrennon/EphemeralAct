@@ -16,7 +16,7 @@ use crate::core::ports::inbound::run_act_port::RunActUseCase;
     name = "ephemeral-act",
     about = "Run GitHub Actions locally in ephemeral repositories",
     long_about = "Runs CI workflows in an ephemeral copy of a repository using \
-                  `act-ephemeral.sh`. The CI host is auto-detected from the \
+                  `act`. The CI host is auto-detected from the \
                   repository layout; see `run --help` for the available options.",
     arg_required_else_help = true,
     after_long_help = r#"EXAMPLES:
@@ -25,7 +25,6 @@ use crate::core::ports::inbound::run_act_port::RunActUseCase;
     ephemeral-act run --event push --secret TOKEN=abc123
     ephemeral-act run --container-engine docker
 
-The `run` subcommand delegates to `act-ephemeral.sh`, which auto-detects the
 CI host from the repository layout and manages ephemeral copies internally."#
 )]
 struct CliParser {

@@ -2,10 +2,6 @@
 # Common shared functions for EphemeralAct scripts
 set -euo pipefail
 
-# ----------------------------------------
-# Coverage Helpers
-# ----------------------------------------
-
 coverage_json_exists() {
   [ -f cov.json ]
 }
@@ -34,14 +30,13 @@ extract_coverage_totals_from_json() {
 normalize_path() {
   local path="$1"
   path="${path##*/src/}"
-  echo "src/${path}"
+  [[ "$path" == src/* ]] || path="src/${path}"
+  echo "$path"
 }
 
 extract_missing_lines() {
   local file_path="$1"
-  # Segments schema: [line, col, count, has_count, is_region_entry, is_gap_region]
-  # A segment with count=0 and has_count=false starts an uncovered region.
-  # The next segment (any count) closes it.
+
   jq -r --arg fp "$file_path" '
     .data[0].files[]
     | select(.filename == $fp)
@@ -68,7 +63,7 @@ print_coverage_table() {
 
   printf "\n"
 
-  # Collect normalized rows into a temp file so we can measure column widths first
+
   local tmp_rows
   tmp_rows=$(mktemp)
 
@@ -79,7 +74,7 @@ print_coverage_table() {
         .filename,
         (.summary.lines.count | tostring),
         ((.summary.lines.count - .summary.lines.covered) | tostring),
-        .summary.lines.percent
+        ((.summary.lines.covered / .summary.lines.count * 100) | tostring)
       ]
     | @tsv
   ' cov.json | while IFS=$'\t' read -r raw_path stmts miss pct; do
@@ -88,7 +83,7 @@ print_coverage_table() {
     printf '%s\t%s\t%s\t%s\t%s\n' "$norm" "$stmts" "$miss" "$pct" "$raw_path"
   done | sort > "$tmp_rows"
 
-  # Compute column widths
+
   local max_name_len
   max_name_len=$(awk -F'\t' '{print length($1)}' "$tmp_rows" | sort -n | tail -1)
   local name_col=$(( max_name_len > 4 ? max_name_len : 4 ))
@@ -103,7 +98,7 @@ print_coverage_table() {
     fi
   done < "$tmp_rows"
 
-  # Limit max_missing_len to prevent excessive width
+
   if [ "$max_missing_len" -gt 80 ]; then
     max_missing_len=80
   fi
@@ -119,7 +114,7 @@ print_coverage_table() {
     local missing_lines=""
     if [ "$miss" -gt 0 ]; then
       missing_lines=$(extract_missing_lines "$raw_path")
-      # Truncate very long missing line lists to prevent table breakage
+
       if [ "${#missing_lines}" -gt "$max_missing_len" ]; then
         missing_lines="${missing_lines:0:$((max_missing_len-4))} ..."
       fi
