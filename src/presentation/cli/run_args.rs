@@ -12,18 +12,14 @@ use crate::core::{
 /// CLI arguments for the `run` subcommand.
 ///
 /// Parses all user-supplied options (workflow, job, event, inputs, secrets,
-/// container engine, etc.) and maps them into the domain model via
-/// [`to_domain`](Self::to_domain).
+/// etc.) and maps them into the domain model via
+/// [`to_domain`](Self::to_domain). The container runtime is auto-detected
+/// (Docker or Podman) at execution time.
 #[derive(Args)]
 pub struct RunArgs {
     /// Path to the repository (defaults to the current directory).
     #[arg(default_value = ".")]
     path: PathBuf,
-
-    /// Container engine to use: `podman` (default) or `docker`.
-    #[arg(long, default_value = "podman")]
-    container_engine: String,
-
     /// Path to the workflow file to execute (e.g. `ci.yml`).
     #[arg(long)]
     workflow: Option<String>,
@@ -60,15 +56,13 @@ impl RunArgs {
     ///
     /// # Errors
     ///
-    /// Returns an error if the container engine string is unrecognised or the
-    /// repository path is not a valid git repository.
+    /// Returns an error if the repository path is not a valid git repository.
     pub fn to_domain(&self) -> Result<(ActRunConfig, Repository), Box<dyn std::error::Error>> {
-        let container_engine = self.container_engine.parse()?;
         let repo_path = RepoPath::new(self.path.clone())?;
         let repo_name = RepositoryName::from_repo_path(&repo_path)?;
         let repository = Repository::new(repo_path, repo_name);
 
-        let mut config = ActRunConfig::new(container_engine);
+        let mut config = ActRunConfig::new();
 
         if let Some(ref wf) = self.workflow {
             config = config.with_workflow(ActWorkflow::new(wf.clone()));
@@ -194,20 +188,5 @@ mod tests {
         assert_eq!(extra[1].as_str(), "dryrun");
     }
 
-    #[test]
-    fn to_domain_container_engine_docker() {
-        let args = parse_run_args(&["--container-engine", "docker"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        assert!(matches!(
-            config.container_engine(),
-            &crate::core::value_objects::ContainerEngine::Docker
-        ));
-    }
 
-    #[test]
-    fn to_domain_invalid_container_engine() {
-        let args = parse_run_args(&["--container-engine", "invalid"]);
-        let err = args.to_domain().unwrap_err();
-        assert!(err.to_string().contains("invalid"));
-    }
 }
