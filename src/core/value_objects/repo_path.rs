@@ -1,12 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use super::git_dir_kind::GitDirKind;
 use crate::core::errors::CoreError;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GitDirKind {
-    Standalone,
-    Worktree,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepoPath {
