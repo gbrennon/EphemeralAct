@@ -1,6 +1,8 @@
-use std::io::{BufRead, BufReader, Write};
-use std::os::unix::io::FromRawFd;
-use std::thread::{self, JoinHandle};
+use std::{
+    io::{BufRead, BufReader, Write},
+    os::unix::io::FromRawFd,
+    thread::{self, JoinHandle},
+};
 
 use ephemeral_act::{infrastructure::Container, presentation::composition_root::CompositionRoot};
 

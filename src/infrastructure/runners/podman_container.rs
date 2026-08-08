@@ -18,7 +18,7 @@ use crate::core::ports::outbound::{
 
 /// A running Podman container, created by [`PodmanRuntime`].
 pub(super) struct PodmanContainer {
-    pub(super) docker: Docker,
+    pub(super) client: Docker,
     pub(super) container_id: String,
     pub(super) runtime: tokio::runtime::Handle,
 }
@@ -45,7 +45,7 @@ impl Container for PodmanContainer {
 
         self.runtime.block_on(async {
             let exec = self
-                .docker
+                .client
                 .create_exec(&self.container_id, exec_config)
                 .await
                 .map_err(|e| {
@@ -53,7 +53,7 @@ impl Container for PodmanContainer {
                 })?;
 
             let output = self
-                .docker
+                .client
                 .start_exec(&exec.id, None::<StartExecOptions>)
                 .await
                 .map_err(|e| {
@@ -128,7 +128,7 @@ impl Container for PodmanContainer {
             .build();
 
         self.runtime.block_on(async {
-            self.docker
+            self.client
                 .upload_to_container(
                     &self.container_id,
                     Some(upload_options),
@@ -148,7 +148,7 @@ impl Container for PodmanContainer {
 
         self.runtime.block_on(async {
             let mut stream = self
-                .docker
+                .client
                 .download_from_container(&self.container_id, Some(download_options));
 
             let mut tar_bytes = Vec::new();
@@ -205,7 +205,7 @@ impl Container for PodmanContainer {
 
     fn remove(&self) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
-            self.docker
+            self.client
                 .remove_container(
                     &self.container_id,
                     Some(RemoveContainerOptions {
@@ -223,7 +223,7 @@ impl Container for PodmanContainer {
     fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
         self.runtime.block_on(async {
             let info = self
-                .docker
+                .client
                 .inspect_container(&self.container_id, None::<InspectContainerOptions>)
                 .await
                 .map_err(|_| ContainerError::NotFound(self.container_id.clone()))?;

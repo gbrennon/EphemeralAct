@@ -142,7 +142,14 @@ impl ContainerRuntime for PodmanRuntime {
             // Inspect first: if the container doesn't exist, nothing to do.
             // If it exists but isn't running, remove without force to avoid
             // OCI runtime exec errors on dead containers.
-            let force = match self.client.inspect_container(name, None::<bollard::query_parameters::InspectContainerOptions>).await {
+            let force = match self
+                .client
+                .inspect_container(
+                    name,
+                    None::<bollard::query_parameters::InspectContainerOptions>,
+                )
+                .await
+            {
                 Ok(inspect) => inspect.state.and_then(|s| s.running).unwrap_or(false),
                 Err(_) => return Ok(()), // container doesn't exist
             };
@@ -163,10 +170,17 @@ impl ContainerRuntime for PodmanRuntime {
         self.runtime.block_on(async {
             // Only stop if the container is actually running — sending a stop
             // signal to an already-exited container causes OCI runtime errors.
-            if let Ok(inspect) = self.client.inspect_container(name, None::<bollard::query_parameters::InspectContainerOptions>).await
-                && !inspect.state.and_then(|s| s.running).unwrap_or(false) {
-                    return Ok(());
-                }
+            if let Ok(inspect) = self
+                .client
+                .inspect_container(
+                    name,
+                    None::<bollard::query_parameters::InspectContainerOptions>,
+                )
+                .await
+                && !inspect.state.and_then(|s| s.running).unwrap_or(false)
+            {
+                return Ok(());
+            }
             self.client
                 .stop_container(name, None)
                 .await
