@@ -21,7 +21,7 @@ impl RunHandler {
         let result = use_case.run_act(config, repository)?;
 
         if !result.stdout.is_empty() {
-            println!("{}", result.stdout);
+            eprintln!("{}", result.stdout);
         }
         if !result.stderr.is_empty() {
             eprintln!("{}", result.stderr);
