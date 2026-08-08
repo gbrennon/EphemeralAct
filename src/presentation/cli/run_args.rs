@@ -187,6 +187,4 @@ mod tests {
         assert_eq!(extra[0].as_str(), "verbose");
         assert_eq!(extra[1].as_str(), "dryrun");
     }
-
-
 }
