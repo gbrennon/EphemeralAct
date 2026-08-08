@@ -1,7 +1,8 @@
-use serde::Deserialize;
 use std::collections::HashMap;
 
-use super::Step;
+use serde::Deserialize;
+
+use super::{Concurrency, ContainerConfig, Permissions, Step, Strategy};
 
 /// A job in a GitHub Actions workflow.
 ///
@@ -45,7 +46,7 @@ pub struct Job {
 
     /// A matrix strategy to generate multiple job runs.
     #[serde(default)]
-    pub strategy: Option<super::Strategy>,
+    pub strategy: Option<Strategy>,
 
     /// Environment variables scoped to this job.
     #[serde(default)]
@@ -81,45 +82,11 @@ pub struct Job {
 
     /// Permissions override for this job.
     #[serde(default)]
-    pub permissions: Option<super::Permissions>,
+    pub permissions: Option<Permissions>,
 
     /// Concurrency override for this job.
     #[serde(default)]
-    pub concurrency: Option<super::Concurrency>,
-}
-
-/// Configuration for a container used by a job or service.
-#[derive(Debug, Clone, Deserialize, PartialEq)]
-pub struct ContainerConfig {
-    /// The Docker image to use.
-    pub image: String,
-
-    /// Credentials for pulling the image from a private registry.
-    #[serde(default)]
-    pub credentials: Option<ContainerCredentials>,
-
-    /// Environment variables for the container.
-    #[serde(default)]
-    pub env: HashMap<String, String>,
-
-    /// Ports to expose on the container.
-    #[serde(default)]
-    pub ports: Vec<String>,
-
-    /// Volumes to mount in the container.
-    #[serde(default)]
-    pub volumes: Vec<String>,
-
-    /// Additional options passed to `docker create`.
-    #[serde(default)]
-    pub options: Option<String>,
-}
-
-/// Credentials for pulling a container image from a private registry.
-#[derive(Debug, Clone, Deserialize, PartialEq)]
-pub struct ContainerCredentials {
-    pub username: String,
-    pub password: String,
+    pub concurrency: Option<Concurrency>,
 }
 
 #[cfg(test)]
