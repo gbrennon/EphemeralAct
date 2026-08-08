@@ -1,32 +1,4 @@
-/// Recursive-descent parser for GitHub Actions `${{ }}` expressions.
-///
-/// Consumes a token stream from the [`Lexer`](super::lexer::Lexer) and
-/// produces an [`Expr`](super::ast::Expr) AST. Operator precedence
-/// (lowest to highest): `\|\|` / `&&` (same, left-associative),
-/// `==` `!=` `<` `>` `<=` `>=`, `!`, postfix (`.`, `[]`, `.*`, `()`).
-use super::ast::{CompareOp, Expr, Literal, LogicalOp};
-use super::lexer::{Lexer, Token};
-
-/// Error returned when parsing fails.
-#[derive(Debug, PartialEq)]
-pub struct ParseError {
-    /// Human-readable description of what went wrong.
-    pub message: String,
-    /// Approximate position in the input where the error occurred.
-    pub position: usize,
-}
-
-impl std::fmt::Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "parse error at position {}: {}",
-            self.position, self.message
-        )
-    }
-}
-
-impl std::error::Error for ParseError {}
+use super::{CompareOp, Expr, Lexer, Literal, LogicalOp, Token, parse_error::ParseError};
 
 /// Recursive-descent parser for expression tokens.
 pub struct Parser<'a> {
@@ -133,7 +105,7 @@ impl<'a> Parser<'a> {
                     self.advance(); // consume (
                     let args = self.parse_args()?;
                     self.expect(Token::RParen, "expected ')'")?;
-                    // The function name is the preceding expression — it must be a Variable
+                    // The function name is the preceding expression -- it must be a Variable
                     let name = match &expr {
                         Expr::Variable(n) => n.clone(),
                         _ => {
@@ -196,7 +168,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // -- args: expr ("," expr)* | ε ----------------------------------------
+    // -- args: expr ("," expr)* | epsilon ----------------------------------------
 
     fn parse_args(&mut self) -> Result<Vec<Expr>, ParseError> {
         let mut args = Vec::new();
@@ -565,7 +537,7 @@ mod tests {
 
     #[test]
     fn parse_and_or_left_assoc() {
-        // a && b || c  →  (a && b) || c
+        // a && b || c  ->  (a && b) || c
         let expr = parse("a && b || c").unwrap();
         assert_eq!(
             expr,
@@ -583,7 +555,7 @@ mod tests {
 
     #[test]
     fn parse_or_and_left_assoc() {
-        // a || b && c  →  (a || b) && c
+        // a || b && c  ->  (a || b) && c
         let expr = parse("a || b && c").unwrap();
         assert_eq!(
             expr,
@@ -640,7 +612,7 @@ mod tests {
 
     #[test]
     fn parse_parens_override_precedence() {
-        // (a || b) && c  — parens force || before &&
+        // (a || b) && c  -- parens force || before &&
         let expr = parse("(a || b) && c").unwrap();
         assert_eq!(
             expr,
