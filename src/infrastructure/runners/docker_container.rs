@@ -61,7 +61,7 @@ impl Container for DockerContainer {
                 })?;
 
             match output {
-                StartExecResults::Attached { mut output, .. } => {
+                StartExecResults::Attached { mut output, input } => {
                     let mut stdout = String::new();
                     let mut stderr = String::new();
                     while let Some(chunk) = output.next().await {
@@ -81,6 +81,10 @@ impl Container for DockerContainer {
                             }
                         }
                     }
+                    // Drop the input stream before the output stream to signal
+                    // EOF to Podman. This prevents crun from flushing debug
+                    // errors when the upgraded connection closes.
+                    drop(input);
                     Ok(ExecResult {
                         exit_code: 0,
                         stdout,
