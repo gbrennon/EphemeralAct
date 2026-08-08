@@ -1,32 +1,6 @@
-/// Built-in functions for GitHub Actions `${{ }}` expressions.
-///
-/// Implements the standard function library: `contains`, `startsWith`,
-/// `endsWith`, `format`, `join`, `toJson`, `fromJson`, and the
-/// status-check functions `success`, `always`, `cancelled`, `failure`.
 use serde_json::Value;
-use thiserror::Error;
 
-use super::context::EvalContext;
-
-/// Errors that can occur during expression function evaluation.
-#[derive(Error, Debug, PartialEq)]
-pub enum EvalError {
-    /// A function received an argument of the wrong type.
-    #[error("type error: {0}")]
-    TypeError(String),
-
-    /// A function received the wrong number of arguments.
-    #[error("argument count error: {0}")]
-    ArgCount(String),
-
-    /// A format string could not be parsed or applied.
-    #[error("format error: {0}")]
-    FormatError(String),
-
-    /// A JSON value could not be parsed or serialized.
-    #[error("JSON error: {0}")]
-    JsonError(String),
-}
+use super::{context::EvalContext, eval_error::EvalError};
 
 /// Built-in function dispatcher for GitHub Actions expressions.
 ///
@@ -107,7 +81,7 @@ impl<'a> Functions<'a> {
     // Formatting
     // ------------------------------------------------------------------
 
-    /// Formats a template string by replacing `{0}`, `{1}`, … with the
+    /// Formats a template string by replacing `{0}`, `{1}`, ... with the
     /// string representations of the positional arguments.
     ///
     /// # Errors
@@ -358,8 +332,9 @@ fn expect_arg_count(func: &str, actual: usize, min: usize, max: usize) -> Result
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
 
     fn ctx() -> EvalContext {
         EvalContext::new()
