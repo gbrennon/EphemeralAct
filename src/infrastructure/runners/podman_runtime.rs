@@ -20,7 +20,7 @@ use crate::core::ports::outbound::{
 /// Podman socket, trying rootless first (`/run/user/$UID/podman/podman.sock`)
 /// then falling back to the root socket (`/run/podman/podman.sock`).
 pub struct PodmanRuntime {
-    docker: Docker,
+    client: Docker,
     runtime: Runtime,
 }
 
@@ -37,11 +37,11 @@ impl PodmanRuntime {
         let rootless_socket = format!("unix:///run/user/{}/podman/podman.sock", uid);
         let root_socket = "unix:///run/podman/podman.sock";
 
-        let docker = Docker::connect_with_unix(&rootless_socket, 120, bollard::API_DEFAULT_VERSION)
+        let client = Docker::connect_with_unix(&rootless_socket, 120, bollard::API_DEFAULT_VERSION)
             .or_else(|_| Docker::connect_with_unix(root_socket, 120, bollard::API_DEFAULT_VERSION))
             .map_err(|_| ContainerError::NotAvailable)?;
 
-        Ok(Self { docker, runtime })
+        Ok(Self { client, runtime })
     }
 }
 
@@ -54,7 +54,7 @@ impl ContainerRuntime for PodmanRuntime {
         let options = options_builder.build();
 
         self.runtime.block_on(async {
-            let mut stream = self.docker.create_image(
+            let mut stream = self.client.create_image(
                 Some(options),
                 None,
                 None::<bollard::auth::DockerCredentials>,
@@ -107,7 +107,7 @@ impl ContainerRuntime for PodmanRuntime {
         };
 
         let container = self.runtime.block_on(async {
-            self.docker
+            self.client
                 .create_container(Some(create_options), container_config)
                 .await
                 .map_err(|e| {
@@ -119,7 +119,7 @@ impl ContainerRuntime for PodmanRuntime {
         })?;
 
         self.runtime.block_on(async {
-            self.docker
+            self.client
                 .start_container(&container.id, None::<StartContainerOptions>)
                 .await
                 .map_err(|e| {
@@ -131,7 +131,7 @@ impl ContainerRuntime for PodmanRuntime {
         })?;
 
         Ok(Box::new(PodmanContainer {
-            docker: self.docker.clone(),
+            client: self.client.clone(),
             container_id: container.id,
             runtime: self.runtime.handle().clone(),
         }))
@@ -142,11 +142,11 @@ impl ContainerRuntime for PodmanRuntime {
             // Inspect first: if the container doesn't exist, nothing to do.
             // If it exists but isn't running, remove without force to avoid
             // OCI runtime exec errors on dead containers.
-            let force = match self.docker.inspect_container(name, None::<bollard::query_parameters::InspectContainerOptions>).await {
+            let force = match self.client.inspect_container(name, None::<bollard::query_parameters::InspectContainerOptions>).await {
                 Ok(inspect) => inspect.state.and_then(|s| s.running).unwrap_or(false),
                 Err(_) => return Ok(()), // container doesn't exist
             };
-            self.docker
+            self.client
                 .remove_container(
                     name,
                     Some(RemoveContainerOptions {
@@ -163,11 +163,11 @@ impl ContainerRuntime for PodmanRuntime {
         self.runtime.block_on(async {
             // Only stop if the container is actually running — sending a stop
             // signal to an already-exited container causes OCI runtime errors.
-            if let Ok(inspect) = self.docker.inspect_container(name, None::<bollard::query_parameters::InspectContainerOptions>).await
+            if let Ok(inspect) = self.client.inspect_container(name, None::<bollard::query_parameters::InspectContainerOptions>).await
                 && !inspect.state.and_then(|s| s.running).unwrap_or(false) {
                     return Ok(());
                 }
-            self.docker
+            self.client
                 .stop_container(name, None)
                 .await
                 .map_err(|e| ContainerError::RemovalFailed(name.to_string(), e.to_string()))
@@ -177,7 +177,7 @@ impl ContainerRuntime for PodmanRuntime {
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
         self.runtime.block_on(async {
             let info = self
-                .docker
+                .client
                 .version()
                 .await
                 .map_err(|_| ContainerError::NotAvailable)?;
