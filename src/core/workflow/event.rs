@@ -1,5 +1,8 @@
-use serde::Deserialize;
 use std::collections::HashMap;
+
+use serde::Deserialize;
+
+use super::EventConfig;
 
 /// The event(s) that trigger a workflow.
 ///
@@ -36,73 +39,6 @@ pub enum On {
     /// Event names with type-specific configuration
     /// (e.g. `on: { push: { branches: [main] } }`).
     WithTypes(HashMap<String, Option<EventConfig>>),
-}
-
-/// Configuration for a specific event type.
-#[derive(Debug, Clone, Deserialize, PartialEq)]
-pub struct EventConfig {
-    /// Branch filters (glob patterns).
-    #[serde(default)]
-    pub branches: Vec<String>,
-
-    /// Branch-ignore filters (glob patterns).
-    #[serde(rename = "branches-ignore")]
-    #[serde(default)]
-    pub branches_ignore: Vec<String>,
-
-    /// Tag filters (glob patterns).
-    #[serde(default)]
-    pub tags: Vec<String>,
-
-    /// Tag-ignore filters (glob patterns).
-    #[serde(rename = "tags-ignore")]
-    #[serde(default)]
-    pub tags_ignore: Vec<String>,
-
-    /// Path filters (glob patterns).
-    #[serde(default)]
-    pub paths: Vec<String>,
-
-    /// Path-ignore filters (glob patterns).
-    #[serde(rename = "paths-ignore")]
-    #[serde(default)]
-    pub paths_ignore: Vec<String>,
-
-    /// Activity types for events that support them (e.g. `issues`, `pull_request`).
-    #[serde(default)]
-    pub types: Vec<String>,
-
-    /// Input definitions for `workflow_dispatch`.
-    #[serde(default)]
-    pub inputs: HashMap<String, WorkflowDispatchInput>,
-
-    /// Cron schedule for `schedule` events.
-    #[serde(default)]
-    pub cron: Vec<String>,
-}
-
-/// An input parameter for `workflow_dispatch` events.
-#[derive(Debug, Clone, Deserialize, PartialEq)]
-pub struct WorkflowDispatchInput {
-    /// Description of the input.
-    pub description: Option<String>,
-
-    /// Whether the input is required.
-    #[serde(default)]
-    pub required: bool,
-
-    /// Default value for the input.
-    #[serde(default)]
-    pub default: Option<String>,
-
-    /// The type of the input (string, choice, boolean, environment).
-    #[serde(rename = "type")]
-    #[serde(default)]
-    pub input_type: Option<String>,
-
-    /// Available options for `choice` type inputs.
-    #[serde(default)]
-    pub options: Vec<String>,
 }
 
 impl On {
