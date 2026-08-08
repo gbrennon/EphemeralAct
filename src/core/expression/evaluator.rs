@@ -4,9 +4,7 @@
 /// using the built-in [`Functions`] dispatcher for function calls.
 use serde_json::Value;
 
-use super::ast::{CompareOp, Expr, Literal, LogicalOp};
-use super::context::EvalContext;
-use super::functions::{EvalError, Functions};
+use super::{CompareOp, EvalContext, EvalError, Expr, Functions, Literal, LogicalOp};
 
 /// Walks an expression AST and evaluates it to a [`Value`].
 pub struct Evaluator<'a> {
@@ -92,7 +90,7 @@ impl<'a> Evaluator<'a> {
                 })
             }
             (Value::Object(map), Value::String(key)) => map
-                .get(key)
+                .get(key.as_str())
                 .cloned()
                 .ok_or_else(|| EvalError::TypeError(format!("key '{key}' not found on object"))),
             _ => Err(EvalError::TypeError(
@@ -203,8 +201,9 @@ fn compare_values(left: &Value, right: &Value) -> Result<std::cmp::Ordering, Eva
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::json;
+
+    use super::*;
 
     fn ctx() -> EvalContext {
         EvalContext::new()
