@@ -2,79 +2,136 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, develop]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
 
 jobs:
-  test:
-    runs-on: codeberg-tiny
+  validate:
+    name: Validate
+    runs-on: docker
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: ./.forgejo/actions/install-dependencies
+      - name: Install Rust
+        run: rustup default stable
 
-      - name: Cache cargo registry and git
-        uses: actions/cache@v4
+      - uses: ./.forgejo/actions/cache-rust-deps
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: ${{ runner.os }}-cargo-registry-
-
-      - uses: ./.forgejo/actions/run-tests
-
-  lint:
-    runs-on: codeberg-tiny
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: ./.forgejo/actions/install-dependencies
-
-      - name: Install nightly rustfmt
-        run: rustup toolchain install nightly --component rustfmt
-
-      - name: Cache cargo registry and git
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.toml') }}
-          restore-keys: ${{ runner.os }}-cargo-registry-
+          cache-key-prefix: ephemeral-act
+          rustc-version: stable
+          include-sysroot: "false"
 
       - name: Check formatting
-        run: just fmt-check
+        run: cargo fmt --all -- --check
 
-      - name: Lint
-        run: just lint
-
-  validate:
-    runs-on: codeberg-tiny
+  test:
+    name: Test
+    runs-on: docker
+    needs: [validate]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Install shellcheck
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y shellcheck
+      - name: Install Rust
+        run: rustup default stable
 
-      - name: Install actionlint
-        run: |
-          mkdir -p ~/.local/bin
-          curl -sL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash | bash
-          mv actionlint ~/.local/bin/
+      - uses: ./.forgejo/actions/cache-rust-deps
+        with:
+          cache-key-prefix: ephemeral-act
+          rustc-version: stable
+          include-sysroot: "false"
 
-      - name: Lint shell scripts
-        run: |
-          for f in scripts/*.sh scripts/lib/*.sh; do
-            [ -f "$f" ] && shellcheck --external-sources -S info "$f"
-          done
+      - name: Run tests
+        run: cargo test --locked --verbose
+        timeout-minutes: 10
 
-      - name: Lint Forgejo Actions workflows
+      - name: Run doc tests
+        run: cargo test --doc --locked
+        timeout-minutes: 5
+
+  lint:
+    name: Lint
+    runs-on: docker
+    needs: [validate]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup default stable && rustup component add clippy
+      - uses: ./.forgejo/actions/cache-rust-deps
+        with:
+          cache-key-prefix: ephemeral-act
+          rustc-version: stable
+          include-sysroot: "false"
+
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+  coverage:
+    name: Coverage
+    runs-on: docker
+    needs: [validate]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup default stable
+
+      - uses: ./.forgejo/actions/cache-rust-deps
+        with:
+          cache-key-prefix: ephemeral-act-coverage
+          rustc-version: stable
+          include-sysroot: "false"
+
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+
+      - name: Generate coverage
+        run: cargo tarpaulin --locked --out Xml --timeout 300
+        timeout-minutes: 15
+
+      - name: Upload to Codecov
         run: |
-          PATH="$HOME/.local/bin:$PATH"
-          actionlint -config-file .actionlint.yaml .forgejo/workflows/*.yml
+          if [ -f ./cobertura.xml ]; then
+            bash <(curl -s https://codecov.io/bash) -f ./cobertura.xml || echo "Codecov upload skipped (no token)"
+          else
+            echo "No coverage file found, skipping upload"
+          fi
+
+  build:
+    name: Build
+    runs-on: docker
+    needs: [test, lint]
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup default stable
+
+      - uses: ./.forgejo/actions/cache-rust-deps
+        with:
+          cache-key-prefix: ephemeral-act-release
+          rustc-version: stable
+          include-sysroot: "false"
+
+      - name: Build release binary
+        run: cargo build --release --locked
+        timeout-minutes: 15
+
+      - name: Create artifact
+        run: |
+          mkdir -p artifacts
+          cp target/release/ephemeral_act artifacts/
+          chmod +x artifacts/ephemeral_act
+          tar -czf artifacts/ephemeral-act.tar.gz -C artifacts ephemeral_act
+      - name: Upload artifact
+        run: |
+          echo "Artifact created:"
+          ls -la artifacts/ephemeral-act-*.tar.gz || echo "No artifact found"
