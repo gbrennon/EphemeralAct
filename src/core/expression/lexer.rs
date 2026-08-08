@@ -1,67 +1,4 @@
-/// Token types produced by the expression lexer.
-///
-/// Represents all terminal symbols in the GitHub Actions `${{ }}` expression
-/// language: literals, identifiers, operators, punctuation, and end-of-file.
-#[derive(Debug, Clone, PartialEq)]
-pub enum Token {
-    /// An identifier: `[a-zA-Z_][a-zA-Z0-9_-]*` (excluding keywords).
-    Ident(String),
-    /// A single-quoted string literal with `''` escape for literal `'`.
-    String(String),
-    /// A signed 64-bit integer literal.
-    Int(i64),
-    /// A 64-bit floating-point literal (must contain a decimal point).
-    Float(f64),
-    /// A boolean literal: `true` or `false`.
-    Bool(bool),
-    /// The `null` literal.
-    Null,
-    /// `.` — property access operator.
-    Dot,
-    /// `[` — index/open bracket.
-    LBracket,
-    /// `]` — close bracket.
-    RBracket,
-    /// `(` — open parenthesis.
-    LParen,
-    /// `)` — close parenthesis.
-    RParen,
-    /// `!` — logical NOT.
-    Not,
-    /// `==` — equality comparison.
-    Eq,
-    /// `!=` — inequality comparison.
-    Neq,
-    /// `<` — less-than comparison.
-    Lt,
-    /// `<=` — less-than-or-equal comparison.
-    Lte,
-    /// `>` — greater-than comparison.
-    Gt,
-    /// `>=` — greater-than-or-equal comparison.
-    Gte,
-    /// `&&` — logical AND.
-    And,
-    /// `||` — logical OR.
-    Or,
-    /// `*` — array dereference / wildcard.
-    Star,
-    /// `,` — argument separator.
-    Comma,
-    /// End of input stream.
-    Eof,
-}
-
-/// Errors that can occur during lexing.
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum LexerError {
-    /// An unexpected character was encountered at the given byte position.
-    #[error("unexpected character '{0}' at position {1}")]
-    UnexpectedChar(char, usize),
-    /// A single-quoted string was not terminated before end of input.
-    #[error("unterminated string starting at position {0}")]
-    UnterminatedString(usize),
-}
+use super::{lexer_error::LexerError, token::Token};
 
 /// A hand-written lexer for GitHub Actions `${{ }}` expression syntax.
 ///
@@ -377,7 +314,7 @@ mod tests {
         Ok(tokens)
     }
 
-    // ── basic single-character tokens ──
+    // -- basic single-character tokens --
 
     #[test]
     fn lex_dot() {
@@ -415,7 +352,7 @@ mod tests {
         assert_eq!(tokens, vec![Token::Not, Token::Eof]);
     }
 
-    // ── multi-character operators ──
+    // -- multi-character operators --
 
     #[test]
     fn lex_eq() {
@@ -465,7 +402,7 @@ mod tests {
         assert_eq!(tokens, vec![Token::Or, Token::Eof]);
     }
 
-    // ── strings ──
+    // -- strings --
 
     #[test]
     fn lex_simple_string() {
@@ -497,7 +434,7 @@ mod tests {
         assert_eq!(err, LexerError::UnterminatedString(0));
     }
 
-    // ── numbers ──
+    // -- numbers --
 
     #[test]
     fn lex_positive_int() {
@@ -531,12 +468,12 @@ mod tests {
 
     #[test]
     fn lex_float_with_trailing_dot_is_int() {
-        // "42." without digits after dot → Int(42) then Dot
+        // "42." without digits after dot -> Int(42) then Dot
         let tokens = lex_all("42.").unwrap();
         assert_eq!(tokens, vec![Token::Int(42), Token::Dot, Token::Eof]);
     }
 
-    // ── keywords ──
+    // -- keywords --
 
     #[test]
     fn lex_true() {
@@ -556,7 +493,7 @@ mod tests {
         assert_eq!(tokens, vec![Token::Null, Token::Eof]);
     }
 
-    // ── identifiers ──
+    // -- identifiers --
 
     #[test]
     fn lex_simple_ident() {
@@ -588,7 +525,7 @@ mod tests {
         assert_eq!(tokens, vec![Token::Ident("_private".into()), Token::Eof]);
     }
 
-    // ── peek behaviour ──
+    // -- peek behaviour --
 
     #[test]
     fn peek_does_not_consume() {
@@ -616,7 +553,7 @@ mod tests {
         assert_eq!(lexer.next_token().unwrap(), Token::Ident("b".into()));
     }
 
-    // ── whitespace handling ──
+    // -- whitespace handling --
 
     #[test]
     fn lex_skips_whitespace() {
@@ -624,7 +561,7 @@ mod tests {
         assert_eq!(tokens, vec![Token::Ident("foo".into()), Token::Eof]);
     }
 
-    // ── compound expressions ──
+    // -- compound expressions --
 
     #[test]
     fn lex_full_expression() {
@@ -664,7 +601,7 @@ mod tests {
         );
     }
 
-    // ── error cases ──
+    // -- error cases --
 
     #[test]
     fn lex_unexpected_char() {
