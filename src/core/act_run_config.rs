@@ -1,6 +1,4 @@
-use crate::core::value_objects::{
-    ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, Secret,
-};
+use crate::core::value_objects::{ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, Secret};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActRunConfig {
@@ -32,6 +30,12 @@ impl ActRunConfig {
             secrets: Vec::new(),
             extra_args: Vec::new(),
         }
+    }
+}
+
+impl Default for ActRunConfig {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
