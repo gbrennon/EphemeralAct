@@ -126,11 +126,18 @@ impl ContainerRuntime for DockerRuntime {
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
+            // Inspect first: if the container doesn't exist, nothing to do.
+            // If it exists but isn't running, remove without force to avoid
+            // OCI runtime exec errors on dead containers.
+            let force = match self.docker.inspect_container(name, None::<bollard::query_parameters::InspectContainerOptions>).await {
+                Ok(inspect) => inspect.state.and_then(|s| s.running).unwrap_or(false),
+                Err(_) => return Ok(()), // container doesn't exist
+            };
             self.docker
                 .remove_container(
                     name,
                     Some(RemoveContainerOptions {
-                        force: true,
+                        force,
                         ..Default::default()
                     }),
                 )
@@ -141,6 +148,12 @@ impl ContainerRuntime for DockerRuntime {
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
+            // Only stop if the container is actually running — sending a stop
+            // signal to an already-exited container causes OCI runtime errors.
+            if let Ok(inspect) = self.docker.inspect_container(name, None::<bollard::query_parameters::InspectContainerOptions>).await
+                && !inspect.state.and_then(|s| s.running).unwrap_or(false) {
+                    return Ok(());
+                }
             self.docker
                 .stop_container(name, None)
                 .await
