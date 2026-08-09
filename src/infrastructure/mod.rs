@@ -1,3 +1,5 @@
+pub mod bollard_wrapper;
+
 pub mod container;
 pub mod in_memory_event_bus;
 pub mod platform_image_mapper;
