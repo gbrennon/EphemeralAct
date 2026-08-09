@@ -270,9 +270,9 @@ mod tests {
     };
 
     /// Stub image mapper that passes platforms through unchanged.
-    struct StubImageMapper;
+    struct FakeImageMapper;
 
-    impl ImageMapper for StubImageMapper {
+    impl ImageMapper for FakeImageMapper {
         fn map(&self, platform: &str) -> String {
             platform.to_string()
         }
@@ -400,7 +400,7 @@ mod tests {
     fn find_workflow_uses_config_path_when_set() {
         let runtime = FakeRuntime::new();
         let event_publisher = FakeEventPublisher::new();
-        let service = RunActService::new(runtime, StubImageMapper, event_publisher);
+        let service = RunActService::new(runtime, FakeImageMapper, event_publisher);
         let repo = make_repo();
 
         let config = ActRunConfig::new().with_workflow(ActWorkflow::new("Cargo.toml".into()));
@@ -415,7 +415,7 @@ mod tests {
     fn find_workflow_errors_when_config_path_not_found() {
         let runtime = FakeRuntime::new();
         let event_publisher = FakeEventPublisher::new();
-        let service = RunActService::new(runtime, StubImageMapper, event_publisher);
+        let service = RunActService::new(runtime, FakeImageMapper, event_publisher);
         let repo = make_repo();
 
         let config = ActRunConfig::new().with_workflow(ActWorkflow::new("nonexistent.yml".into()));
@@ -443,7 +443,7 @@ jobs:
         job_env.insert("BAZ".into(), "overridden".into());
         job_env.insert("JOB_VAR".into(), "job_val".into());
 
-        let env = RunActService::<FakeRuntime, StubImageMapper, FakeEventPublisher>::build_env(
+        let env = RunActService::<FakeRuntime, FakeImageMapper, FakeEventPublisher>::build_env(
             &workflow, &job_env,
         );
 

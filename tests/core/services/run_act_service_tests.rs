@@ -1,7 +1,7 @@
 mod fake_container;
 mod fake_event_publisher;
 mod fake_runtime;
-mod stub_image_mapper;
+mod fake_image_mapper;
 
 use std::path::Path;
 
@@ -13,7 +13,7 @@ use ephemeral_act::core::{
 };
 use fake_event_publisher::FakeEventPublisher;
 use fake_runtime::FakeRuntime;
-use stub_image_mapper::StubImageMapper;
+use fake_image_mapper::FakeImageMapper;
 
 fn make_repo(path: &Path) -> Repository {
     let repo_path = RepoPath::new(path.to_path_buf()).unwrap();
@@ -55,7 +55,7 @@ jobs:
 fn pulls_image_and_creates_container_for_job() {
     let (_dir, repo) = setup_workflow_dir();
     let runtime = FakeRuntime::new();
-    let service = RunActService::new(runtime, StubImageMapper, FakeEventPublisher::new());
+    let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
 
     let config = ActRunConfig::new();
     let result = service.run_act(config, repo).unwrap();
@@ -86,7 +86,7 @@ jobs:
     let repo = make_repo(dir.path());
 
     let runtime = FakeRuntime::new();
-    let service = RunActService::new(runtime, StubImageMapper, FakeEventPublisher::new());
+    let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
 
     let config = ActRunConfig::new();
     service.run_act(config, repo).unwrap();
@@ -114,7 +114,7 @@ jobs:
     let repo = make_repo(dir.path());
 
     let runtime = FakeRuntime::new();
-    let service = RunActService::new(runtime, StubImageMapper, FakeEventPublisher::new());
+    let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
 
     let config =
         ActRunConfig::new().with_workflow(ActWorkflow::new(".github/workflows/custom.yml".into()));
@@ -131,7 +131,7 @@ fn errors_when_workflow_file_not_found() {
     let repo = make_repo(dir.path());
 
     let runtime = FakeRuntime::new();
-    let service = RunActService::new(runtime, StubImageMapper, FakeEventPublisher::new());
+    let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
 
     let config = ActRunConfig::new().with_workflow(ActWorkflow::new("nonexistent.yml".into()));
     let err = service.run_act(config, repo).unwrap_err();
@@ -145,7 +145,7 @@ fn errors_when_no_workflows_directory() {
     let repo = make_repo(dir.path());
 
     let runtime = FakeRuntime::new();
-    let service = RunActService::new(runtime, StubImageMapper, FakeEventPublisher::new());
+    let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
 
     let config = ActRunConfig::new();
     let err = service.run_act(config, repo).unwrap_err();
@@ -161,7 +161,7 @@ fn propagates_step_failure() {
         stdout: String::new(),
         stderr: "command failed".into(),
     });
-    let service = RunActService::new(runtime, StubImageMapper, FakeEventPublisher::new());
+    let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
 
     let config = ActRunConfig::new();
     let result = service.run_act(config, repo).unwrap();
