@@ -1,9 +1,10 @@
-use bollard::{
-    Docker,
-    models::{ContainerCreateBody, HostConfig},
-    query_parameters::{
-        CreateContainerOptionsBuilder, CreateImageOptionsBuilder, RemoveContainerOptions,
-        StartContainerOptions,
+use crate::infrastructure::bollard_wrapper::{
+    API_DEFAULT_VERSION,
+    AuthCredentials,
+    Client,
+    types::{
+        ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+        HostConfig, InspectContainerOptions, RemoveContainerOptions, StartContainerOptions,
     },
 };
 use futures_util::StreamExt;
@@ -20,7 +21,7 @@ use crate::core::ports::outbound::{
 /// Podman socket, trying rootless first (`/run/user/$UID/podman/podman.sock`)
 /// then falling back to the root socket (`/run/podman/podman.sock`).
 pub struct PodmanRuntime {
-    client: Docker,
+    client: Client,
     runtime: Runtime,
 }
 
@@ -37,8 +38,8 @@ impl PodmanRuntime {
         let rootless_socket = format!("unix:///run/user/{}/podman/podman.sock", uid);
         let root_socket = "unix:///run/podman/podman.sock";
 
-        let client = Docker::connect_with_unix(&rootless_socket, 120, bollard::API_DEFAULT_VERSION)
-            .or_else(|_| Docker::connect_with_unix(root_socket, 120, bollard::API_DEFAULT_VERSION))
+        let client = Client::connect_with_unix(&rootless_socket, 120, API_DEFAULT_VERSION)
+            .or_else(|_| Client::connect_with_unix(root_socket, 120, API_DEFAULT_VERSION))
             .map_err(|_| ContainerError::NotAvailable)?;
 
         Ok(Self { client, runtime })
@@ -57,7 +58,7 @@ impl ContainerRuntime for PodmanRuntime {
             let mut stream = self.client.create_image(
                 Some(options),
                 None,
-                None::<bollard::auth::DockerCredentials>,
+                None::<AuthCredentials>,
             );
 
             while let Some(result) = stream.next().await {
@@ -146,7 +147,7 @@ impl ContainerRuntime for PodmanRuntime {
                 .client
                 .inspect_container(
                     name,
-                    None::<bollard::query_parameters::InspectContainerOptions>,
+                    None::<InspectContainerOptions>,
                 )
                 .await
             {
@@ -174,7 +175,7 @@ impl ContainerRuntime for PodmanRuntime {
                 .client
                 .inspect_container(
                     name,
-                    None::<bollard::query_parameters::InspectContainerOptions>,
+                    None::<InspectContainerOptions>,
                 )
                 .await
                 && !inspect.state.and_then(|s| s.running).unwrap_or(false)
