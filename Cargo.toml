@@ -26,13 +26,13 @@ name = "core_services_run_act_service"
 path = "tests/core/services/run_act_service_tests.rs"
 
 [[test]]
-name = "infrastructure_runners_mod"
-path = "tests/infrastructure/runners/mod_tests.rs"
+name = "infrastructure_platform_image_mapper"
+path = "tests/infrastructure/platform_image_mapper_tests.rs"
 
 [[test]]
-name = "infrastructure_runners_podman"
-path = "tests/infrastructure/runners/podman_tests.rs"
+name = "infrastructure_runners_podman_runtime"
+path = "tests/infrastructure/runners/podman_runtime_tests.rs"
 
 [[test]]
-name = "infrastructure_runners_docker"
-path = "tests/infrastructure/runners/docker_tests.rs"
+name = "infrastructure_runners_docker_runtime"
+path = "tests/infrastructure/runners/docker_runtime_tests.rs"
