@@ -1,11 +1,10 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap};
 
 use ephemeral_act::core::{
     events::DomainEvent,
     ports::outbound::{
-        Container, ContainerConfig, ContainerError, ContainerRuntime, EventPublisher,
-        ExecResult, FileEntry, HostInfo, ImageMapper, RunnerContext,
+        Container, ContainerConfig, ContainerError, ContainerRuntime, EventPublisher, ExecResult,
+        FileEntry, HostInfo, ImageMapper, RunnerContext,
     },
 };
 
@@ -35,9 +34,14 @@ impl ContainerRuntime for FakeRuntime {
         Ok(())
     }
 
-    fn create_container(&self, config: &ContainerConfig) -> Result<Box<dyn Container>, ContainerError> {
+    fn create_container(
+        &self,
+        config: &ContainerConfig,
+    ) -> Result<Box<dyn Container>, ContainerError> {
         self.created_containers.borrow_mut().push(config.clone());
-        Ok(Box::new(FakeContainerHandle { exec_results: self.exec_results.clone() }))
+        Ok(Box::new(FakeContainerHandle {
+            exec_results: self.exec_results.clone(),
+        }))
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
@@ -51,7 +55,11 @@ impl ContainerRuntime for FakeRuntime {
     }
 
     fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        Ok(HostInfo { os: "linux".into(), arch: "amd64".into(), engine_version: "1.0".into() })
+        Ok(HostInfo {
+            os: "linux".into(),
+            arch: "amd64".into(),
+            engine_version: "1.0".into(),
+        })
     }
 }
 
@@ -60,7 +68,12 @@ struct FakeContainerHandle {
 }
 
 impl Container for FakeContainerHandle {
-    fn exec(&self, _cmd: &[String], _workdir: Option<&str>, _env: &HashMap<String, String>) -> Result<ExecResult, ContainerError> {
+    fn exec(
+        &self,
+        _cmd: &[String],
+        _workdir: Option<&str>,
+        _env: &HashMap<String, String>,
+    ) -> Result<ExecResult, ContainerError> {
         Ok(self.exec_results.borrow_mut().pop().unwrap_or(ExecResult {
             exit_code: 0,
             stdout: String::new(),
@@ -68,9 +81,15 @@ impl Container for FakeContainerHandle {
         }))
     }
 
-    fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> { Ok(()) }
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> { Ok(vec![]) }
-    fn remove(&self) -> Result<(), ContainerError> { Ok(()) }
+    fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
+        Ok(())
+    }
+    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
+        Ok(vec![])
+    }
+    fn remove(&self) -> Result<(), ContainerError> {
+        Ok(())
+    }
 
     fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
         Ok(RunnerContext {
@@ -84,19 +103,30 @@ impl Container for FakeContainerHandle {
     }
 }
 
+#[allow(dead_code)]
 pub struct FakeEventPublisher(RefCell<Vec<DomainEvent>>);
 
+#[allow(dead_code)]
 impl FakeEventPublisher {
-    pub fn new() -> Self { Self(RefCell::new(Vec::new())) }
+    pub fn new() -> Self {
+        Self(RefCell::new(Vec::new()))
+    }
 }
 
 impl EventPublisher for FakeEventPublisher {
-    fn publish(&self, event: DomainEvent) { self.0.borrow_mut().push(event); }
+    fn publish(&self, event: DomainEvent) {
+        self.0.borrow_mut().push(event);
+    }
 }
 
+#[allow(dead_code)]
 pub struct FakeImageMapper;
 
 impl ImageMapper for FakeImageMapper {
-    fn map(&self, platform: &str) -> String { platform.to_string() }
-    fn fallback(&self) -> String { "fake-image:latest".into() }
+    fn map(&self, platform: &str) -> String {
+        platform.to_string()
+    }
+    fn fallback(&self) -> String {
+        "fake-image:latest".into()
+    }
 }
