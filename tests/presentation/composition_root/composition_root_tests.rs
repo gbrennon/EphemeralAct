@@ -1,22 +1,12 @@
-use ephemeral_act::{
-    core::ports::inbound::RunActUseCase,
-    infrastructure::Container,
-    presentation::composition_root::CompositionRoot,
-};
+mod common;
+
+use ephemeral_act::presentation::composition_root::CompositionRoot;
+
+use crate::common::FakeRunActUseCase;
 
 #[test]
-fn compose_creates_app_with_cli() {
-    let use_case = Container::build();
+fn compose_creates_app_with_fake_use_case() {
+    let use_case = FakeRunActUseCase::new(true);
     let app = CompositionRoot::compose(use_case);
-    // Verify the app has a CLI that can be called.
     let _ = app.cli;
-}
-
-#[test]
-fn compose_result_has_expected_structure() {
-    fn _assert_use_case(_: impl RunActUseCase) {}
-    let use_case = Container::build();
-    let app = CompositionRoot::compose(use_case);
-    _assert_use_case(Container::build());
-    let _ = app;
 }

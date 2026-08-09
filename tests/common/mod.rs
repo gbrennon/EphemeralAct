@@ -8,6 +8,7 @@ use ephemeral_act::core::{
     },
 };
 
+#[allow(dead_code)]
 pub struct FakeRuntime {
     pub pulled_images: RefCell<Vec<String>>,
     pub created_containers: RefCell<Vec<ContainerConfig>>,
@@ -16,6 +17,7 @@ pub struct FakeRuntime {
     pub stopped_containers: RefCell<Vec<String>>,
 }
 
+#[allow(dead_code)]
 impl FakeRuntime {
     pub fn new() -> Self {
         Self {
@@ -63,6 +65,7 @@ impl ContainerRuntime for FakeRuntime {
     }
 }
 
+#[allow(dead_code)]
 struct FakeContainerHandle {
     exec_results: RefCell<Vec<ExecResult>>,
 }
@@ -92,14 +95,7 @@ impl Container for FakeContainerHandle {
     }
 
     fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-        Ok(RunnerContext {
-            workspace: "/github/workspace".into(),
-            home: "/root".into(),
-            action_path: "/actions".into(),
-            temp: "/tmp".into(),
-            tool_cache: "/tool-cache".into(),
-            env: HashMap::new(),
-        })
+        Ok(RunnerContext::default())
     }
 }
 
@@ -128,5 +124,39 @@ impl ImageMapper for FakeImageMapper {
     }
     fn fallback(&self) -> String {
         "fake-image:latest".into()
+    }
+}
+
+use ephemeral_act::core::{
+    ports::inbound::run_act_port::RunActUseCase,
+    shared_types::ExecutionResult,
+    ActRunConfig, Repository,
+};
+
+#[allow(dead_code)]
+pub struct FakeRunActUseCase {
+    pub result: ExecutionResult,
+}
+
+#[allow(dead_code)]
+impl FakeRunActUseCase {
+    pub fn new(success: bool) -> Self {
+        Self {
+            result: ExecutionResult {
+                success,
+                stdout: String::new(),
+                stderr: String::new(),
+            },
+        }
+    }
+}
+
+impl RunActUseCase for FakeRunActUseCase {
+    fn run_act(
+        &self,
+        _config: ActRunConfig,
+        _repository: Repository,
+    ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
+        Ok(self.result.clone())
     }
 }
