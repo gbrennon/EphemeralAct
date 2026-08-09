@@ -119,7 +119,7 @@ impl ContainerRuntime for DockerRuntime {
         Ok(Box::new(DockerContainer {
             docker: self.docker.clone(),
             container_id: container.id,
-                    runner_context: config.runner_context.clone(),
+            runner_context: config.runner_context.clone(),
             runtime: self.runtime.handle().clone(),
         }))
     }

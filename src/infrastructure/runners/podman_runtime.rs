@@ -132,7 +132,7 @@ impl ContainerRuntime for PodmanRuntime {
         Ok(Box::new(PodmanContainer {
             client: self.client.clone(),
             container_id: container.id,
-                    runner_context: config.runner_context.clone(),
+            runner_context: config.runner_context.clone(),
             runtime: self.runtime.handle().clone(),
         }))
     }
