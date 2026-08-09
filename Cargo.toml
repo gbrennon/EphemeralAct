@@ -36,3 +36,19 @@ path = "tests/infrastructure/runners/podman_runtime_tests.rs"
 [[test]]
 name = "infrastructure_runners_docker_runtime"
 path = "tests/infrastructure/runners/docker_runtime_tests.rs"
+
+[[test]]
+name = "infrastructure_runners_adapter"
+path = "tests/infrastructure/runners/adapter_tests.rs"
+
+[[test]]
+name = "infrastructure_container"
+path = "tests/infrastructure/container_tests.rs"
+
+[[test]]
+name = "infrastructure_in_memory_event_bus"
+path = "tests/infrastructure/in_memory_event_bus_tests.rs"
+
+[[test]]
+name = "presentation_composition_root"
+path = "tests/presentation/composition_root/composition_root_tests.rs"
