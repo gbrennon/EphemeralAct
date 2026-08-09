@@ -18,3 +18,26 @@ impl std::fmt::Display for ParseError {
 }
 
 impl std::error::Error for ParseError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_formats_message_and_position() {
+        let err = ParseError {
+            message: "unexpected token".into(),
+            position: 42,
+        };
+        assert_eq!(err.to_string(), "parse error at position 42: unexpected token");
+    }
+
+    #[test]
+    fn error_trait_implemented() {
+        let err = ParseError {
+            message: "test".into(),
+            position: 0,
+        };
+        let _: &dyn std::error::Error = &err;
+    }
+}

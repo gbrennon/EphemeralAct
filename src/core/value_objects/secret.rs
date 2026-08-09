@@ -67,3 +67,29 @@ mod tests {
         assert_eq!(secret.as_str(), "my-token");
     }
 }
+
+#[cfg(test)]
+mod extra_tests {
+    use super::*;
+
+    #[test]
+    fn clone_preserves_value() {
+        let secret = Secret::new("my-secret".into());
+        let cloned = secret.clone();
+        assert_eq!(cloned.as_str(), "my-secret");
+    }
+
+    #[test]
+    fn partial_eq_same_value_returns_true() {
+        let a = Secret::new("x".into());
+        let b = Secret::new("x".into());
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn partial_eq_different_value_returns_false() {
+        let a = Secret::new("x".into());
+        let b = Secret::new("y".into());
+        assert_ne!(a, b);
+    }
+}

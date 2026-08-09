@@ -21,3 +21,38 @@ impl fmt::Display for Literal {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_bool_true() {
+        assert_eq!(Literal::Bool(true).to_string(), "true");
+    }
+
+    #[test]
+    fn display_bool_false() {
+        assert_eq!(Literal::Bool(false).to_string(), "false");
+    }
+
+    #[test]
+    fn display_null() {
+        assert_eq!(Literal::Null.to_string(), "null");
+    }
+
+    #[test]
+    fn display_int() {
+        assert_eq!(Literal::Int(42).to_string(), "42");
+    }
+
+    #[test]
+    fn display_float() {
+        assert_eq!(Literal::Float(3.14).to_string(), "3.14");
+    }
+
+    #[test]
+    fn display_string() {
+        assert_eq!(Literal::String("hello".into()).to_string(), "'hello'");
+    }
+}

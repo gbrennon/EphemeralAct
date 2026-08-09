@@ -15,3 +15,18 @@ impl fmt::Display for LogicalOp {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn display_and() {
+        assert_eq!(LogicalOp::And.to_string(), "&&");
+    }
+
+    #[test]
+    fn display_or() {
+        assert_eq!(LogicalOp::Or.to_string(), "||");
+    }
+}
