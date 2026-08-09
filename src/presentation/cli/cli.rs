@@ -36,17 +36,16 @@ impl Cli {
         I: IntoIterator<Item = T>,
         T: Into<OsString> + Clone,
     {
-        let cli = match CliParser::try_parse_from(args) {
+        let parsed = CliParser::try_parse_from(args);
+        let cli = match parsed {
             Ok(cli) => cli,
-            Err(e)
-                if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand =>
-            {
-                let mut stdout = std::io::stdout();
-                let _ = write!(stdout, "{e}");
-                let _ = stdout.flush();
-                return Ok(());
-            }
             Err(e) => {
+                if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand {
+                    let mut stdout = std::io::stdout();
+                    let _ = write!(stdout, "{e}");
+                    let _ = stdout.flush();
+                    return Ok(());
+                }
                 let _ = write!(std::io::stderr(), "{e}");
                 return Err(e.to_string().into());
             }
