@@ -91,4 +91,32 @@ mod tests {
         let err = RunHandler::handle(args, &use_case).unwrap_err();
         assert!(err.to_string().contains("use case failure"));
     }
+
+    #[test]
+    fn handle_prints_stdout_when_present() {
+        let args = crate::presentation::cli::parse_run_test_args(&[]);
+        let use_case = StubUseCase {
+            result: Ok(ExecutionResult {
+                success: true,
+                stdout: "build output".into(),
+                stderr: String::new(),
+            }),
+        };
+        let result = RunHandler::handle(args, &use_case);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn handle_prints_stderr_when_present() {
+        let args = crate::presentation::cli::parse_run_test_args(&[]);
+        let use_case = StubUseCase {
+            result: Ok(ExecutionResult {
+                success: true,
+                stdout: String::new(),
+                stderr: "warning message".into(),
+            }),
+        };
+        let result = RunHandler::handle(args, &use_case);
+        assert!(result.is_ok());
+    }
 }
