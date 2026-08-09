@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use bollard::{
-    Docker,
-    container::LogOutput,
-    exec::{CreateExecOptions, StartExecOptions, StartExecResults},
-    query_parameters::{
-        DownloadFromContainerOptionsBuilder, RemoveContainerOptions,
+use crate::infrastructure::bollard_wrapper::{
+    body_full,
+    Client,
+    types::{
+        CreateExecOptions, DownloadFromContainerOptionsBuilder, LogOutput,
+        RemoveContainerOptions, StartExecOptions, StartExecResults,
         UploadToContainerOptionsBuilder,
     },
 };
@@ -18,7 +18,7 @@ use crate::core::ports::outbound::{
 
 /// A running Docker container, created by [`DockerRuntime`].
 pub(super) struct DockerContainer {
-    pub(super) docker: Docker,
+    pub(super) docker: Client,
     pub(super) container_id: String,
     pub(super) runtime: tokio::runtime::Handle,
 }
@@ -132,7 +132,7 @@ impl Container for DockerContainer {
                 .upload_to_container(
                     &self.container_id,
                     Some(upload_options),
-                    bollard::body_full(Bytes::from(tar_data)),
+                    body_full(Bytes::from(tar_data)),
                 )
                 .await
                 .map_err(|e| ContainerError::CopyFailed(self.container_id.clone(), e.to_string()))
