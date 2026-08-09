@@ -23,7 +23,11 @@ impl RunActUseCase for StubUseCase {
 #[test]
 fn run_dispatches_success_without_exiting() {
     let use_case = StubUseCase {
-        result: Ok(ExecutionResult { success: true, stdout: String::new(), stderr: String::new() }),
+        result: Ok(ExecutionResult {
+            success: true,
+            stdout: String::new(),
+            stderr: String::new(),
+        }),
     };
     let args = parse_run_test_args(&[]);
     RunHandler::handle(args, &use_case).unwrap();
@@ -32,7 +36,11 @@ fn run_dispatches_success_without_exiting() {
 #[test]
 fn run_dispatches_with_workflow_flag() {
     let use_case = StubUseCase {
-        result: Ok(ExecutionResult { success: true, stdout: String::new(), stderr: String::new() }),
+        result: Ok(ExecutionResult {
+            success: true,
+            stdout: String::new(),
+            stderr: String::new(),
+        }),
     };
     let args = parse_run_test_args(&["--workflow", "ci.yml"]);
     RunHandler::handle(args, &use_case).unwrap();
@@ -45,5 +53,8 @@ fn no_args_displays_help() {
         Ok(_) => panic!("expected missing-command error"),
         Err(e) => e,
     };
-    assert_eq!(err.kind(), clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand);
+    assert_eq!(
+        err.kind(),
+        clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand
+    );
 }

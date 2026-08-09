@@ -36,4 +36,3 @@ pub fn parse_run_test_args(args: &[&str]) -> super::run_args::RunArgs {
         super::command::Command::Run(args) => *args,
     }
 }
-

@@ -23,7 +23,11 @@ impl RunActUseCase for StubUseCase {
 fn handle_success() {
     let args = parse_run_test_args(&[]);
     let use_case = StubUseCase {
-        result: Ok(ExecutionResult { success: true, stdout: String::new(), stderr: String::new() }),
+        result: Ok(ExecutionResult {
+            success: true,
+            stdout: String::new(),
+            stderr: String::new(),
+        }),
     };
     assert!(RunHandler::handle(args, &use_case).is_ok());
 }
@@ -32,7 +36,11 @@ fn handle_success() {
 fn handle_propagates_workflow_failure() {
     let args = parse_run_test_args(&[]);
     let use_case = StubUseCase {
-        result: Ok(ExecutionResult { success: false, stdout: String::new(), stderr: "error".into() }),
+        result: Ok(ExecutionResult {
+            success: false,
+            stdout: String::new(),
+            stderr: "error".into(),
+        }),
     };
     let err = RunHandler::handle(args, &use_case).unwrap_err();
     assert!(err.to_string().contains("workflow failed"));
@@ -41,7 +49,9 @@ fn handle_propagates_workflow_failure() {
 #[test]
 fn handle_propagates_use_case_error() {
     let args = parse_run_test_args(&[]);
-    let use_case = StubUseCase { result: Err("use case failure".into()) };
+    let use_case = StubUseCase {
+        result: Err("use case failure".into()),
+    };
     let err = RunHandler::handle(args, &use_case).unwrap_err();
     assert!(err.to_string().contains("use case failure"));
 }
@@ -50,7 +60,11 @@ fn handle_propagates_use_case_error() {
 fn handle_prints_stdout_when_present() {
     let args = parse_run_test_args(&[]);
     let use_case = StubUseCase {
-        result: Ok(ExecutionResult { success: true, stdout: "build output".into(), stderr: String::new() }),
+        result: Ok(ExecutionResult {
+            success: true,
+            stdout: "build output".into(),
+            stderr: String::new(),
+        }),
     };
     assert!(RunHandler::handle(args, &use_case).is_ok());
 }
@@ -59,7 +73,11 @@ fn handle_prints_stdout_when_present() {
 fn handle_prints_stderr_when_present() {
     let args = parse_run_test_args(&[]);
     let use_case = StubUseCase {
-        result: Ok(ExecutionResult { success: true, stdout: String::new(), stderr: "warning".into() }),
+        result: Ok(ExecutionResult {
+            success: true,
+            stdout: String::new(),
+            stderr: "warning".into(),
+        }),
     };
     assert!(RunHandler::handle(args, &use_case).is_ok());
 }

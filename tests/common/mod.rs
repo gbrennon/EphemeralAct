@@ -128,9 +128,8 @@ impl ImageMapper for FakeImageMapper {
 }
 
 use ephemeral_act::core::{
-    ports::inbound::run_act_port::RunActUseCase,
+    ActRunConfig, Repository, ports::inbound::run_act_port::RunActUseCase,
     shared_types::ExecutionResult,
-    ActRunConfig, Repository,
 };
 
 #[allow(dead_code)]

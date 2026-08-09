@@ -30,13 +30,12 @@ impl<R: ContainerRuntime> ContainerCleanupUseCase for ContainerCleanupService<R>
 
 #[cfg(test)]
 mod tests {
+    use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
     use super::*;
-    use std::cell::RefCell;
-    use std::collections::HashMap;
-    use std::rc::Rc;
     use crate::core::ports::outbound::{
-        Container, ContainerConfig, ContainerError, ContainerRuntime,
-        ExecResult, FileEntry, HostInfo, RunnerContext,
+        Container, ContainerConfig, ContainerError, ContainerRuntime, ExecResult, FileEntry,
+        HostInfo, RunnerContext,
     };
 
     struct FakeRuntime {
@@ -48,7 +47,14 @@ mod tests {
         fn new() -> (Self, Rc<RefCell<Vec<String>>>, Rc<RefCell<Vec<String>>>) {
             let stopped = Rc::new(RefCell::new(Vec::new()));
             let removed = Rc::new(RefCell::new(Vec::new()));
-            (Self { stopped: stopped.clone(), removed: removed.clone() }, stopped, removed)
+            (
+                Self {
+                    stopped: stopped.clone(),
+                    removed: removed.clone(),
+                },
+                stopped,
+                removed,
+            )
         }
     }
 
@@ -56,16 +62,38 @@ mod tests {
     struct FakeContainer;
 
     impl Container for FakeContainer {
-        fn exec(&self, _cmd: &[String], _workdir: Option<&str>, _env: &HashMap<String, String>) -> Result<ExecResult, ContainerError> { unimplemented!() }
-        fn copy_to(&self, _p: &str, _e: &[FileEntry]) -> Result<(), ContainerError> { unimplemented!() }
-        fn copy_from(&self, _p: &str) -> Result<Vec<FileEntry>, ContainerError> { unimplemented!() }
-        fn remove(&self) -> Result<(), ContainerError> { unimplemented!() }
-        fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> { unimplemented!() }
+        fn exec(
+            &self,
+            _cmd: &[String],
+            _workdir: Option<&str>,
+            _env: &HashMap<String, String>,
+        ) -> Result<ExecResult, ContainerError> {
+            unimplemented!()
+        }
+        fn copy_to(&self, _p: &str, _e: &[FileEntry]) -> Result<(), ContainerError> {
+            unimplemented!()
+        }
+        fn copy_from(&self, _p: &str) -> Result<Vec<FileEntry>, ContainerError> {
+            unimplemented!()
+        }
+        fn remove(&self) -> Result<(), ContainerError> {
+            unimplemented!()
+        }
+        fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
+            unimplemented!()
+        }
     }
 
     impl ContainerRuntime for FakeRuntime {
-        fn pull_image(&self, _i: &str, _p: Option<&str>) -> Result<(), ContainerError> { unimplemented!() }
-        fn create_container(&self, _c: &ContainerConfig) -> Result<Box<dyn Container>, ContainerError> { unimplemented!() }
+        fn pull_image(&self, _i: &str, _p: Option<&str>) -> Result<(), ContainerError> {
+            unimplemented!()
+        }
+        fn create_container(
+            &self,
+            _c: &ContainerConfig,
+        ) -> Result<Box<dyn Container>, ContainerError> {
+            unimplemented!()
+        }
         fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
             self.removed.borrow_mut().push(name.to_string());
             Ok(())
@@ -74,7 +102,9 @@ mod tests {
             self.stopped.borrow_mut().push(name.to_string());
             Ok(())
         }
-        fn get_host_info(&self) -> Result<HostInfo, ContainerError> { unimplemented!() }
+        fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
+            unimplemented!()
+        }
     }
 
     #[test]

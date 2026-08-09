@@ -1,4 +1,4 @@
-use ephemeral_act::presentation::cli::{parse_run_test_args, RunArgs};
+use ephemeral_act::presentation::cli::{RunArgs, parse_run_test_args};
 
 #[test]
 fn parse_key_value_with_equals() {

@@ -132,7 +132,10 @@ mod tests {
     fn is_standalone_matches_git_dir_kind() {
         let crate_root = env::var("CARGO_MANIFEST_DIR").unwrap();
         let repo_path = RepoPath::new(&crate_root).unwrap();
-        assert_eq!(repo_path.is_standalone(), repo_path.git_dir_kind() == GitDirKind::Standalone);
+        assert_eq!(
+            repo_path.is_standalone(),
+            repo_path.git_dir_kind() == GitDirKind::Standalone
+        );
     }
 
     #[test]

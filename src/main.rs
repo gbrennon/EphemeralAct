@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let use_case = Container::build();
     let app = CompositionRoot::compose(use_case);
-    let result = app.cli.run();
+    let result = app.cli.run(std::env::args_os());
     // This ensures all buffered output (including any late-arriving
     // crun errors) is flushed through the filter before the process
     // terminates.

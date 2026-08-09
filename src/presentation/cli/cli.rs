@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{ffi::OsString, io::Write};
 
 use clap::Parser;
 
@@ -25,28 +25,35 @@ impl Cli {
     /// Parses CLI arguments and dispatches to the appropriate handler.
     ///
     /// Running without arguments prints the help to stdout and exits cleanly.
-    /// On workflow failure the error is printed to stderr and the process
-    /// exits with code 1 (matching the behaviour of `act` / `act_runner`).
-    pub fn run(self) -> Result<(), Box<dyn std::error::Error>> {
-        let cli = match CliParser::try_parse() {
+    /// On workflow failure the error is returned to the caller; `main.rs`
+    /// handles printing and exiting.
+    ///
+    /// Accepts an explicit argument iterator so that tests can inject CLI
+    /// args without touching process globals. Production code passes
+    /// `std::env::args_os()`.
+    pub fn run<I, T>(self, args: I) -> Result<(), Box<dyn std::error::Error>>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OsString> + Clone,
+    {
+        let cli = match CliParser::try_parse_from(args) {
             Ok(cli) => cli,
             Err(e)
                 if e.kind() == clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand =>
             {
                 let mut stdout = std::io::stdout();
-                write!(stdout, "{e}").map_err(|io| io.to_string())?;
-                stdout.flush().map_err(|io| io.to_string())?;
+                let _ = write!(stdout, "{e}");
+                let _ = stdout.flush();
                 return Ok(());
             }
-            Err(e) => e.exit(),
+            Err(e) => {
+                let _ = write!(std::io::stderr(), "{e}");
+                return Err(e.to_string().into());
+            }
         };
         match cli.command {
             Command::Run(args) => {
-                if let Err(e) = super::run_handler::RunHandler::handle(*args, &*self.use_case) {
-                    eprintln!("Error: {}", e);
-                    std::process::exit(1);
-                }
-                Ok(())
+                super::run_handler::RunHandler::handle(*args, &*self.use_case)
             }
         }
     }

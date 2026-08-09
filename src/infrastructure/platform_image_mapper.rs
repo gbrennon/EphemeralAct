@@ -38,4 +38,3 @@ impl ImageMapper for PlatformImageMapper {
         "catthehacker/ubuntu:act-latest".to_string()
     }
 }
-

@@ -29,7 +29,10 @@ mod tests {
             message: "unexpected token".into(),
             position: 42,
         };
-        assert_eq!(err.to_string(), "parse error at position 42: unexpected token");
+        assert_eq!(
+            err.to_string(),
+            "parse error at position 42: unexpected token"
+        );
     }
 
     #[test]

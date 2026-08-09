@@ -85,8 +85,17 @@ impl Container for DockerContainer {
                     // EOF to Podman. This prevents crun from flushing debug
                     // errors when the upgraded connection closes.
                     drop(input);
+
+                    // Inspect the exec instance to get the real exit code
+                    let exit_code = self
+                        .docker
+                        .inspect_exec(&exec.id)
+                        .await
+                        .map(|inspect| inspect.exit_code.unwrap_or(0))
+                        .unwrap_or(0);
+
                     Ok(ExecResult {
-                        exit_code: 0,
+                        exit_code,
                         stdout,
                         stderr,
                     })

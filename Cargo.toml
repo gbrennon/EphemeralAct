@@ -64,3 +64,7 @@ path = "tests/presentation/cli/run_handler_tests.rs"
 [[test]]
 name = "presentation_run_args"
 path = "tests/presentation/cli/run_args_tests.rs"
+
+[[test]]
+name = "presentation_cli"
+path = "tests/presentation/cli/cli_tests.rs"

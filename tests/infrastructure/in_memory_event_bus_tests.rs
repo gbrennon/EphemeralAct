@@ -1,14 +1,15 @@
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc};
 
-use ephemeral_act::core::{
-    events::{ActRunCompletedPayload, DomainEvent},
-    ports::{
-        inbound::container_cleanup_port::ContainerCleanupUseCase,
-        outbound::event_publisher::EventPublisher,
+use ephemeral_act::{
+    core::{
+        events::{ActRunCompletedPayload, DomainEvent},
+        ports::{
+            inbound::container_cleanup_port::ContainerCleanupUseCase,
+            outbound::event_publisher::EventPublisher,
+        },
     },
+    infrastructure::InMemoryEventBus,
 };
-use ephemeral_act::infrastructure::InMemoryEventBus;
 
 struct SpyCleanupHandler {
     called_with: RefCell<Vec<Vec<String>>>,
@@ -24,9 +25,7 @@ impl SpyCleanupHandler {
 
 impl ContainerCleanupUseCase for SpyCleanupHandler {
     fn handle_act_run_completed(&self, container_names: &[String]) {
-        self.called_with
-            .borrow_mut()
-            .push(container_names.to_vec());
+        self.called_with.borrow_mut().push(container_names.to_vec());
     }
 }
 

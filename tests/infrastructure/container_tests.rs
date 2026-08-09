@@ -1,7 +1,4 @@
-use ephemeral_act::{
-    core::ports::inbound::RunActUseCase,
-    infrastructure::Container,
-};
+use ephemeral_act::{core::ports::inbound::RunActUseCase, infrastructure::Container};
 
 #[test]
 fn build_returns_use_case_when_runtime_available() {
