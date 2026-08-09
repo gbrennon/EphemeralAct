@@ -90,101 +90,10 @@ impl RunArgs {
     /// Splits a `KEY=VALUE` string into its key and value components.
     ///
     /// Returns an error string if the input doesn't contain `=`.
-    fn parse_key_value(s: &str) -> Result<(String, String), String> {
+    pub fn parse_key_value(s: &str) -> Result<(String, String), String> {
         s.split_once('=')
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use clap::Parser;
-
-    use super::*;
-
-    fn parse_run_args(args: &[&str]) -> RunArgs {
-        let mut full: Vec<&str> = vec!["ephemeral-act", "run"];
-        full.extend_from_slice(args);
-        let cli = crate::presentation::cli::CliParser::parse_from(&full);
-        match cli.command {
-            crate::presentation::cli::Command::Run(args) => *args,
-        }
-    }
-
-    #[test]
-    fn parse_key_value_with_equals() {
-        let (k, v) = RunArgs::parse_key_value("KEY=value").unwrap();
-        assert_eq!(k, "KEY");
-        assert_eq!(v, "value");
-    }
-
-    #[test]
-    fn parse_key_value_missing_equals() {
-        let err = RunArgs::parse_key_value("no_equals").unwrap_err();
-        assert!(err.contains("KEY=VALUE"));
-    }
-
-    #[test]
-    fn to_domain_defaults() {
-        let args = parse_run_args(&[]);
-        let (_config, repo) = args.to_domain().unwrap();
-        assert!(!repo.name().as_str().is_empty());
-    }
-
-    #[test]
-    fn to_domain_with_workflow() {
-        let args = parse_run_args(&["--workflow", "ci.yml"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        let wf = config.workflow().expect("workflow should be set");
-        assert_eq!(wf.as_str(), "ci.yml");
-    }
-
-    #[test]
-    fn to_domain_with_job() {
-        let args = parse_run_args(&["--job", "test"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        let job = config.job().expect("job should be set");
-        assert_eq!(job.as_str(), "test");
-    }
-
-    #[test]
-    fn to_domain_with_event() {
-        let args = parse_run_args(&["--event", "push"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        let event = config.event().expect("event should be set");
-        assert_eq!(event.as_str(), "push");
-    }
-
-    #[test]
-    fn to_domain_with_inputs() {
-        let args = parse_run_args(&["--input", "VAR1=val1", "--input", "VAR2=val2"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        let inputs = config.inputs();
-        assert_eq!(inputs.len(), 2);
-        assert_eq!(inputs[0].key(), "VAR1");
-        assert_eq!(inputs[0].value(), "val1");
-        assert_eq!(inputs[1].key(), "VAR2");
-        assert_eq!(inputs[1].value(), "val2");
-    }
-
-    #[test]
-    fn to_domain_with_secrets() {
-        let args = parse_run_args(&["--secret", "TOKEN=abc123", "--secret", "PASS=xyz"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        let secrets = config.secrets();
-        assert_eq!(secrets.len(), 2);
-        assert_eq!(secrets[0].as_str(), "TOKEN=abc123");
-        assert_eq!(secrets[1].as_str(), "PASS=xyz");
-    }
-
-    #[test]
-    fn to_domain_with_extra_args() {
-        let args = parse_run_args(&["--extra-arg", "verbose", "--extra-arg", "dryrun"]);
-        let (config, _repo) = args.to_domain().unwrap();
-        let extra = config.extra_args();
-        assert_eq!(extra.len(), 2);
-        assert_eq!(extra[0].as_str(), "verbose");
-        assert_eq!(extra[1].as_str(), "dryrun");
-    }
-}

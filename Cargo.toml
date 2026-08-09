@@ -52,3 +52,15 @@ path = "tests/infrastructure/in_memory_event_bus_tests.rs"
 [[test]]
 name = "presentation_composition_root"
 path = "tests/presentation/composition_root/composition_root_tests.rs"
+
+[[test]]
+name = "presentation_cli_parser"
+path = "tests/presentation/cli/cli_parser_tests.rs"
+
+[[test]]
+name = "presentation_run_handler"
+path = "tests/presentation/cli/run_handler_tests.rs"
+
+[[test]]
+name = "presentation_run_args"
+path = "tests/presentation/cli/run_args_tests.rs"

@@ -44,3 +44,40 @@ fn map_platform_unknown_returns_input_unchanged() {
 fn map_platform_empty_string_returns_empty() {
     assert_eq!(PlatformImageMapper.map(""), "");
 }
+
+#[test]
+fn maps_codeberg_tiny_to_ubuntu() {
+    assert_eq!(
+        PlatformImageMapper.map("codeberg-tiny"),
+        "catthehacker/ubuntu:act-latest"
+    );
+}
+
+#[test]
+fn maps_codeberg_medium_to_ubuntu() {
+    assert_eq!(
+        PlatformImageMapper.map("codeberg-medium"),
+        "catthehacker/ubuntu:act-latest"
+    );
+}
+
+#[test]
+fn maps_codeberg_large_to_ubuntu() {
+    assert_eq!(
+        PlatformImageMapper.map("codeberg-large"),
+        "catthehacker/ubuntu:act-latest"
+    );
+}
+
+#[test]
+fn passes_unknown_platform_through() {
+    assert_eq!(PlatformImageMapper.map("windows-latest"), "windows-latest");
+}
+
+#[test]
+fn fallback_returns_ubuntu_latest() {
+    assert_eq!(
+        PlatformImageMapper.fallback(),
+        "catthehacker/ubuntu:act-latest"
+    );
+}
