@@ -73,3 +73,62 @@ fn exec_echo_returns_stdout() {
     assert_eq!(result.exit_code, 0);
     container.remove().unwrap();
 }
+
+#[test]
+fn pull_image_with_platform_succeeds() {
+    let runtime = PodmanRuntime::new().unwrap();
+    let result = runtime.pull_image("alpine:latest", Some("linux/amd64"));
+    assert!(result.is_ok());
+}
+
+#[test]
+fn stop_running_container_succeeds() {
+    let runtime = PodmanRuntime::new().unwrap();
+    let config = make_config("ephemeral-act-test-podman-stop");
+    let _ = runtime.remove_container("ephemeral-act-test-podman-stop");
+    let container = runtime.create_container(&config).unwrap();
+    runtime.stop_container("ephemeral-act-test-podman-stop").unwrap();
+    container.remove().unwrap();
+}
+
+#[test]
+fn exec_with_workdir_runs_in_specified_directory() {
+    let runtime = PodmanRuntime::new().unwrap();
+    let config = make_config("ephemeral-act-test-podman-workdir");
+    let _ = runtime.remove_container("ephemeral-act-test-podman-workdir");
+    let container = runtime.create_container(&config).unwrap();
+    let result = container
+        .exec(&["pwd".into()], Some("/tmp"), &HashMap::new())
+        .unwrap();
+    assert_eq!(result.stdout.trim(), "/tmp");
+    assert_eq!(result.exit_code, 0);
+    container.remove().unwrap();
+}
+
+#[test]
+fn exec_with_env_passes_environment() {
+    let runtime = PodmanRuntime::new().unwrap();
+    let config = make_config("ephemeral-act-test-podman-env");
+    let _ = runtime.remove_container("ephemeral-act-test-podman-env");
+    let container = runtime.create_container(&config).unwrap();
+    let mut env = HashMap::new();
+    env.insert("MY_VAR".into(), "my_value".into());
+    let result = container
+        .exec(&["sh".into(), "-c".into(), "echo -n $MY_VAR".into()], None, &env)
+        .unwrap();
+    assert_eq!(result.stdout, "my_value");
+    assert_eq!(result.exit_code, 0);
+    container.remove().unwrap();
+}
+
+#[test]
+fn get_runner_context_returns_expected_paths() {
+    let runtime = PodmanRuntime::new().unwrap();
+    let config = make_config("ephemeral-act-test-podman-context");
+    let _ = runtime.remove_container("ephemeral-act-test-podman-context");
+    let container = runtime.create_container(&config).unwrap();
+    let ctx = container.get_runner_context().unwrap();
+    assert_eq!(ctx.workspace, "/workspace");
+    assert_eq!(ctx.home, "/home");
+    container.remove().unwrap();
+}

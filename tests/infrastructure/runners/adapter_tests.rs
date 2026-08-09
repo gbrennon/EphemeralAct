@@ -46,3 +46,38 @@ fn get_host_info_delegates_to_inner_runtime() {
     assert!(!info.os.is_empty());
     assert!(!info.arch.is_empty());
 }
+
+#[test]
+fn stop_container_delegates_to_inner_runtime() {
+    let adapter = ContainerRuntimeAdapter::detect().unwrap();
+    let _ = adapter.stop_container("nonexistent-container-xyz-123");
+}
+
+#[test]
+fn remove_container_delegates_to_inner_runtime() {
+    let adapter = ContainerRuntimeAdapter::detect().unwrap();
+    let _ = adapter.remove_container("nonexistent-container-xyz-123");
+}
+
+#[test]
+fn create_container_delegates_to_inner_runtime() {
+    use std::collections::HashMap;
+    use ephemeral_act::core::ports::outbound::ContainerConfig;
+
+    let adapter = ContainerRuntimeAdapter::detect().unwrap();
+    let config = ContainerConfig {
+        image: "alpine:latest".into(),
+        platform: None,
+        env: HashMap::new(),
+        binds: vec![],
+        workdir: None,
+        cmd: Some(vec!["sleep".into(), "infinity".into()]),
+        entrypoint: None,
+        network: None,
+        name: Some("ephemeral-act-test-adapter-create".into()),
+        runner_context: Default::default(),
+    };
+    let _ = adapter.remove_container("ephemeral-act-test-adapter-create");
+    let container = adapter.create_container(&config).unwrap();
+    container.remove().unwrap();
+}
