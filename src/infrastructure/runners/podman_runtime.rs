@@ -1,18 +1,18 @@
-use crate::infrastructure::bollard_wrapper::{
-    API_DEFAULT_VERSION,
-    AuthCredentials,
-    Client,
-    types::{
-        ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-        HostConfig, InspectContainerOptions, RemoveContainerOptions, StartContainerOptions,
-    },
-};
 use futures_util::StreamExt;
 use tokio::runtime::Runtime;
 
 use super::podman_container::PodmanContainer;
-use crate::core::ports::outbound::{
-    Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+use crate::{
+    core::ports::outbound::{
+        Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+    },
+    infrastructure::bollard_wrapper::{
+        API_DEFAULT_VERSION, AuthCredentials, Client,
+        types::{
+            ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+            HostConfig, InspectContainerOptions, RemoveContainerOptions, StartContainerOptions,
+        },
+    },
 };
 
 /// Podman-based container runtime adapter using the bollard crate.
@@ -55,11 +55,9 @@ impl ContainerRuntime for PodmanRuntime {
         let options = options_builder.build();
 
         self.runtime.block_on(async {
-            let mut stream = self.client.create_image(
-                Some(options),
-                None,
-                None::<AuthCredentials>,
-            );
+            let mut stream = self
+                .client
+                .create_image(Some(options), None, None::<AuthCredentials>);
 
             while let Some(result) = stream.next().await {
                 match result {
@@ -134,6 +132,7 @@ impl ContainerRuntime for PodmanRuntime {
         Ok(Box::new(PodmanContainer {
             client: self.client.clone(),
             container_id: container.id,
+                    runner_context: config.runner_context.clone(),
             runtime: self.runtime.handle().clone(),
         }))
     }
@@ -145,10 +144,7 @@ impl ContainerRuntime for PodmanRuntime {
             // OCI runtime exec errors on dead containers.
             let force = match self
                 .client
-                .inspect_container(
-                    name,
-                    None::<InspectContainerOptions>,
-                )
+                .inspect_container(name, None::<InspectContainerOptions>)
                 .await
             {
                 Ok(inspect) => inspect.state.and_then(|s| s.running).unwrap_or(false),
@@ -173,10 +169,7 @@ impl ContainerRuntime for PodmanRuntime {
             // signal to an already-exited container causes OCI runtime errors.
             if let Ok(inspect) = self
                 .client
-                .inspect_container(
-                    name,
-                    None::<InspectContainerOptions>,
-                )
+                .inspect_container(name, None::<InspectContainerOptions>)
                 .await
                 && !inspect.state.and_then(|s| s.running).unwrap_or(false)
             {

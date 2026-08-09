@@ -1,19 +1,18 @@
 use std::collections::HashMap;
 
-use crate::infrastructure::bollard_wrapper::{
-    body_full,
-    Client,
-    types::{
-        CreateExecOptions, DownloadFromContainerOptionsBuilder, LogOutput,
-        RemoveContainerOptions, StartExecOptions, StartExecResults,
-        UploadToContainerOptionsBuilder,
-    },
-};
 use bytes::Bytes;
 use futures_util::StreamExt;
 
-use crate::core::ports::outbound::{
-    Container, ContainerError, ExecResult, FileEntry, RunnerContext,
+use crate::{
+    core::ports::outbound::{Container, ContainerError, ExecResult, FileEntry, RunnerContext},
+    infrastructure::bollard_wrapper::{
+        Client, body_full,
+        types::{
+            CreateExecOptions, DownloadFromContainerOptionsBuilder, LogOutput,
+            RemoveContainerOptions, StartExecOptions, StartExecResults,
+            UploadToContainerOptionsBuilder,
+        },
+    },
 };
 
 /// A running Docker container, created by [`DockerRuntime`].
@@ -21,6 +20,7 @@ pub(super) struct DockerContainer {
     pub(super) docker: Client,
     pub(super) container_id: String,
     pub(super) runtime: tokio::runtime::Handle,
+    pub(super) runner_context: RunnerContext,
 }
 
 impl Container for DockerContainer {
@@ -219,7 +219,6 @@ impl Container for DockerContainer {
                 })
         })
     }
-
     fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
         self.runtime.block_on(async {
             let info = self
@@ -242,14 +241,9 @@ impl Container for DockerContainer {
                 })
                 .collect();
 
-            Ok(RunnerContext {
-                workspace: "/github/workspace".to_string(),
-                home: "/github/home".to_string(),
-                action_path: "/github/action".to_string(),
-                temp: "/github/temp".to_string(),
-                tool_cache: "/github/tool_cache".to_string(),
-                env: env_map,
-            })
+            let mut ctx = self.runner_context.clone();
+            ctx.env.extend(env_map);
+            Ok(ctx)
         })
     }
 }

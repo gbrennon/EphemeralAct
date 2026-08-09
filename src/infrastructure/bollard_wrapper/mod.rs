@@ -11,10 +11,7 @@
 /// |---|---|---|
 /// | `bollard::Docker` | [`Client`] | Works with Docker and Podman |
 /// | `bollard::auth::DockerCredentials` | [`AuthCredentials`] | Not Docker-specific |
-pub use bollard::{
-    self,
-    Docker as Client,
-};
+pub use bollard::{self, Docker as Client};
 
 /// Re-exported bollard types used across runtime and container adapters.
 pub mod types {
@@ -24,18 +21,15 @@ pub mod types {
         models::{ContainerCreateBody, HostConfig},
         query_parameters::{
             CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-            DownloadFromContainerOptionsBuilder, InspectContainerOptions,
-            RemoveContainerOptions, StartContainerOptions,
-            UploadToContainerOptionsBuilder,
+            DownloadFromContainerOptionsBuilder, InspectContainerOptions, RemoveContainerOptions,
+            StartContainerOptions, UploadToContainerOptionsBuilder,
         },
     };
 }
 
-/// Re-exported bollard free functions.
-pub use bollard::body_full;
-
-/// bollard's `DockerCredentials` under a runtime-agnostic name.
-pub use bollard::auth::DockerCredentials as AuthCredentials;
-
 /// bollard's default API version constant.
 pub use bollard::API_DEFAULT_VERSION;
+/// bollard's `DockerCredentials` under a runtime-agnostic name.
+pub use bollard::auth::DockerCredentials as AuthCredentials;
+/// Re-exported bollard free functions.
+pub use bollard::body_full;

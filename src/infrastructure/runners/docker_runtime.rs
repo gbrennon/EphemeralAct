@@ -1,17 +1,18 @@
-use crate::infrastructure::bollard_wrapper::{
-    AuthCredentials,
-    Client,
-    types::{
-        ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
-        HostConfig, InspectContainerOptions, RemoveContainerOptions, StartContainerOptions,
-    },
-};
 use futures_util::StreamExt;
 use tokio::runtime::Runtime;
 
 use super::docker_container::DockerContainer;
-use crate::core::ports::outbound::{
-    Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+use crate::{
+    core::ports::outbound::{
+        Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+    },
+    infrastructure::bollard_wrapper::{
+        AuthCredentials, Client,
+        types::{
+            ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+            HostConfig, InspectContainerOptions, RemoveContainerOptions, StartContainerOptions,
+        },
+    },
 };
 
 /// Docker-based container runtime adapter using the bollard crate.
@@ -41,11 +42,9 @@ impl ContainerRuntime for DockerRuntime {
         }
         let options = options_builder.build();
         self.runtime.block_on(async {
-            let mut stream = self.docker.create_image(
-                Some(options),
-                None,
-                None::<AuthCredentials>,
-            );
+            let mut stream = self
+                .docker
+                .create_image(Some(options), None, None::<AuthCredentials>);
 
             while let Some(result) = stream.next().await {
                 match result {
@@ -120,6 +119,7 @@ impl ContainerRuntime for DockerRuntime {
         Ok(Box::new(DockerContainer {
             docker: self.docker.clone(),
             container_id: container.id,
+                    runner_context: config.runner_context.clone(),
             runtime: self.runtime.handle().clone(),
         }))
     }
@@ -131,10 +131,7 @@ impl ContainerRuntime for DockerRuntime {
             // OCI runtime exec errors on dead containers.
             let force = match self
                 .docker
-                .inspect_container(
-                    name,
-                    None::<InspectContainerOptions>,
-                )
+                .inspect_container(name, None::<InspectContainerOptions>)
                 .await
             {
                 Ok(inspect) => inspect.state.and_then(|s| s.running).unwrap_or(false),
@@ -159,10 +156,7 @@ impl ContainerRuntime for DockerRuntime {
             // signal to an already-exited container causes OCI runtime errors.
             if let Ok(inspect) = self
                 .docker
-                .inspect_container(
-                    name,
-                    None::<InspectContainerOptions>,
-                )
+                .inspect_container(name, None::<InspectContainerOptions>)
                 .await
                 && !inspect.state.and_then(|s| s.running).unwrap_or(false)
             {

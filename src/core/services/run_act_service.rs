@@ -6,7 +6,7 @@ use crate::core::{
     planner::Planner,
     ports::{
         inbound::run_act_port::RunActUseCase,
-        outbound::{ContainerConfig, ContainerRuntime, EventPublisher, ImageMapper},
+        outbound::{ContainerConfig, ContainerRuntime, EventPublisher, ImageMapper, RunnerContext},
     },
     services::step_runner::StepRunner,
     shared_types::ExecutionResult,
@@ -134,8 +134,8 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
 
                 // Build base env: workflow env + job env + GITHUB_* file paths
                 let mut container_env = Self::build_env(&workflow, &run.job.env);
-                let github_path = "/github/workspace/.github_path";
-                let github_env = "/github/workspace/.github_env";
+                let github_path = "/workspace/.github_path";
+                let github_env = "/workspace/.github_env";
                 container_env.insert("GITHUB_PATH".into(), github_path.into());
                 container_env.insert("GITHUB_ENV".into(), github_env.into());
                 // Preserve a default PATH so the container can find bash, etc.
@@ -153,12 +153,13 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                     image: image.clone(),
                     platform: None,
                     env: HashMap::new(),
-                    binds: vec![format!("{}:/github/workspace:Z", repo_path.display())],
-                    workdir: Some("/github/workspace".into()),
+                    binds: vec![format!("{}:/workspace:Z", repo_path.display())],
+                    workdir: Some("/workspace".into()),
                     cmd: Some(vec!["sleep".into(), "infinity".into()]),
                     entrypoint: None,
                     network: None,
                     name: Some(container_name.clone()),
+                    runner_context: RunnerContext::default(),
                 };
 
                 eprintln!("Creating container '{}'...", container_name);

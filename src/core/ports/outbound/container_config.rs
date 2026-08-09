@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use super::runner_context::RunnerContext;
+
 /// Configuration for creating a container.
 #[derive(Debug, Clone)]
 pub struct ContainerConfig {
@@ -21,4 +23,6 @@ pub struct ContainerConfig {
     pub network: Option<String>,
     /// Container name
     pub name: Option<String>,
+    /// Platform-agnostic runner paths (workspace, home, temp, etc.)
+    pub runner_context: RunnerContext,
 }

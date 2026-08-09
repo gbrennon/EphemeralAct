@@ -3,7 +3,7 @@ mod common;
 
 use std::collections::HashMap;
 
-use ephemeral_act::core::ports::outbound::{ContainerConfig, ContainerRuntime};
+use ephemeral_act::core::ports::outbound::{ContainerConfig, ContainerRuntime, RunnerContext};
 
 use crate::common::FakeRuntime;
 
@@ -44,6 +44,7 @@ fn create_container_records_config() {
         entrypoint: None,
         network: None,
         name: Some("test-container".into()),
+            runner_context: RunnerContext::default(),
     };
     runtime.create_container(&config).unwrap();
     let created = &runtime.created_containers.borrow();
@@ -77,6 +78,7 @@ fn exec_returns_preloaded_result() {
         entrypoint: None,
         network: None,
         name: None,
+            runner_context: RunnerContext::default(),
     };
     let container = runtime.create_container(&config).unwrap();
     let result = container
@@ -99,6 +101,7 @@ fn exec_returns_default_success_when_no_preloaded_results() {
         entrypoint: None,
         network: None,
         name: None,
+            runner_context: RunnerContext::default(),
     };
     let container = runtime.create_container(&config).unwrap();
     let result = container.exec(&["echo".into()], None, &HashMap::new());

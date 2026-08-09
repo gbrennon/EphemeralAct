@@ -1,7 +1,4 @@
-use ephemeral_act::{
-    core::ports::outbound::ImageMapper,
-    infrastructure::PlatformImageMapper,
-};
+use ephemeral_act::{core::ports::outbound::ImageMapper, infrastructure::PlatformImageMapper};
 
 #[test]
 fn map_platform_ubuntu_latest_returns_act_latest() {

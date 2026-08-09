@@ -16,3 +16,16 @@ pub struct RunnerContext {
     /// Environment variables visible inside the container
     pub env: HashMap<String, String>,
 }
+
+impl Default for RunnerContext {
+    fn default() -> Self {
+        Self {
+            workspace: "/workspace".into(),
+            home: "/home".into(),
+            action_path: "/actions".into(),
+            temp: "/tmp".into(),
+            tool_cache: "/tool-cache".into(),
+            env: HashMap::new(),
+        }
+    }
+}
