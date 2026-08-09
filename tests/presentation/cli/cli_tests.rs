@@ -41,3 +41,11 @@ fn run_invalid_subcommand_returns_error() {
     let result = cli.run(["ephemeral-act", "nonexistent"]);
     assert!(result.is_err());
 }
+
+#[test]
+fn run_invalid_flag_returns_error() {
+    let use_case = FakeRunActUseCase::new(true);
+    let cli = Cli::new(use_case);
+    let result = cli.run(["ephemeral-act", "--nonexistent-flag"]);
+    assert!(result.is_err());
+}
