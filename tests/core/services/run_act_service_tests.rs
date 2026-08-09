@@ -1,4 +1,3 @@
-#[path = "../../common/mod.rs"]
 mod common;
 
 use std::path::Path;
@@ -49,7 +48,7 @@ fn run_act_errors_on_nonexistent_workflow() {
     let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
     let config = ActRunConfig::new().with_workflow(ActWorkflow::new("nonexistent.yml".into()));
     let err = service.run_act(config, repo).unwrap_err();
-    assert!(err.to_string().contains("nonexistent"), "{}", err);
+    assert!(err.to_string().contains("nonexistent.yml"), "{}", err);
 }
 
 #[test]

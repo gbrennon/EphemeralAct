@@ -1,5 +1,5 @@
-#[path = "../../common/mod.rs"]
 mod common;
+
 
 use std::collections::HashMap;
 
@@ -59,13 +59,14 @@ fn create_container_records_config() {
 #[test]
 fn exec_returns_preloaded_result() {
     let runtime = FakeRuntime::new();
-    runtime.exec_results.borrow_mut().push(
-        ephemeral_act::core::ports::outbound::ExecResult {
+    runtime
+        .exec_results
+        .borrow_mut()
+        .push(ephemeral_act::core::ports::outbound::ExecResult {
             exit_code: 0,
             stdout: "hello".into(),
             stderr: String::new(),
-        },
-    );
+        });
     let config = ContainerConfig {
         image: "alpine:latest".into(),
         platform: None,
@@ -113,20 +114,14 @@ fn exec_returns_default_success_when_no_preloaded_results() {
 fn stop_container_records_name() {
     let runtime = FakeRuntime::new();
     runtime.stop_container("my-container").unwrap();
-    assert_eq!(
-        *runtime.stopped_containers.borrow(),
-        vec!["my-container"]
-    );
+    assert_eq!(*runtime.stopped_containers.borrow(), vec!["my-container"]);
 }
 
 #[test]
 fn remove_container_records_name() {
     let runtime = FakeRuntime::new();
     runtime.remove_container("my-container").unwrap();
-    assert_eq!(
-        *runtime.removed_containers.borrow(),
-        vec!["my-container"]
-    );
+    assert_eq!(*runtime.removed_containers.borrow(), vec!["my-container"]);
 }
 
 // ---------------------------------------------------------------------------
