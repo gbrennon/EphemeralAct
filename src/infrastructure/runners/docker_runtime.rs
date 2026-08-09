@@ -1,9 +1,9 @@
-use bollard::{
-    Docker,
-    models::{ContainerCreateBody, HostConfig},
-    query_parameters::{
-        CreateContainerOptionsBuilder, CreateImageOptionsBuilder, RemoveContainerOptions,
-        StartContainerOptions,
+use crate::infrastructure::bollard_wrapper::{
+    AuthCredentials,
+    Client,
+    types::{
+        ContainerCreateBody, CreateContainerOptionsBuilder, CreateImageOptionsBuilder,
+        HostConfig, InspectContainerOptions, RemoveContainerOptions, StartContainerOptions,
     },
 };
 use futures_util::StreamExt;
@@ -19,7 +19,7 @@ use crate::core::ports::outbound::{
 /// Connects to the Docker daemon via the default Unix socket
 /// (`/var/run/docker.sock`).
 pub struct DockerRuntime {
-    docker: Docker,
+    docker: Client,
     runtime: Runtime,
 }
 
@@ -27,7 +27,7 @@ impl DockerRuntime {
     /// Create a new Docker runtime adapter connected to the local Docker daemon.
     pub fn new() -> Result<Self, ContainerError> {
         let docker =
-            Docker::connect_with_local_defaults().map_err(|_e| ContainerError::NotAvailable)?;
+            Client::connect_with_local_defaults().map_err(|_e| ContainerError::NotAvailable)?;
         let runtime = Runtime::new().map_err(|e| ContainerError::Internal(e.to_string()))?;
         Ok(Self { docker, runtime })
     }
@@ -44,7 +44,7 @@ impl ContainerRuntime for DockerRuntime {
             let mut stream = self.docker.create_image(
                 Some(options),
                 None,
-                None::<bollard::auth::DockerCredentials>,
+                None::<AuthCredentials>,
             );
 
             while let Some(result) = stream.next().await {
@@ -133,7 +133,7 @@ impl ContainerRuntime for DockerRuntime {
                 .docker
                 .inspect_container(
                     name,
-                    None::<bollard::query_parameters::InspectContainerOptions>,
+                    None::<InspectContainerOptions>,
                 )
                 .await
             {
@@ -161,7 +161,7 @@ impl ContainerRuntime for DockerRuntime {
                 .docker
                 .inspect_container(
                     name,
-                    None::<bollard::query_parameters::InspectContainerOptions>,
+                    None::<InspectContainerOptions>,
                 )
                 .await
                 && !inspect.state.and_then(|s| s.running).unwrap_or(false)
