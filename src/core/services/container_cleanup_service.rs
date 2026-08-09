@@ -27,3 +27,78 @@ impl<R: ContainerRuntime> ContainerCleanupUseCase for ContainerCleanupService<R>
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+    use std::rc::Rc;
+    use crate::core::ports::outbound::{
+        Container, ContainerConfig, ContainerError, ContainerRuntime,
+        ExecResult, FileEntry, HostInfo, RunnerContext,
+    };
+
+    struct FakeRuntime {
+        stopped: Rc<RefCell<Vec<String>>>,
+        removed: Rc<RefCell<Vec<String>>>,
+    }
+
+    impl FakeRuntime {
+        fn new() -> (Self, Rc<RefCell<Vec<String>>>, Rc<RefCell<Vec<String>>>) {
+            let stopped = Rc::new(RefCell::new(Vec::new()));
+            let removed = Rc::new(RefCell::new(Vec::new()));
+            (Self { stopped: stopped.clone(), removed: removed.clone() }, stopped, removed)
+        }
+    }
+
+    #[allow(dead_code)]
+    struct FakeContainer;
+
+    impl Container for FakeContainer {
+        fn exec(&self, _cmd: &[String], _workdir: Option<&str>, _env: &HashMap<String, String>) -> Result<ExecResult, ContainerError> { unimplemented!() }
+        fn copy_to(&self, _p: &str, _e: &[FileEntry]) -> Result<(), ContainerError> { unimplemented!() }
+        fn copy_from(&self, _p: &str) -> Result<Vec<FileEntry>, ContainerError> { unimplemented!() }
+        fn remove(&self) -> Result<(), ContainerError> { unimplemented!() }
+        fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> { unimplemented!() }
+    }
+
+    impl ContainerRuntime for FakeRuntime {
+        fn pull_image(&self, _i: &str, _p: Option<&str>) -> Result<(), ContainerError> { unimplemented!() }
+        fn create_container(&self, _c: &ContainerConfig) -> Result<Box<dyn Container>, ContainerError> { unimplemented!() }
+        fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
+            self.removed.borrow_mut().push(name.to_string());
+            Ok(())
+        }
+        fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
+            self.stopped.borrow_mut().push(name.to_string());
+            Ok(())
+        }
+        fn get_host_info(&self) -> Result<HostInfo, ContainerError> { unimplemented!() }
+    }
+
+    #[test]
+    fn new_creates_service() {
+        let (runtime, _, _) = FakeRuntime::new();
+        let _service = ContainerCleanupService::new(runtime);
+    }
+
+    #[test]
+    fn handle_empty_list_does_nothing() {
+        let (runtime, stopped, removed) = FakeRuntime::new();
+        let service = ContainerCleanupService::new(runtime);
+        service.handle_act_run_completed(&[]);
+        assert!(stopped.borrow().is_empty());
+        assert!(removed.borrow().is_empty());
+    }
+
+    #[test]
+    fn handle_stops_and_removes_each_container() {
+        let (runtime, stopped, removed) = FakeRuntime::new();
+        let service = ContainerCleanupService::new(runtime);
+        let names: Vec<String> = vec!["app1".into(), "app2".into()];
+        service.handle_act_run_completed(&names);
+        assert_eq!(*stopped.borrow(), vec!["app1", "app2"]);
+        assert_eq!(*removed.borrow(), vec!["app1", "app2"]);
+    }
+}

@@ -266,4 +266,9 @@ mod tests {
             PlanError::MissingDependency { .. }
         ));
     }
+
+    #[test]
+    fn default_creates_planner() {
+        let _planner = Planner::default();
+    }
 }

@@ -23,3 +23,38 @@ impl fmt::Display for CompareOp {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_display_eq() {
+        assert_eq!(CompareOp::Eq.to_string(), "==");
+    }
+
+    #[test]
+    fn test_display_neq() {
+        assert_eq!(CompareOp::Neq.to_string(), "!=");
+    }
+
+    #[test]
+    fn test_display_lt() {
+        assert_eq!(CompareOp::Lt.to_string(), "<");
+    }
+
+    #[test]
+    fn test_display_lte() {
+        assert_eq!(CompareOp::Lte.to_string(), "<=");
+    }
+
+    #[test]
+    fn test_display_gt() {
+        assert_eq!(CompareOp::Gt.to_string(), ">");
+    }
+
+    #[test]
+    fn test_display_gte() {
+        assert_eq!(CompareOp::Gte.to_string(), ">=");
+    }
+}

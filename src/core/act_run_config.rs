@@ -155,4 +155,18 @@ mod tests {
         assert_eq!(config.inputs()[0].value(), "staging");
         assert_eq!(config.extra_args()[0].as_str(), "--verbose");
     }
+
+    #[test]
+    fn add_secret_adds_to_secrets_list() {
+        let config = ActRunConfig::new().add_secret(Secret::new("KEY".into()));
+        assert_eq!(config.secrets().len(), 1);
+        assert_eq!(config.secrets()[0].as_str(), "KEY");
+    }
+
+    #[test]
+    fn default_creates_empty_config() {
+        let config = ActRunConfig::default();
+        assert!(config.workflow.is_none());
+        assert!(config.job.is_none());
+    }
 }
