@@ -1,6 +1,6 @@
 use ephemeral_act::{
     core::ports::outbound::ImageMapper,
-    infrastructure::{ContainerRuntimeAdapter, PlatformImageMapper},
+    infrastructure::PlatformImageMapper,
 };
 
 #[test]
@@ -47,4 +47,3 @@ fn map_platform_unknown_returns_input_unchanged() {
 fn map_platform_empty_string_returns_empty() {
     assert_eq!(PlatformImageMapper.map(""), "");
 }
-
