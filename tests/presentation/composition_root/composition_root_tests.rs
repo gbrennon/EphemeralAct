@@ -7,6 +7,5 @@ use crate::common::FakeRunActUseCase;
 #[test]
 fn compose_creates_app_with_fake_use_case() {
     let use_case = FakeRunActUseCase::new(true);
-    let app = CompositionRoot::compose(use_case);
-    let _ = app.cli;
+    let _app = CompositionRoot::compose(use_case);
 }
