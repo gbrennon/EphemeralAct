@@ -76,4 +76,14 @@ mod tests {
         let result = ContainerEngine::from_str("lxc");
         assert!(matches!(result, Err(CoreError::UnknownContainerEngine(_))));
     }
+
+    #[test]
+    fn as_str_podman() {
+        assert_eq!(ContainerEngine::Podman.as_str(), "podman");
+    }
+
+    #[test]
+    fn as_str_docker() {
+        assert_eq!(ContainerEngine::Docker.as_str(), "docker");
+    }
 }

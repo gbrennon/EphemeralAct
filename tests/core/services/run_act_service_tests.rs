@@ -1,208 +1,101 @@
-use std::{cell::RefCell, rc::Rc};
+#[cfg(test)]
+#[path = "../../fakes/fake_event_publisher.rs"]
+mod fake_event_publisher;
+#[cfg(test)]
+#[path = "../../fakes/fake_image_mapper.rs"]
+mod fake_image_mapper;
+#[cfg(test)]
+#[path = "../../fakes/fake_runtime.rs"]
+mod fake_runtime;
 
-use ephemeral_act::core::{
-    ActRunConfig, Repository,
-    ports::{inbound::run_act_port::RunActUseCase, outbound::ActExecutor},
-    services::run_act_service::RunActService,
-    shared_types::ExecutionResult,
-    value_objects::{
-        ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, ContainerEngine, RepoPath,
-        RepositoryName, Secret,
-    },
-};
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
 
-/// Lightweight fake that records received config + repository and returns a
-/// pre-configured result.
-struct FakeActExecutor {
-    captured_config: Rc<RefCell<Option<ActRunConfig>>>,
-    captured_repo: Rc<RefCell<Option<Repository>>>,
-    result: Rc<Result<ExecutionResult, String>>,
-}
-
-impl ActExecutor for FakeActExecutor {
-    fn execute_act(
-        &self,
-        config: &ActRunConfig,
-        repository: &Repository,
-    ) -> Result<ExecutionResult, String> {
-        *self.captured_config.borrow_mut() = Some(config.clone());
-        *self.captured_repo.borrow_mut() = Some(repository.clone());
-        self.result.as_ref().clone()
-    }
-}
-type ExecutorFixture = (
-    FakeActExecutor,
-    Rc<RefCell<Option<ActRunConfig>>>,
-    Rc<RefCell<Option<Repository>>>,
-);
-
-fn fake_executor(result: Result<ExecutionResult, String>) -> ExecutorFixture {
-    let captured_config = Rc::new(RefCell::new(None));
-    let captured_repo = Rc::new(RefCell::new(None));
-    (
-        FakeActExecutor {
-            captured_config: Rc::clone(&captured_config),
-            captured_repo: Rc::clone(&captured_repo),
-            result: Rc::new(result),
-        },
-        captured_config,
-        captured_repo,
-    )
-}
-
-fn ok_result() -> ExecutionResult {
-    ExecutionResult {
-        success: true,
-        stdout: "mock stdout".into(),
-        stderr: String::new(),
-    }
-}
-
-fn test_repository() -> Repository {
-    Repository::new(
-        RepoPath::new(env!("CARGO_MANIFEST_DIR").to_string()).unwrap(),
-        RepositoryName::new("test-repo".into()).unwrap(),
-    )
-}
-
-fn minimal_config() -> ActRunConfig {
-    ActRunConfig::new(ContainerEngine::Podman)
-}
-
-#[test]
-fn passes_repository_to_executor() {
-    let (fake, _, captured_repo) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let repo = test_repository();
-
-    service.run_act(minimal_config(), repo.clone()).unwrap();
-
-    let captured = captured_repo.borrow();
-    assert_eq!(captured.as_ref().unwrap().path(), repo.path());
-    assert_eq!(captured.as_ref().unwrap().name(), repo.name());
-}
-
-#[test]
-fn passes_workflow_when_set() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = minimal_config().with_workflow(ActWorkflow::new("ci.yaml".into()));
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    assert_eq!(
-        captured.as_ref().unwrap().workflow().unwrap().as_str(),
-        "ci.yaml"
-    );
-}
-
-#[test]
-fn passes_job_when_set() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = minimal_config().with_job(ActJob::new("build".into()));
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    assert_eq!(captured.as_ref().unwrap().job().unwrap().as_str(), "build");
-}
-
-#[test]
-fn passes_event_when_set() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = minimal_config().with_event(ActEvent::new("push".into()));
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    assert_eq!(captured.as_ref().unwrap().event().unwrap().as_str(), "push");
-}
-
-#[test]
-fn passes_inputs() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = minimal_config()
-        .add_input(ActInput::new("debug".into(), "true".into()))
-        .add_input(ActInput::new("target".into(), "x86_64".into()));
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    let inputs = captured.as_ref().unwrap().inputs();
-    assert_eq!(inputs.len(), 2);
-    assert_eq!(inputs[0].key(), "debug");
-    assert_eq!(inputs[0].value(), "true");
-    assert_eq!(inputs[1].key(), "target");
-    assert_eq!(inputs[1].value(), "x86_64");
-}
-
-#[test]
-fn passes_secrets() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = minimal_config().add_secret(Secret::new("GITHUB_TOKEN".into()));
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    let secrets = captured.as_ref().unwrap().secrets();
-    assert_eq!(secrets.len(), 1);
-    assert_eq!(secrets[0].as_str(), "GITHUB_TOKEN");
-}
-
-#[test]
-fn passes_extra_args() {
-    let (fake, captured_config, _) = fake_executor(Ok(ok_result()));
-    let service = RunActService::new(fake);
-    let config = minimal_config()
-        .add_extra_arg(ActExtraArg::new("--verbose".into()))
-        .add_extra_arg(ActExtraArg::new("--dryrun".into()));
-
-    service.run_act(config, test_repository()).unwrap();
-
-    let captured = captured_config.borrow();
-    let extra_args = captured.as_ref().unwrap().extra_args();
-    assert_eq!(extra_args.len(), 2);
-    assert_eq!(extra_args[0].as_str(), "--verbose");
-    assert_eq!(extra_args[1].as_str(), "--dryrun");
-}
-
-#[test]
-fn propagates_executor_error() {
-    let error_msg = "act: command not found".to_string();
-    let (fake, _, _) = fake_executor(Err(error_msg.clone()));
-    let service = RunActService::new(fake);
-
-    let result = service.run_act(minimal_config(), test_repository());
-
-    assert!(result.is_err());
-    assert!(result.unwrap_err().to_string().contains(&error_msg));
-}
-
-#[test]
-fn returns_executor_success_result() {
-    let expected = ExecutionResult {
-        success: true,
-        stdout: "job output\n".into(),
-        stderr: "some warning\n".into(),
+    use ephemeral_act::core::{
+        ActRunConfig, ActWorkflow, RepoPath, Repository, RepositoryName,
+        ports::inbound::RunActUseCase, services::run_act_service::RunActService,
     };
-    let result_clone = ExecutionResult {
-        success: expected.success,
-        stdout: expected.stdout.clone(),
-        stderr: expected.stderr.clone(),
-    };
-    let (fake, _, _) = fake_executor(Ok(result_clone));
-    let service = RunActService::new(fake);
+    use fake_event_publisher::FakeEventPublisher;
+    use fake_image_mapper::FakeImageMapper;
+    use fake_runtime::FakeRuntime;
 
-    let result = service
-        .run_act(minimal_config(), test_repository())
+    use super::*;
+
+    fn make_repo(path: &Path) -> Repository {
+        let git_dir = path.join(".git");
+        if !git_dir.exists() {
+            std::fs::create_dir_all(&git_dir).ok();
+        }
+        let repo_path = RepoPath::new(path.to_path_buf()).unwrap();
+        let name = RepositoryName::new("test-repo".into()).unwrap();
+        Repository::new(repo_path, name)
+    }
+
+    #[test]
+    fn run_act_executes_workflow_and_publishes_event() {
+        let repo = make_repo(Path::new(env!("CARGO_MANIFEST_DIR")));
+        let runtime = FakeRuntime::new();
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new();
+        let result = service.run_act(config, repo).unwrap();
+        assert!(result.success);
+    }
+
+    #[test]
+    fn run_act_finds_workflow_in_forgejo_dir() {
+        let repo = make_repo(Path::new(env!("CARGO_MANIFEST_DIR")));
+        let runtime = FakeRuntime::new();
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config =
+            ActRunConfig::new().with_workflow(ActWorkflow::new(".forgejo/workflows/ci.yml".into()));
+        let result = service.run_act(config, repo).unwrap();
+        assert!(result.success);
+    }
+
+    #[test]
+    fn run_act_errors_on_nonexistent_workflow() {
+        let repo = make_repo(Path::new(env!("CARGO_MANIFEST_DIR")));
+        let runtime = FakeRuntime::new();
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new().with_workflow(ActWorkflow::new("nonexistent.yml".into()));
+        let err = service.run_act(config, repo).unwrap_err();
+        assert!(err.to_string().contains("nonexistent.yml"), "{}", err);
+    }
+
+    #[test]
+    fn run_act_errors_when_no_workflow_found() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new();
+        let err = service.run_act(config, repo).unwrap_err();
+        assert!(err.to_string().contains("workflows directory"), "{}", err);
+    }
+
+    #[test]
+    fn run_act_reports_failure_on_step_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".forgejo/workflows")).unwrap();
+        std::fs::write(
+            tmp.path().join(".forgejo/workflows/fail.yml"),
+            "name: Fail\non: push\njobs:\n  fail:\n    runs-on: ubuntu-latest\n    steps:\n      - run: exit 1\n",
+        )
         .unwrap();
-
-    assert!(result.success);
-    assert_eq!(result.stdout, expected.stdout);
-    assert_eq!(result.stderr, expected.stderr);
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        runtime
+            .exec_results
+            .borrow_mut()
+            .push(ephemeral_act::core::ports::outbound::ExecResult {
+                exit_code: 1,
+                stdout: String::new(),
+                stderr: "fail".into(),
+            });
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new();
+        let result = service.run_act(config, repo).unwrap();
+        assert!(!result.success);
+    }
 }

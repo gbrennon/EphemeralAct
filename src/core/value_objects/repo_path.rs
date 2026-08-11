@@ -1,12 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use super::git_dir_kind::GitDirKind;
 use crate::core::errors::CoreError;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum GitDirKind {
-    Standalone,
-    Worktree,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepoPath {
@@ -131,5 +126,23 @@ mod tests {
         let repo_path = RepoPath::new(&crate_root).unwrap();
         let kind = repo_path.git_dir_kind();
         assert!(kind == GitDirKind::Standalone || kind == GitDirKind::Worktree);
+    }
+
+    #[test]
+    fn is_standalone_matches_git_dir_kind() {
+        let crate_root = env::var("CARGO_MANIFEST_DIR").unwrap();
+        let repo_path = RepoPath::new(&crate_root).unwrap();
+        assert_eq!(
+            repo_path.is_standalone(),
+            repo_path.git_dir_kind() == GitDirKind::Standalone
+        );
+    }
+
+    #[test]
+    fn is_worktree_returns_false_for_regular_repo() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
+        let path = RepoPath::new(tmp.path().to_path_buf()).unwrap();
+        assert!(!path.is_worktree());
     }
 }

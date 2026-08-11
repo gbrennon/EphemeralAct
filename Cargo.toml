@@ -8,6 +8,15 @@ chrono = "0.4.45"
 thiserror = "2.0.18"
 uuid = { version = "1.23.4", features = ["v4"] }
 clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+bollard = "0.21.0"
+tokio = { version = "1.53.1", features = ["full"] }
+tar = "0.4.46"
+futures-util = "0.3.33"
+libc = "0.2.189"
+bytes = "1"
 
 [dev-dependencies]
 tempfile = "3"
@@ -17,5 +26,45 @@ name = "core_services_run_act_service"
 path = "tests/core/services/run_act_service_tests.rs"
 
 [[test]]
-name = "infrastructure_act_wrappers"
-path = "tests/infrastructure/act_wrappers_tests.rs"
+name = "infrastructure_platform_image_mapper"
+path = "tests/infrastructure/platform_image_mapper_tests.rs"
+
+[[test]]
+name = "infrastructure_runners_podman_runtime"
+path = "tests/infrastructure/runners/podman_runtime_tests.rs"
+
+[[test]]
+name = "infrastructure_runners_docker_runtime"
+path = "tests/infrastructure/runners/docker_runtime_tests.rs"
+
+[[test]]
+name = "infrastructure_runners_adapter"
+path = "tests/infrastructure/runners/adapter_tests.rs"
+
+[[test]]
+name = "infrastructure_container"
+path = "tests/infrastructure/container_tests.rs"
+
+[[test]]
+name = "infrastructure_in_memory_event_bus"
+path = "tests/infrastructure/in_memory_event_bus_tests.rs"
+
+[[test]]
+name = "presentation_composition_root"
+path = "tests/presentation/composition_root/composition_root_tests.rs"
+
+[[test]]
+name = "presentation_cli_parser"
+path = "tests/presentation/cli/cli_parser_tests.rs"
+
+[[test]]
+name = "presentation_run_handler"
+path = "tests/presentation/cli/run_handler_tests.rs"
+
+[[test]]
+name = "presentation_run_args"
+path = "tests/presentation/cli/run_args_tests.rs"
+
+[[test]]
+name = "presentation_cli"
+path = "tests/presentation/cli/cli_tests.rs"

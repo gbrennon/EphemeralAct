@@ -1,0 +1,31 @@
+name: Cache Rust dependencies
+description: Cache Cargo registry, git checkouts, and build artifacts
+
+inputs:
+  cache-key-prefix:
+    description: Prefix for the cache key
+    required: true
+  rustc-version:
+    description: Rust compiler version for cache invalidation
+    required: false
+    default: stable
+  include-sysroot:
+    description: Whether to include the sysroot in the cache
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+
+  steps:
+    - name: Cache Cargo registry
+      shell: bash
+      run: echo "Cache registry (no-op in ephemeral container)"
+
+    - name: Cache Cargo git checkouts
+      shell: bash
+      run: echo "Cache git checkouts (no-op in ephemeral container)"
+
+    - name: Cache build artifacts
+      shell: bash
+      run: echo "Cache build artifacts (no-op in ephemeral container)"
