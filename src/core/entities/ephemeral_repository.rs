@@ -1,19 +1,5 @@
-use super::repository::Repository;
-use crate::core::value_objects::{CleanupPolicy, RepositoryName};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TempDirTemplate(String);
-
-impl TempDirTemplate {
-    fn from_repo_name(name: &RepositoryName) -> Self {
-        Self(format!("act-run-{}-XXXXXX", name.as_str()))
-    }
-
-    /// Returns the template string (e.g. `act-run-my-repo-XXXXXX`).
-    pub fn as_str(&self) -> &str {
-        &self.0
-    }
-}
+use super::{repository::Repository, temp_dir_template::TempDirTemplate};
+use crate::core::value_objects::CleanupPolicy;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EphemeralRepository {
@@ -72,7 +58,7 @@ mod tests {
     use std::env;
 
     use super::*;
-    use crate::core::value_objects::RepoPath;
+    use crate::core::value_objects::{RepoPath, RepositoryName};
 
     fn source_repo() -> Repository {
         let crate_root = env::var("CARGO_MANIFEST_DIR").unwrap();

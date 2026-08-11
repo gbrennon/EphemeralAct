@@ -27,3 +27,7 @@ Desktop.ini
 
 # Test coverage report
 cov.json
+
+# EphemeralAct workflow artifacts
+.github_path
+artifacts/
