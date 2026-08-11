@@ -2,380 +2,349 @@ use std::sync::Arc;
 
 use ephemeral_act::{
     core::ports::outbound::{ContainerConfig, ContainerRuntime},
-    infrastructure::{runners::PodmanRuntime, ContainerRuntimeAdapter},
+    infrastructure::{ContainerRuntimeAdapter, runners::PodmanRuntime},
 };
 
-// ---------------------------------------------------------------------------
-// detect()
-// ---------------------------------------------------------------------------
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn detect_succeeds_when_runtime_available() {
-    let result = ContainerRuntimeAdapter::detect();
-    assert!(
-        result.is_ok(),
-        "detect() should succeed: {:?}",
-        result.err()
-    );
-}
+    fn try_podman_adapter() -> Option<ContainerRuntimeAdapter> {
+        PodmanRuntime::new()
+            .ok()
+            .map(ContainerRuntimeAdapter::Podman)
+    }
 
-#[test]
-fn detect_returns_docker_when_docker_host_is_set() {
-    let adapter = ContainerRuntimeAdapter::detect().expect("detect() should succeed");
-    assert!(
-        matches!(adapter, ContainerRuntimeAdapter::Docker(_)),
-        "Expected Docker variant since DOCKER_HOST is set"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// map_error — exercised through public ContainerRuntime methods
-// ---------------------------------------------------------------------------
-
-#[test]
-fn map_error_is_noop_for_docker_variant() {
-    let adapter = ContainerRuntimeAdapter::detect().unwrap();
-    // Docker variant: map_error is a no-op, so error text still says "Docker"
-    let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
-    assert!(result.is_err());
-    let err_text = result.unwrap_err().to_string();
-    assert!(
-        err_text.contains("Docker"),
-        "Docker variant should preserve 'Docker' in error: {err_text}"
-    );
-}
-
-#[test]
-fn map_error_replaces_docker_with_podman_in_error_text() {
-    // Construct Podman variant directly to exercise the Podman path
-    let podman = match PodmanRuntime::new() {
-        Ok(rt) => rt,
-        Err(_) => {
-            eprintln!("SKIP: PodmanRuntime not available on this host");
-            return;
-        }
-    };
-    let adapter = ContainerRuntimeAdapter::Podman(podman);
-
-    // Pull a nonexistent image — bollard reports "Docker" in the error,
-    // but map_error should replace it with "Podman"
-    let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
-    assert!(result.is_err());
-    let err_text = result.unwrap_err().to_string();
-    assert!(
-        !err_text.contains("Docker"),
-        "Podman variant should NOT contain 'Docker' in error: {err_text}"
-    );
-    assert!(
-        err_text.contains("Podman"),
-        "Podman variant should contain 'Podman' in error: {err_text}"
-    );
-}
-
-// ---------------------------------------------------------------------------
-// Delegation — Docker variant (via detect)
-// ---------------------------------------------------------------------------
-
-#[test]
-fn pull_image_delegates_to_inner_runtime() {
-    let adapter = ContainerRuntimeAdapter::detect().unwrap();
-    let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
-    assert!(result.is_err());
-}
-
-#[test]
-fn get_host_info_delegates_to_inner_runtime() {
-    let adapter = ContainerRuntimeAdapter::detect().unwrap();
-    let info = adapter.get_host_info().unwrap();
-    assert!(!info.os.is_empty());
-    assert!(!info.arch.is_empty());
-}
-
-#[test]
-fn stop_container_delegates_to_inner_runtime() {
-    let adapter = ContainerRuntimeAdapter::detect().unwrap();
-    let _ = adapter.stop_container("nonexistent-container-xyz-123");
-}
-
-#[test]
-fn remove_container_delegates_to_inner_runtime() {
-    let adapter = ContainerRuntimeAdapter::detect().unwrap();
-    let _ = adapter.remove_container("nonexistent-container-xyz-123");
-}
-
-#[test]
-fn create_container_delegates_to_inner_runtime() {
-    use std::collections::HashMap;
-
-    let adapter = ContainerRuntimeAdapter::detect().unwrap();
-    let config = ContainerConfig {
-        image: "alpine:latest".into(),
-        platform: None,
-        env: HashMap::new(),
-        binds: vec![],
-        workdir: None,
-        cmd: Some(vec!["sleep".into(), "infinity".into()]),
-        entrypoint: None,
-        network: None,
-        name: Some("ephemeral-act-test-adapter-create".into()),
-        runner_context: Default::default(),
-    };
-    let _ = adapter.remove_container("ephemeral-act-test-adapter-create");
-    let container = adapter.create_container(&config).unwrap();
-    container.remove().unwrap();
-}
-
-// ---------------------------------------------------------------------------
-// Delegation — Podman variant (constructed directly)
-// ---------------------------------------------------------------------------
-
-/// Helper: build a Podman adapter or skip the test.
-fn try_podman_adapter() -> Option<ContainerRuntimeAdapter> {
-    PodmanRuntime::new()
-        .ok()
-        .map(ContainerRuntimeAdapter::Podman)
-}
-
-#[test]
-fn podman_variant_pull_image_delegates() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => a,
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
-        }
-    };
-    let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
-    assert!(result.is_err());
-}
-
-#[test]
-fn podman_variant_get_host_info_delegates() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => a,
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
-        }
-    };
-    let info = adapter.get_host_info().unwrap();
-    assert!(!info.os.is_empty());
-    assert!(!info.arch.is_empty());
-}
-
-#[test]
-fn podman_variant_stop_container_delegates() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => a,
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
-        }
-    };
-    let _ = adapter.stop_container("nonexistent-container-xyz-123");
-}
-
-#[test]
-fn podman_variant_remove_container_delegates() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => a,
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
-        }
-    };
-    let _ = adapter.remove_container("nonexistent-container-xyz-123");
-}
-
-#[test]
-fn podman_variant_create_container_delegates() {
-    use std::collections::HashMap;
-
-    let adapter = match try_podman_adapter() {
-        Some(a) => a,
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
-        }
-    };
-    let config = ContainerConfig {
-        image: "alpine:latest".into(),
-        platform: None,
-        env: HashMap::new(),
-        binds: vec![],
-        workdir: None,
-        cmd: Some(vec!["sleep".into(), "infinity".into()]),
-        entrypoint: None,
-        network: None,
-        name: Some("ephemeral-act-test-adapter-podman-create-465968".into()),
-        runner_context: Default::default(),
-    };
-    let _ = adapter.remove_container("ephemeral-act-test-adapter-podman-create-465968");
-    let container = adapter.create_container(&config).unwrap();
-    container.remove().unwrap();
-}
-
-// ---------------------------------------------------------------------------
-// Arc<ContainerRuntimeAdapter> — all 5 trait methods
-// ---------------------------------------------------------------------------
-
-#[test]
-fn arc_pull_image_delegates() {
-    let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
-    let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
-    assert!(result.is_err());
-}
-
-#[test]
-fn arc_get_host_info_delegates() {
-    let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
-    let info = adapter.get_host_info().unwrap();
-    assert!(!info.os.is_empty());
-    assert!(!info.arch.is_empty());
-}
-
-#[test]
-fn arc_stop_container_delegates() {
-    let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
-    let _ = adapter.stop_container("nonexistent-container-xyz-123");
-}
-
-#[test]
-fn arc_remove_container_delegates() {
-    let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
-    let _ = adapter.remove_container("nonexistent-container-xyz-123");
-}
-
-#[test]
-fn arc_create_container_delegates() {
-    use std::collections::HashMap;
-
-    let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
-    let config = ContainerConfig {
-        image: "alpine:latest".into(),
-        platform: None,
-        env: HashMap::new(),
-        binds: vec![],
-        workdir: None,
-        cmd: Some(vec!["sleep".into(), "infinity".into()]),
-        entrypoint: None,
-        network: None,
-        name: Some("ephemeral-act-test-arc-create".into()),
-        runner_context: Default::default(),
-    };
-    let _ = adapter.remove_container("ephemeral-act-test-arc-create");
-    let container = adapter.create_container(&config).unwrap();
-    container.remove().unwrap();
-}
-
-// ---------------------------------------------------------------------------
-// Error mapping on all ContainerRuntime methods (Podman variant)
-// ---------------------------------------------------------------------------
-
-#[test]
-fn podman_variant_map_error_on_stop_container() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => a,
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
-        }
-    };
-    let result = adapter.stop_container("nonexistent-container-xyz-123");
-    // stop_container may succeed (no-op for nonexistent) or fail — if it fails,
-    // verify the error was mapped
-    if let Err(e) = result {
-        let text = e.to_string();
+    #[test]
+    fn detect_succeeds_when_runtime_available() {
+        let result = ContainerRuntimeAdapter::detect();
         assert!(
-            !text.contains("Docker"),
-            "Podman error should not contain 'Docker': {text}"
+            result.is_ok(),
+            "detect() should succeed: {:?}",
+            result.err()
         );
     }
-}
 
-#[test]
-fn podman_variant_map_error_on_remove_container() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => a,
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
-        }
-    };
-    let result = adapter.remove_container("nonexistent-container-xyz-123");
-    if let Err(e) = result {
-        let text = e.to_string();
+    #[test]
+    fn detect_returns_docker_when_docker_host_is_set() {
+        let adapter = ContainerRuntimeAdapter::detect().expect("detect() should succeed");
         assert!(
-            !text.contains("Docker"),
-            "Podman error should not contain 'Docker': {text}"
+            matches!(adapter, ContainerRuntimeAdapter::Docker(_)),
+            "Expected Docker variant since DOCKER_HOST is set"
         );
     }
-}
 
-#[test]
-fn podman_variant_map_error_on_create_container() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => a,
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
-        }
-    };
-    // Create with an image that doesn't exist locally and hasn't been pulled
-    let config = ContainerConfig {
-        image: "nonexistent-image-xyz:latest".into(),
-        platform: None,
-        env: std::collections::HashMap::new(),
-        binds: vec![],
-        workdir: None,
-        cmd: Some(vec!["echo".into(), "hello".into()]),
-        entrypoint: None,
-        network: None,
-        name: Some("ephemeral-act-test-podman-map-error".into()),
-        runner_context: Default::default(),
-    };
-    let result = adapter.create_container(&config);
-    if let Err(e) = result {
-        let text = e.to_string();
+    #[test]
+    fn map_error_is_noop_for_docker_variant() {
+        let adapter = ContainerRuntimeAdapter::detect().unwrap();
+        let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
+        assert!(result.is_err());
+        let err_text = result.unwrap_err().to_string();
         assert!(
-            !text.contains("Docker"),
-            "Podman error should not contain 'Docker': {text}"
+            err_text.contains("Docker"),
+            "Docker variant should preserve 'Docker' in error: {err_text}"
         );
     }
-}
 
-// ---------------------------------------------------------------------------
-// Arc + Podman variant — combined coverage
-// ---------------------------------------------------------------------------
+    #[test]
+    fn map_error_replaces_docker_with_podman_in_error_text() {
+        let podman = match PodmanRuntime::new() {
+            Ok(rt) => rt,
+            Err(_) => {
+                eprintln!("SKIP: PodmanRuntime not available on this host");
+                return;
+            }
+        };
+        let adapter = ContainerRuntimeAdapter::Podman(podman);
 
-#[test]
-fn arc_podman_variant_get_host_info() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => Arc::new(a),
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
+        let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
+        assert!(result.is_err());
+        let err_text = result.unwrap_err().to_string();
+        assert!(
+            !err_text.contains("Docker"),
+            "Podman variant should NOT contain 'Docker' in error: {err_text}"
+        );
+        assert!(
+            err_text.contains("Podman"),
+            "Podman variant should contain 'Podman' in error: {err_text}"
+        );
+    }
+
+    #[test]
+    fn pull_image_delegates_to_inner_runtime() {
+        let adapter = ContainerRuntimeAdapter::detect().unwrap();
+        let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn get_host_info_delegates_to_inner_runtime() {
+        let adapter = ContainerRuntimeAdapter::detect().unwrap();
+        let info = adapter.get_host_info().unwrap();
+        assert!(!info.os.is_empty());
+        assert!(!info.arch.is_empty());
+    }
+
+    #[test]
+    fn stop_container_delegates_to_inner_runtime() {
+        let adapter = ContainerRuntimeAdapter::detect().unwrap();
+        let _ = adapter.stop_container("nonexistent-container-xyz-123");
+    }
+
+    #[test]
+    fn remove_container_delegates_to_inner_runtime() {
+        let adapter = ContainerRuntimeAdapter::detect().unwrap();
+        let _ = adapter.remove_container("nonexistent-container-xyz-123");
+    }
+
+    #[test]
+    fn create_container_delegates_to_inner_runtime() {
+        use std::collections::HashMap;
+
+        let adapter = ContainerRuntimeAdapter::detect().unwrap();
+        let config = ContainerConfig {
+            image: "alpine:latest".into(),
+            platform: None,
+            env: HashMap::new(),
+            binds: vec![],
+            workdir: None,
+            cmd: Some(vec!["sleep".into(), "infinity".into()]),
+            entrypoint: None,
+            network: None,
+            name: Some("ephemeral-act-test-adapter-create".into()),
+            runner_context: Default::default(),
+        };
+        let _ = adapter.remove_container("ephemeral-act-test-adapter-create");
+        let container = adapter.create_container(&config).unwrap();
+        container.remove().unwrap();
+    }
+
+    #[test]
+    fn podman_variant_pull_image_delegates() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn podman_variant_get_host_info_delegates() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let info = adapter.get_host_info().unwrap();
+        assert!(!info.os.is_empty());
+        assert!(!info.arch.is_empty());
+    }
+
+    #[test]
+    fn podman_variant_stop_container_delegates() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let _ = adapter.stop_container("nonexistent-container-xyz-123");
+    }
+
+    #[test]
+    fn podman_variant_remove_container_delegates() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let _ = adapter.remove_container("nonexistent-container-xyz-123");
+    }
+
+    #[test]
+    fn podman_variant_create_container_delegates() {
+        use std::collections::HashMap;
+
+        let adapter = match try_podman_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let config = ContainerConfig {
+            image: "alpine:latest".into(),
+            platform: None,
+            env: HashMap::new(),
+            binds: vec![],
+            workdir: None,
+            cmd: Some(vec!["sleep".into(), "infinity".into()]),
+            entrypoint: None,
+            network: None,
+            name: Some("ephemeral-act-test-adapter-podman-create-465968".into()),
+            runner_context: Default::default(),
+        };
+        let _ = adapter.remove_container("ephemeral-act-test-adapter-podman-create-465968");
+        let container = adapter.create_container(&config).unwrap();
+        container.remove().unwrap();
+    }
+
+    #[test]
+    fn arc_pull_image_delegates() {
+        let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
+        let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn arc_get_host_info_delegates() {
+        let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
+        let info = adapter.get_host_info().unwrap();
+        assert!(!info.os.is_empty());
+        assert!(!info.arch.is_empty());
+    }
+
+    #[test]
+    fn arc_stop_container_delegates() {
+        let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
+        let _ = adapter.stop_container("nonexistent-container-xyz-123");
+    }
+
+    #[test]
+    fn arc_remove_container_delegates() {
+        let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
+        let _ = adapter.remove_container("nonexistent-container-xyz-123");
+    }
+
+    #[test]
+    fn arc_create_container_delegates() {
+        use std::collections::HashMap;
+
+        let adapter = Arc::new(ContainerRuntimeAdapter::detect().unwrap());
+        let config = ContainerConfig {
+            image: "alpine:latest".into(),
+            platform: None,
+            env: HashMap::new(),
+            binds: vec![],
+            workdir: None,
+            cmd: Some(vec!["sleep".into(), "infinity".into()]),
+            entrypoint: None,
+            network: None,
+            name: Some("ephemeral-act-test-arc-create".into()),
+            runner_context: Default::default(),
+        };
+        let _ = adapter.remove_container("ephemeral-act-test-arc-create");
+        let container = adapter.create_container(&config).unwrap();
+        container.remove().unwrap();
+    }
+
+    #[test]
+    fn podman_variant_map_error_on_stop_container() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let result = adapter.stop_container("nonexistent-container-xyz-123");
+        if let Err(e) = result {
+            let text = e.to_string();
+            assert!(
+                !text.contains("Docker"),
+                "Podman error should not contain 'Docker': {text}"
+            );
         }
-    };
-    let info = adapter.get_host_info().unwrap();
-    assert!(!info.os.is_empty());
-    assert!(!info.arch.is_empty());
-}
+    }
 
-#[test]
-fn arc_podman_variant_pull_image_error_mapped() {
-    let adapter = match try_podman_adapter() {
-        Some(a) => Arc::new(a),
-        None => {
-            eprintln!("SKIP: PodmanRuntime not available");
-            return;
+    #[test]
+    fn podman_variant_map_error_on_remove_container() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let result = adapter.remove_container("nonexistent-container-xyz-123");
+        if let Err(e) = result {
+            let text = e.to_string();
+            assert!(
+                !text.contains("Docker"),
+                "Podman error should not contain 'Docker': {text}"
+            );
         }
-    };
-    let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
-    assert!(result.is_err());
-    let err_text = result.unwrap_err().to_string();
-    assert!(
-        !err_text.contains("Docker"),
-        "Arc+Podman error should not contain 'Docker': {err_text}"
-    );
+    }
+
+    #[test]
+    fn podman_variant_map_error_on_create_container() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let config = ContainerConfig {
+            image: "nonexistent-image-xyz:latest".into(),
+            platform: None,
+            env: std::collections::HashMap::new(),
+            binds: vec![],
+            workdir: None,
+            cmd: Some(vec!["echo".into(), "hello".into()]),
+            entrypoint: None,
+            network: None,
+            name: Some("ephemeral-act-test-podman-map-error".into()),
+            runner_context: Default::default(),
+        };
+        let result = adapter.create_container(&config);
+        if let Err(e) = result {
+            let text = e.to_string();
+            assert!(
+                !text.contains("Docker"),
+                "Podman error should not contain 'Docker': {text}"
+            );
+        }
+    }
+
+    #[test]
+    fn arc_podman_variant_get_host_info() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => Arc::new(a),
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let info = adapter.get_host_info().unwrap();
+        assert!(!info.os.is_empty());
+        assert!(!info.arch.is_empty());
+    }
+
+    #[test]
+    fn arc_podman_variant_pull_image_error_mapped() {
+        let adapter = match try_podman_adapter() {
+            Some(a) => Arc::new(a),
+            None => {
+                eprintln!("SKIP: PodmanRuntime not available");
+                return;
+            }
+        };
+        let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
+        assert!(result.is_err());
+        let err_text = result.unwrap_err().to_string();
+        assert!(
+            !err_text.contains("Docker"),
+            "Arc+Podman error should not contain 'Docker': {err_text}"
+        );
+    }
 }

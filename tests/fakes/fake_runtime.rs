@@ -1,11 +1,8 @@
 use std::{cell::RefCell, collections::HashMap};
 
-use ephemeral_act::core::{
-    events::DomainEvent,
-    ports::outbound::{
-        Container, ContainerConfig, ContainerError, ContainerRuntime, EventPublisher, ExecResult,
-        FileEntry, HostInfo, ImageMapper, RunnerContext,
-    },
+use ephemeral_act::core::ports::outbound::{
+    Container, ContainerConfig, ContainerError, ContainerRuntime, ExecResult, FileEntry, HostInfo,
+    RunnerContext,
 };
 
 #[allow(dead_code)]
@@ -96,66 +93,5 @@ impl Container for FakeContainerHandle {
 
     fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
         Ok(RunnerContext::default())
-    }
-}
-
-#[allow(dead_code)]
-pub struct FakeEventPublisher(RefCell<Vec<DomainEvent>>);
-
-#[allow(dead_code)]
-impl FakeEventPublisher {
-    pub fn new() -> Self {
-        Self(RefCell::new(Vec::new()))
-    }
-}
-
-impl EventPublisher for FakeEventPublisher {
-    fn publish(&self, event: DomainEvent) {
-        self.0.borrow_mut().push(event);
-    }
-}
-
-#[allow(dead_code)]
-pub struct FakeImageMapper;
-
-impl ImageMapper for FakeImageMapper {
-    fn map(&self, platform: &str) -> String {
-        platform.to_string()
-    }
-    fn fallback(&self) -> String {
-        "fake-image:latest".into()
-    }
-}
-
-use ephemeral_act::core::{
-    ActRunConfig, Repository, ports::inbound::run_act_port::RunActUseCase,
-    shared_types::ExecutionResult,
-};
-
-#[allow(dead_code)]
-pub struct FakeRunActUseCase {
-    pub result: ExecutionResult,
-}
-
-#[allow(dead_code)]
-impl FakeRunActUseCase {
-    pub fn new(success: bool) -> Self {
-        Self {
-            result: ExecutionResult {
-                success,
-                stdout: String::new(),
-                stderr: String::new(),
-            },
-        }
-    }
-}
-
-impl RunActUseCase for FakeRunActUseCase {
-    fn run_act(
-        &self,
-        _config: ActRunConfig,
-        _repository: Repository,
-    ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
-        Ok(self.result.clone())
     }
 }
