@@ -55,32 +55,6 @@ jobs:
       - name: Clippy
         run: cargo clippy --all-targets --locked -- -D warnings
 
-  coverage:
-    name: Coverage
-    runs-on: codeberg-medium
-    needs: [validate]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.forgejo/actions/install-dependencies
-      - uses: ./.forgejo/actions/cache-rust-deps
-        with:
-          cache-key-prefix: ephemeral-act-coverage
-          rustc-version: stable
-          include-sysroot: "false"
-      - name: Install tarpaulin
-        run: cargo install cargo-tarpaulin
-      - name: Generate coverage
-        run: cargo tarpaulin --locked --out Xml --timeout 300
-        timeout-minutes: 15
-      - name: Upload to Codecov
-        run: |
-          if [ -f ./cobertura.xml ]; then
-            bash <(curl -s https://codecov.io/bash) -f ./cobertura.xml || echo "Codecov upload skipped (no token)"
-          else
-            echo "No coverage file found, skipping upload"
-          fi
-
   build:
     name: Build
     runs-on: codeberg-medium
