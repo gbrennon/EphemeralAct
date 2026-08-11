@@ -28,6 +28,7 @@ impl ImageMapper for PlatformImageMapper {
             "ubuntu-24.04" => "catthehacker/ubuntu:act-24.04",
             "ubuntu-22.04" => "catthehacker/ubuntu:act-22.04",
             "ubuntu-20.04" => "catthehacker/ubuntu:act-20.04",
+            "docker" => "catthehacker/ubuntu:act-latest",
             p if p.starts_with("codeberg-") => "catthehacker/ubuntu:act-latest",
             other => other,
         }
