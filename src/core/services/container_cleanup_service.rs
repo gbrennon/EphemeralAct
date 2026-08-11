@@ -38,13 +38,15 @@ mod tests {
         HostInfo, RunnerContext,
     };
 
+    type Log = Rc<RefCell<Vec<String>>>;
+
     struct FakeRuntime {
-        stopped: Rc<RefCell<Vec<String>>>,
-        removed: Rc<RefCell<Vec<String>>>,
+        stopped: Log,
+        removed: Log,
     }
 
     impl FakeRuntime {
-        fn new() -> (Self, Rc<RefCell<Vec<String>>>, Rc<RefCell<Vec<String>>>) {
+        fn new() -> (Self, Log, Log) {
             let stopped = Rc::new(RefCell::new(Vec::new()));
             let removed = Rc::new(RefCell::new(Vec::new()));
             (

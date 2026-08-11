@@ -48,7 +48,7 @@ mod tests {
 
     #[test]
     fn display_float() {
-        assert_eq!(Literal::Float(3.14).to_string(), "3.14");
+        assert_eq!(Literal::Float(2.71).to_string(), "2.71");
     }
 
     #[test]

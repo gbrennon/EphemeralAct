@@ -51,9 +51,7 @@ impl Cli {
             }
         };
         match cli.command {
-            Command::Run(args) => {
-                super::run_handler::RunHandler::handle(*args, &*self.use_case)
-            }
+            Command::Run(args) => super::run_handler::RunHandler::handle(*args, &*self.use_case),
         }
     }
 }

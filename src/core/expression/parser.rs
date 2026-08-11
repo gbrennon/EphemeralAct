@@ -299,8 +299,8 @@ mod tests {
 
     #[test]
     fn parse_float() {
-        let expr = parse("3.14").unwrap();
-        assert_eq!(expr, Expr::Literal(Literal::Float(3.14)));
+        let expr = parse("2.71").unwrap();
+        assert_eq!(expr, Expr::Literal(Literal::Float(2.71)));
     }
 
     #[test]

@@ -456,8 +456,8 @@ mod tests {
 
     #[test]
     fn lex_float() {
-        let tokens = lex_all("3.14").unwrap();
-        assert_eq!(tokens, vec![Token::Float(3.14), Token::Eof]);
+        let tokens = lex_all("2.71").unwrap();
+        assert_eq!(tokens, vec![Token::Float(2.71), Token::Eof]);
     }
 
     #[test]

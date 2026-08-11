@@ -269,6 +269,6 @@ mod tests {
 
     #[test]
     fn default_creates_planner() {
-        let _planner = Planner::default();
+        let _planner = Planner;
     }
 }

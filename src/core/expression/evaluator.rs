@@ -242,8 +242,8 @@ mod tests {
 
     #[test]
     fn eval_literal_float() {
-        let result = eval(&Expr::Literal(Literal::Float(3.14))).unwrap();
-        assert_eq!(result, json!(3.14));
+        let result = eval(&Expr::Literal(Literal::Float(std::f64::consts::PI))).unwrap();
+        assert_eq!(result, json!(std::f64::consts::PI));
     }
 
     #[test]
@@ -657,7 +657,7 @@ mod tests {
 
     #[test]
     fn truthy_non_zero_float_is_truthy() {
-        assert!(is_truthy(&json!(3.14)));
+        assert!(is_truthy(&json!(std::f64::consts::PI)));
     }
 
     #[test]
