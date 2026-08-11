@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -74,10 +74,10 @@ jobs:
       - name: Create artifact
         run: |
           mkdir -p artifacts
-          cp target/release/ephemeral_act artifacts/
-          chmod +x artifacts/ephemeral_act
-          tar -czf artifacts/ephemeral-act.tar.gz -C artifacts ephemeral_act
+          cp target/release/ephemeral_act artifacts/ephemeral-act
+          chmod +x artifacts/ephemeral-act
+          tar -czf artifacts/ephemeral-act.tar.gz -C artifacts ephemeral-act
       - name: Upload artifact
         run: |
           echo "Artifact created:"
-          ls -la artifacts/ephemeral-act-*.tar.gz || echo "No artifact found"
+          ls -la artifacts/ephemeral-act.tar.gz || echo "No artifact found"
