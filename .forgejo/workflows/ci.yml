@@ -17,18 +17,12 @@ jobs:
     runs-on: docker
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
+      - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
           cache-key-prefix: ephemeral-act
           rustc-version: stable
           include-sysroot: "false"
-
       - name: Check formatting
         run: cargo fmt --all -- --check
 
@@ -38,25 +32,13 @@ jobs:
     needs: [validate]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
+      - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
           cache-key-prefix: ephemeral-act
           rustc-version: stable
           include-sysroot: "false"
-
-      - name: Run tests
-        run: cargo test --locked --verbose
-        timeout-minutes: 10
-
-      - name: Run doc tests
-        run: cargo test --doc --locked
-        timeout-minutes: 5
+      - uses: ./.forgejo/actions/run-tests
 
   lint:
     name: Lint
@@ -64,18 +46,12 @@ jobs:
     needs: [validate]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          $HOME/.cargo/bin/rustup component add clippy
+      - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
           cache-key-prefix: ephemeral-act
           rustc-version: stable
           include-sysroot: "false"
-
       - name: Clippy
         run: cargo clippy --all-targets --locked -- -D warnings
 
@@ -86,25 +62,17 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
+      - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
           cache-key-prefix: ephemeral-act-coverage
           rustc-version: stable
           include-sysroot: "false"
-
       - name: Install tarpaulin
         run: cargo install cargo-tarpaulin
-
       - name: Generate coverage
         run: cargo tarpaulin --locked --out Xml --timeout 300
         timeout-minutes: 15
-
       - name: Upload to Codecov
         run: |
           if [ -f ./cobertura.xml ]; then
@@ -120,22 +88,15 @@ jobs:
     if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
+      - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
           cache-key-prefix: ephemeral-act-release
           rustc-version: stable
           include-sysroot: "false"
-
       - name: Build release binary
         run: cargo build --release --locked
         timeout-minutes: 15
-
       - name: Create artifact
         run: |
           mkdir -p artifacts

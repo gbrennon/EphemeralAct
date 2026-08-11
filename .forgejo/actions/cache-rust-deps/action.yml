@@ -19,10 +19,13 @@ runs:
 
   steps:
     - name: Cache Cargo registry
+      shell: bash
       run: echo "Cache registry (no-op in ephemeral container)"
 
     - name: Cache Cargo git checkouts
+      shell: bash
       run: echo "Cache git checkouts (no-op in ephemeral container)"
 
     - name: Cache build artifacts
+      shell: bash
       run: echo "Cache build artifacts (no-op in ephemeral container)"

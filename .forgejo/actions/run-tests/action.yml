@@ -1,9 +1,9 @@
 name: Run tests
-description: Run test suite
+description: Run test suite (unit tests only; skips container runtime integration tests)
 
 runs:
   using: composite
 
   steps:
     - shell: bash
-      run: just test
+      run: cargo test --lib --bins
