@@ -1,7 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 /// Summary of a step within a job run.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StepSummary {
     pub name: String,
     pub step_type: crate::core::dtos::run_summary::step_type::StepType,

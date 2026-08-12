@@ -1,7 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 /// Summary of a job within a workflow run.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct JobSummary {
     pub job_id: String,
     pub name: Option<String>,
