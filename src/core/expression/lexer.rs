@@ -1,4 +1,4 @@
-use super::{lexer_error::LexerError, token::Token};
+use super::{LexerError, token::Token};
 
 /// A hand-written lexer for GitHub Actions `${{ }}` expression syntax.
 ///
