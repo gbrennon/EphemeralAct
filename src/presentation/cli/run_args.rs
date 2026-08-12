@@ -58,8 +58,9 @@ impl RunArgs {
     ///
     /// Returns an error if the repository path is not a valid git repository.
     pub fn to_domain(&self) -> Result<(ActRunConfig, Repository), Box<dyn std::error::Error>> {
-        let repo_path = RepoPath::new(self.path.clone())?;
-        let repo_name = RepositoryName::from_repo_path(&repo_path)?;
+        let repo_path = RepoPath::new(self.path.clone()).map_err(|e| format!("{:?}", e))?;
+        let repo_name =
+            RepositoryName::from_repo_path(&repo_path).map_err(|e| format!("{:?}", e))?;
         let repository = Repository::new(repo_path, repo_name);
 
         let mut config = ActRunConfig::new();
