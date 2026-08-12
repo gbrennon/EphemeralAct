@@ -72,8 +72,15 @@ mod tests {
 
     #[test]
     fn execute_finds_workflow_in_forgejo_dir() {
-        let repo = make_repo(Path::new(env!("CARGO_MANIFEST_DIR")));
+        let tmp = tempfile::tempdir().unwrap();
+        write_workflow(
+            tmp.path(),
+            "ci.yml",
+            "name: Ci\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+        );
+        let repo = make_repo(tmp.path());
         let runtime = FakeRuntime::new();
+        push_result(&runtime, 0, "hi\n", "");
         let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
         let config =
             ActRunConfig::new().with_workflow(ActWorkflow::new(".forgejo/workflows/ci.yml".into()));
