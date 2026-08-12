@@ -3,4 +3,5 @@ pub enum StepType {
     Run,
     Uses,
     Composite,
+    Invalid,
 }

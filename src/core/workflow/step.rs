@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
+use crate::core::dtos::StepType;
+
 /// A step in a GitHub Actions job.
 ///
 /// Steps can be shell commands (`run`) or actions (`uses`).
@@ -93,6 +95,31 @@ impl Step {
     /// Falls back to the default shell if none is specified.
     pub fn effective_shell<'a>(&'a self, default_shell: &'a str) -> &'a str {
         self.shell.as_deref().unwrap_or(default_shell)
+    }
+
+    /// Classifies this step: `Run` for shell commands, `Composite` for local
+    /// (`./`) actions, `Uses` for other action references, and `Invalid` when
+    /// the step defines neither `run` nor `uses`.
+    pub fn step_type(&self) -> StepType {
+        if self.run.is_some() {
+            StepType::Run
+        } else if self.uses.as_deref().is_some_and(|u| u.starts_with("./")) {
+            StepType::Composite
+        } else if self.uses.is_some() {
+            StepType::Uses
+        } else {
+            StepType::Invalid
+        }
+    }
+
+    /// Returns `true` when `continue-on-error` is set to a truthy value.
+    ///
+    /// The workflow parser preserves the raw scalar, so values like `True` are
+    /// matched case-insensitively.
+    pub fn continues_on_error(&self) -> bool {
+        self.continue_on_error
+            .as_deref()
+            .is_some_and(|v| v.eq_ignore_ascii_case("true"))
     }
 }
 

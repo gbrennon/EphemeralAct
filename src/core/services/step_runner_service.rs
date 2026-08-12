@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt, fs, path::Path};
 
 use crate::core::{
+    dtos::StepType,
     ports::outbound::{ContainerPort, ExecResult},
     workflow::{ActionDefinition, ActionRuns, Step},
 };
@@ -24,6 +25,7 @@ impl StepError {
     }
 
     /// Returns `true` if the error message contains `needle`.
+    #[cfg(test)]
     pub fn contains(&self, needle: &str) -> bool {
         self.message.contains(needle)
     }
@@ -61,12 +63,20 @@ impl StepRunnerService {
         repo_path: &Path,
         env: &HashMap<String, String>,
     ) -> Result<ExecResult, StepError> {
-        if let Some(cmd) = step.run() {
-            Self::run_shell_command(cmd, step, container, env)
-        } else if let Some(action) = step.uses() {
-            Self::run_action(action, step, container, repo_path, env)
-        } else {
-            Err(StepError::new("step has neither `run` nor `uses` defined"))
+        match step.step_type() {
+            StepType::Run => {
+                let cmd = step
+                    .run()
+                    .ok_or_else(|| StepError::new("step has neither `run` nor `uses` defined"))?;
+                Self::run_shell_command(cmd, step, container, env)
+            }
+            StepType::Composite | StepType::Uses => {
+                let action = step
+                    .uses()
+                    .ok_or_else(|| StepError::new("step has neither `run` nor `uses` defined"))?;
+                Self::run_action(action, step, container, repo_path, env)
+            }
+            StepType::Invalid => Err(StepError::new("step has neither `run` nor `uses` defined")),
         }
     }
 
