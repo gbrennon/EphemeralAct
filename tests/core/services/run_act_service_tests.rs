@@ -14,7 +14,8 @@ mod tests {
 
     use ephemeral_act::core::{
         ActRunConfig, ActWorkflow, RepoPath, Repository, RepositoryName, dtos::RunActRequest,
-        ports::inbound::run_act_port::RunActPort, services::run_act_service::RunActService,
+        dtos::StepType, ports::inbound::run_act_port::RunActPort,
+        services::run_act_service::RunActService,
     };
     use fake_event_publisher::FakeEventPublisher;
     use fake_image_mapper::FakeImageMapper;
@@ -130,5 +131,55 @@ mod tests {
         let step = &result.job_summaries[0].steps[0];
         assert_eq!(step.exit_code, Some(1));
         assert!(step.continue_on_error);
+    }
+
+    #[test]
+    fn run_act_labels_local_action_step_as_composite() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".forgejo/workflows")).unwrap();
+        std::fs::create_dir_all(tmp.path().join(".forgejo/actions/my-action")).unwrap();
+        std::fs::write(
+            tmp.path().join(".forgejo/actions/my-action/action.yml"),
+            "name: My Action\nruns:\n  using: composite\n  steps:\n    - run: echo hi\n",
+        )
+        .unwrap();
+        std::fs::write(
+            tmp.path().join(".forgejo/workflows/action.yml"),
+            "name: Action\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: ./.forgejo/actions/my-action\n",
+        )
+        .unwrap();
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        runtime
+            .exec_results
+            .borrow_mut()
+            .push(ephemeral_act::core::ports::outbound::ExecResult {
+                exit_code: 0,
+                stdout: "hi".into(),
+                stderr: String::new(),
+            });
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new();
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
+        assert!(result.success);
+        assert_eq!(result.job_summaries[0].steps[0].step_type, StepType::Composite);
+    }
+
+    #[test]
+    fn run_act_labels_remote_action_step_as_uses() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".forgejo/workflows")).unwrap();
+        std::fs::write(
+            tmp.path().join(".forgejo/workflows/action.yml"),
+            "name: Action\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: docker://node:20\n",
+        )
+        .unwrap();
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new();
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
+        assert!(result.success);
+        assert_eq!(result.job_summaries[0].steps[0].step_type, StepType::Uses);
     }
 }

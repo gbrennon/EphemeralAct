@@ -202,6 +202,8 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
 
                     let step_type = if step.run.is_some() {
                         StepType::Run
+                    } else if step.uses.as_deref().is_some_and(|u| u.starts_with("./")) {
+                        StepType::Composite
                     } else if step.uses.is_some() {
                         StepType::Uses
                     } else {
