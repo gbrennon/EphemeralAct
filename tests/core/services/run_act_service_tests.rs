@@ -102,4 +102,33 @@ mod tests {
         let result = service.execute(RunActRequest::new(config, repo)).unwrap();
         assert!(!result.success);
     }
+
+    #[test]
+    fn run_act_succeeds_when_failing_step_has_continue_on_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".forgejo/workflows")).unwrap();
+        std::fs::write(
+            tmp.path().join(".forgejo/workflows/continue.yml"),
+            "name: Continue\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: exit 1\n        continue-on-error: true\n",
+        )
+        .unwrap();
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        runtime
+            .exec_results
+            .borrow_mut()
+            .push(ephemeral_act::core::ports::outbound::ExecResult {
+                exit_code: 1,
+                stdout: String::new(),
+                stderr: "fail".into(),
+            });
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new();
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
+        assert!(result.success, "run with continue-on-error should succeed");
+        assert!(result.job_summaries[0].success);
+        let step = &result.job_summaries[0].steps[0];
+        assert_eq!(step.exit_code, Some(1));
+        assert!(step.continue_on_error);
+    }
 }

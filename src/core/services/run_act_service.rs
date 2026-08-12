@@ -207,6 +207,7 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                     } else {
                         StepType::Composite
                     };
+                    let continue_on_error = step.continue_on_error.as_deref() == Some("true");
                     let step_started_at = Instant::now();
 
                     match StepRunnerService::execute(step, container.as_ref(), repo_path, &step_env)
@@ -216,16 +217,17 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                                 name: step_label.to_string(),
                                 step_type,
                                 exit_code: Some(result.exit_code),
-                                continue_on_error: step.continue_on_error.as_deref()
-                                    == Some("true"),
+                                continue_on_error,
                                 duration: step_started_at.elapsed(),
                                 stdout: result.stdout,
                                 stderr: result.stderr,
                             });
                             if result.exit_code != 0 {
                                 eprintln!("  FAILED (exit code: {})", result.exit_code);
-                                job_success = false;
-                                success = false;
+                                if !continue_on_error {
+                                    job_success = false;
+                                    success = false;
+                                }
                             } else {
                                 eprintln!("  OK (exit code: {})", result.exit_code);
                             }
@@ -236,14 +238,15 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                                 name: step_label.to_string(),
                                 step_type,
                                 exit_code: None,
-                                continue_on_error: step.continue_on_error.as_deref()
-                                    == Some("true"),
+                                continue_on_error,
                                 duration: step_started_at.elapsed(),
                                 stdout: String::new(),
                                 stderr: format!("step error: {}\n", e),
                             });
-                            job_success = false;
-                            success = false;
+                            if !continue_on_error {
+                                job_success = false;
+                                success = false;
+                            }
                         }
                     }
 
