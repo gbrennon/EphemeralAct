@@ -3,7 +3,7 @@ use std::{ffi::OsString, io::Write};
 use clap::Parser;
 
 use super::{cli_parser::CliParser, command::Command};
-use crate::core::ports::inbound::run_act_port::RunActUseCase;
+use crate::core::ports::inbound::run_act_port::RunActPort;
 
 /// Entry point for the presentation layer.
 ///
@@ -11,12 +11,12 @@ use crate::core::ports::inbound::run_act_port::RunActUseCase;
 /// [`run`](Cli::run) to parse CLI arguments and dispatch to the appropriate
 /// handler.
 pub struct Cli {
-    use_case: Box<dyn RunActUseCase>,
+    use_case: Box<dyn RunActPort>,
 }
 
 impl Cli {
     /// Creates a new [`Cli`] backed by the given use case.
-    pub fn new<U: RunActUseCase + 'static>(use_case: U) -> Self {
+    pub fn new<U: RunActPort + 'static>(use_case: U) -> Self {
         Self {
             use_case: Box::new(use_case),
         }
