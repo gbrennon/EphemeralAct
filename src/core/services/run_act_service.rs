@@ -104,7 +104,7 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
         let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
 
         let planner = Planner::new();
-        let plan = planner.plan(&workflow)?;
+        let plan = planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
 
         let started_at = Instant::now();
         let mut job_summaries: Vec<JobSummary> = Vec::new();
@@ -119,7 +119,9 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
 
                 if self.runtime.pull_image(&image, None).is_err() {
                     image = self.image_mapper.fallback();
-                    self.runtime.pull_image(&image, None)?;
+                    self.runtime
+                        .pull_image(&image, None)
+                        .map_err(|e| format!("{:?}", e))?;
                 }
 
                 let mut container_env = Self::build_env(&workflow, &run.job.env);
@@ -147,7 +149,10 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                     runner_context: RunnerContext::default(),
                 };
 
-                let container = self.runtime.create_container(&container_config)?;
+                let container = self
+                    .runtime
+                    .create_container(&container_config)
+                    .map_err(|e| format!("{:?}", e))?;
                 container_names.push(container_name);
 
                 let mut step_env = container_env.clone();
