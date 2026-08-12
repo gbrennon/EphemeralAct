@@ -165,7 +165,7 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                 eprintln!("Creating container '{}'...", container_name);
                 let container = self.runtime.create_container(&container_config)?;
                 container_names.push(container_name.clone());
-                eprintln!("  ContainerPort ready");
+                eprintln!("  Container ready");
 
                 // Per-step env: starts with container env, accumulates PATH and
                 // env vars from GITHUB_PATH / GITHUB_ENV files after each step.
