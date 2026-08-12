@@ -10,7 +10,6 @@ pub mod services;
 pub mod value_objects;
 pub mod workflow;
 
-// Application-layer re-exports
 pub use ports::inbound::run_act_port::RunActPort;
 pub use services::run_act_service::RunActService;
 

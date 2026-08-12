@@ -427,8 +427,7 @@ runs:
         assert!(result.stdout.contains("ok"));
 
         let cmd = container.last_cmd.borrow();
-        // Both steps should have been executed
-        assert_eq!(cmd.len(), 6); // bash, -c, echo step1, bash, -c, echo step2
+        assert_eq!(cmd.len(), 6);
         assert_eq!(cmd[2], "echo step1");
         assert_eq!(cmd[5], "echo step2");
     }
@@ -490,9 +489,8 @@ runs:
             StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap();
         assert_eq!(result.exit_code, 1);
         assert!(result.stdout.contains("fail"));
-        // Only first two steps should have executed (third skipped due to failure)
         let cmd = container.last_cmd.borrow();
-        assert_eq!(cmd.len(), 6); // bash, -c, echo before, bash, -c, exit 1
+        assert_eq!(cmd.len(), 6);
     }
 
     #[test]

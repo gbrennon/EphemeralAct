@@ -45,7 +45,6 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActS
         repo_path: &std::path::Path,
     ) -> Result<PathBuf, Box<dyn std::error::Error>> {
         if let Some(wf) = config.workflow() {
-            // Try direct path first, then search in platform subdirectories
             let direct = repo_path.join(wf.as_str());
             if direct.exists() {
                 return Ok(direct);
@@ -123,20 +122,15 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                     self.runtime.pull_image(&image, None)?;
                 }
 
-                // Build base env: workflow env + job env + GITHUB_* file paths
                 let mut container_env = Self::build_env(&workflow, &run.job.env);
                 let github_path = "/workspace/.github_path";
                 let github_env = "/workspace/.github_env";
                 container_env.insert("GITHUB_PATH".into(), github_path.into());
                 container_env.insert("GITHUB_ENV".into(), github_env.into());
-                // Preserve a default PATH so the container can find bash, etc.
                 container_env.entry("PATH".to_string()).or_insert_with(|| {
                     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin".to_string()
                 });
                 let container_name = format!("ephemeral-act-{}-{}", run.job_id, std::process::id());
-                // Clean up any stale container from a prior run (both legacy
-                // and current name formats). Ignore errors — the container may
-                // not exist.
                 let legacy_name = format!("ephemeral-act-{}", run.job_id);
                 let _ = self.runtime.remove_container(&legacy_name);
                 let _ = self.runtime.remove_container(&container_name);
@@ -156,15 +150,12 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                 let container = self.runtime.create_container(&container_config)?;
                 container_names.push(container_name);
 
-                // Per-step env: starts with container env, accumulates PATH and
-                // env vars from GITHUB_PATH / GITHUB_ENV files after each step.
                 let mut step_env = container_env.clone();
                 let mut extra_path: Vec<String> = Vec::new();
 
                 let mut job_success = true;
                 let mut steps: Vec<StepSummary> = Vec::new();
                 for step in &run.job.steps {
-                    // Build PATH from base + accumulated extra paths
                     let path = if extra_path.is_empty() {
                         step_env.get("PATH").cloned().unwrap_or_default()
                     } else {
@@ -220,7 +211,6 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                         stderr,
                     });
 
-                    // Read GITHUB_PATH and GITHUB_ENV files to accumulate changes
                     if let Ok(output) =
                         container.exec(&["cat".into(), github_path.into()], None, &HashMap::new())
                     {

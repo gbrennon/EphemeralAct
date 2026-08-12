@@ -11,7 +11,6 @@ pub mod repo_path;
 pub mod repository_name;
 pub mod secret;
 
-// Port request/response DTOs live in `crate::core::dtos`.
 pub use self::{
     act_event::ActEvent, act_extra_arg::ActExtraArg, act_input::ActInput, act_job::ActJob,
     act_run_config::ActRunConfig, act_workflow::ActWorkflow, cleanup_policy::CleanupPolicy,

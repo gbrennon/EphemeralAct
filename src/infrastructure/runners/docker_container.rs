@@ -81,12 +81,8 @@ impl ContainerPort for DockerContainer {
                             }
                         }
                     }
-                    // Drop the input stream before the output stream to signal
-                    // EOF to Podman. This prevents crun from flushing debug
-                    // errors when the upgraded connection closes.
                     drop(input);
 
-                    // Inspect the exec instance to get the real exit code
                     let exit_code = self
                         .docker
                         .inspect_exec(&exec.id)

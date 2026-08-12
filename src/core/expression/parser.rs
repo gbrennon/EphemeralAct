@@ -26,13 +26,9 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // -- entry point -------------------------------------------------------
-
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {
         self.parse_logical()
     }
-
-    // -- logical: compare (("&&" | "||") compare)*  (same prec, left-assoc) --
 
     fn parse_logical(&mut self) -> Result<Expr, ParseError> {
         let mut left = self.parse_compare()?;
@@ -42,14 +38,12 @@ impl<'a> Parser<'a> {
                 Some(Token::Or) => LogicalOp::Or,
                 _ => break,
             };
-            self.advance(); // consume &&
+            self.advance();
             let right = self.parse_compare()?;
             left = Expr::Logical(op, Box::new(left), Box::new(right));
         }
         Ok(left)
     }
-
-    // -- compare: unary ((==|!=|<|>|<=|>=) unary)? ------------------------
 
     fn parse_compare(&mut self) -> Result<Expr, ParseError> {
         let left = self.parse_unary()?;
@@ -62,33 +56,28 @@ impl<'a> Parser<'a> {
             Some(Token::Gte) => CompareOp::Gte,
             _ => return Ok(left),
         };
-        self.advance(); // consume operator
+        self.advance();
         let right = self.parse_unary()?;
         Ok(Expr::Compare(op, Box::new(left), Box::new(right)))
     }
 
-    // -- unary: "!" unary | postfix ----------------------------------------
-
     fn parse_unary(&mut self) -> Result<Expr, ParseError> {
         if self.peek() == Some(&Token::Not) {
-            self.advance(); // consume !
+            self.advance();
             let inner = self.parse_unary()?;
             return Ok(Expr::Not(Box::new(inner)));
         }
         self.parse_postfix()
     }
 
-    // -- postfix: primary (("." ident) | ("[" expr "]") | (".*") | ("(" args ")"))* --
-
     fn parse_postfix(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.parse_primary()?;
         loop {
             match self.peek() {
                 Some(Token::Dot) => {
-                    self.advance(); // consume .
-                    // Check for .* (array deref)
+                    self.advance();
                     if self.peek() == Some(&Token::Star) {
-                        self.advance(); // consume *
+                        self.advance();
                         expr = Expr::ArrayDeref(Box::new(expr));
                     } else {
                         let ident = self.expect_ident("property name after '.'")?;
@@ -96,16 +85,15 @@ impl<'a> Parser<'a> {
                     }
                 }
                 Some(Token::LBracket) => {
-                    self.advance(); // consume [
+                    self.advance();
                     let idx = self.parse_expr()?;
                     self.expect(Token::RBracket, "expected ']'")?;
                     expr = Expr::IndexAccess(Box::new(expr), Box::new(idx));
                 }
                 Some(Token::LParen) => {
-                    self.advance(); // consume (
+                    self.advance();
                     let args = self.parse_args()?;
                     self.expect(Token::RParen, "expected ')'")?;
-                    // The function name is the preceding expression -- it must be a Variable
                     let name = match &expr {
                         Expr::Variable(n) => n.clone(),
                         _ => {
@@ -122,13 +110,10 @@ impl<'a> Parser<'a> {
         Ok(expr)
     }
 
-    // -- primary: ident | string | int | float | bool | null | "(" expr ")" --
-
     fn parse_primary(&mut self) -> Result<Expr, ParseError> {
         match self.peek().cloned() {
             Some(Token::Ident(name)) => {
                 self.advance();
-                // Check for keyword literals
                 match name.as_str() {
                     "true" => return Ok(Expr::Literal(Literal::Bool(true))),
                     "false" => return Ok(Expr::Literal(Literal::Bool(false))),
@@ -158,7 +143,7 @@ impl<'a> Parser<'a> {
                 Ok(Expr::Literal(Literal::Null))
             }
             Some(Token::LParen) => {
-                self.advance(); // consume (
+                self.advance();
                 let expr = self.parse_expr()?;
                 self.expect(Token::RParen, "expected ')'")?;
                 Ok(expr)
@@ -168,26 +153,21 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // -- args: expr ("," expr)* | epsilon ----------------------------------------
-
     fn parse_args(&mut self) -> Result<Vec<Expr>, ParseError> {
         let mut args = Vec::new();
-        // Empty arg list
         if self.peek() == Some(&Token::RParen) {
             return Ok(args);
         }
         loop {
             args.push(self.parse_expr()?);
             if self.peek() == Some(&Token::Comma) {
-                self.advance(); // consume ,
+                self.advance();
             } else {
                 break;
             }
         }
         Ok(args)
     }
-
-    // -- helpers -----------------------------------------------------------
 
     fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.pos)
@@ -262,8 +242,6 @@ mod tests {
         parse_expr(input)
     }
 
-    // -- literals ----------------------------------------------------------
-
     #[test]
     fn parse_bool_true() {
         let expr = parse("true").unwrap();
@@ -290,9 +268,6 @@ mod tests {
 
     #[test]
     fn parse_negative_int() {
-        // The lexer doesn't produce negative ints; -7 is parsed as unary minus
-        // But our lexer doesn't have a minus token, so this is a limitation.
-        // For now, test that a positive int parses.
         let expr = parse("7").unwrap();
         assert_eq!(expr, Expr::Literal(Literal::Int(7)));
     }
@@ -309,8 +284,6 @@ mod tests {
         assert_eq!(expr, Expr::Literal(Literal::String("hello".into())));
     }
 
-    // -- variables ---------------------------------------------------------
-
     #[test]
     fn parse_variable() {
         let expr = parse("github").unwrap();
@@ -322,8 +295,6 @@ mod tests {
         let expr = parse("env").unwrap();
         assert_eq!(expr, Expr::Variable("env".into()));
     }
-
-    // -- property access ---------------------------------------------------
 
     #[test]
     fn parse_property_access() {
@@ -361,8 +332,6 @@ mod tests {
         );
     }
 
-    // -- index access ------------------------------------------------------
-
     #[test]
     fn parse_index_access() {
         let expr = parse("arr[0]").unwrap();
@@ -387,8 +356,6 @@ mod tests {
         );
     }
 
-    // -- array deref -------------------------------------------------------
-
     #[test]
     fn parse_array_deref() {
         let expr = parse("foo.*").unwrap();
@@ -397,8 +364,6 @@ mod tests {
             Expr::ArrayDeref(Box::new(Expr::Variable("foo".into())))
         );
     }
-
-    // -- function calls ----------------------------------------------------
 
     #[test]
     fn parse_func_call_no_args() {
@@ -426,8 +391,6 @@ mod tests {
             )
         );
     }
-
-    // -- comparisons -------------------------------------------------------
 
     #[test]
     fn parse_eq() {
@@ -507,8 +470,6 @@ mod tests {
         );
     }
 
-    // -- logical operators -------------------------------------------------
-
     #[test]
     fn parse_and() {
         let expr = parse("a && b").unwrap();
@@ -537,7 +498,6 @@ mod tests {
 
     #[test]
     fn parse_and_or_left_assoc() {
-        // a && b || c  ->  (a && b) || c
         let expr = parse("a && b || c").unwrap();
         assert_eq!(
             expr,
@@ -555,7 +515,6 @@ mod tests {
 
     #[test]
     fn parse_or_and_left_assoc() {
-        // a || b && c  ->  (a || b) && c
         let expr = parse("a || b && c").unwrap();
         assert_eq!(
             expr,
@@ -570,8 +529,6 @@ mod tests {
             )
         );
     }
-
-    // -- logical NOT -------------------------------------------------------
 
     #[test]
     fn parse_not() {
@@ -591,7 +548,6 @@ mod tests {
     #[test]
     fn parse_not_compare() {
         let expr = parse("!a == b").unwrap();
-        // ! binds tighter than ==, so this is (!a) == b
         assert_eq!(
             expr,
             Expr::Compare(
@@ -602,8 +558,6 @@ mod tests {
         );
     }
 
-    // -- parenthesized expressions -----------------------------------------
-
     #[test]
     fn parse_parens() {
         let expr = parse("(a)").unwrap();
@@ -612,7 +566,6 @@ mod tests {
 
     #[test]
     fn parse_parens_override_precedence() {
-        // (a || b) && c  -- parens force || before &&
         let expr = parse("(a || b) && c").unwrap();
         assert_eq!(
             expr,
@@ -628,11 +581,8 @@ mod tests {
         );
     }
 
-    // -- complex expressions -----------------------------------------------
-
     #[test]
     fn parse_complex_expression() {
-        // github.ref == 'refs/heads/main' && success()
         let expr = parse("github.ref == 'refs/heads/main' && success()").unwrap();
         assert_eq!(
             expr,
@@ -653,7 +603,6 @@ mod tests {
 
     #[test]
     fn parse_chained_postfix() {
-        // foo.bar[0].baz
         let expr = parse("foo.bar[0].baz").unwrap();
         assert_eq!(
             expr,
@@ -669,8 +618,6 @@ mod tests {
             )
         );
     }
-
-    // -- error cases -------------------------------------------------------
 
     #[test]
     fn parse_error_empty() {
