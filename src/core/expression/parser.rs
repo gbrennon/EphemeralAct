@@ -1,4 +1,6 @@
-use super::{CompareOp, Expr, Lexer, Literal, LogicalOp, Token, parse_error::ParseError};
+use super::{
+    CompareOp, Lexer, ParseError, expr::Expr, literal::Literal, logical_op::LogicalOp, token::Token,
+};
 
 /// Recursive-descent parser for expression tokens.
 pub struct Parser<'a> {
@@ -224,7 +226,7 @@ pub fn parse_expr(input: &str) -> Result<Expr, ParseError> {
             Ok(tok) => tokens.push(tok),
             Err(e) => {
                 return Err(ParseError {
-                    message: format!("lexer error: {e}"),
+                    message: format!("lexer error: {:?}", e),
                     position: 0,
                 });
             }
