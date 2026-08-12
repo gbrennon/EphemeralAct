@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::core::errors::CoreError;
+use crate::core::errors::core_error::CoreError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepositoryName(String);

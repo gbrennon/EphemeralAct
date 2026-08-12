@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::{context::EvalContext, eval_error::EvalError};
+use super::{EvalError, context::EvalContext};
 
 /// Built-in function dispatcher for GitHub Actions expressions.
 ///

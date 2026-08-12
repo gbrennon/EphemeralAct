@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use super::{plan::Plan, plan_error::PlanError, run::Run, stage::Stage};
+use super::{PlanError, plan::Plan, run::Run, stage::Stage};
 use crate::core::workflow::Workflow;
 
 /// Plans the execution order of workflow jobs.

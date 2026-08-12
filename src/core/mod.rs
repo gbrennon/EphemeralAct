@@ -18,7 +18,7 @@ pub use self::{
         ephemeral_repository::EphemeralRepository, repository::Repository,
         temp_dir_template::TempDirTemplate,
     },
-    errors::CoreError,
+    errors::core_error::CoreError,
     value_objects::{
         ActEvent, ActExtraArg, ActInput, ActJob, ActRunConfig, ActWorkflow, CleanupPolicy,
         ContainerEngine, GitDirKind, RepoPath, RepositoryName, Secret,
