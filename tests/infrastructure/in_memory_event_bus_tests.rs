@@ -2,10 +2,11 @@ use std::{cell::RefCell, rc::Rc};
 
 use ephemeral_act::{
     core::{
+        dtos::ContainerCleanupRequest,
         events::{ActRunCompletedPayload, DomainEvent},
         ports::{
-            inbound::container_cleanup_port::ContainerCleanupUseCase,
-            outbound::event_publisher::EventPublisher,
+            inbound::container_cleanup_port::ContainerCleanupPort,
+            outbound::event_publisher::EventPublisherPort,
         },
     },
     infrastructure::InMemoryEventBus,
@@ -27,17 +28,17 @@ mod tests {
         }
     }
 
-    impl ContainerCleanupUseCase for SpyCleanupHandler {
-        fn handle_act_run_completed(&self, container_names: &[String]) {
-            self.called_with.borrow_mut().push(container_names.to_vec());
+    impl ContainerCleanupPort for SpyCleanupHandler {
+        fn execute(&self, request: ContainerCleanupRequest) {
+            self.called_with.borrow_mut().push(request.container_names);
         }
     }
 
     struct SpyHandler(Rc<SpyCleanupHandler>);
 
-    impl ContainerCleanupUseCase for SpyHandler {
-        fn handle_act_run_completed(&self, container_names: &[String]) {
-            self.0.handle_act_run_completed(container_names);
+    impl ContainerCleanupPort for SpyHandler {
+        fn execute(&self, request: ContainerCleanupRequest) {
+            self.0.execute(request);
         }
     }
 

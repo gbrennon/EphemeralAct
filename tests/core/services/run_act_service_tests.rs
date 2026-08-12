@@ -13,8 +13,8 @@ mod tests {
     use std::path::Path;
 
     use ephemeral_act::core::{
-        ActRunConfig, ActWorkflow, RepoPath, Repository, RepositoryName,
-        ports::inbound::RunActUseCase, services::run_act_service::RunActService,
+        ActRunConfig, ActWorkflow, RepoPath, Repository, RepositoryName, dtos::RunActRequest,
+        ports::inbound::run_act_port::RunActPort, services::run_act_service::RunActService,
     };
     use fake_event_publisher::FakeEventPublisher;
     use fake_image_mapper::FakeImageMapper;
@@ -38,7 +38,7 @@ mod tests {
         let runtime = FakeRuntime::new();
         let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
         let config = ActRunConfig::new();
-        let result = service.run_act(config, repo).unwrap();
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
         assert!(result.success);
     }
 
@@ -49,7 +49,7 @@ mod tests {
         let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
         let config =
             ActRunConfig::new().with_workflow(ActWorkflow::new(".forgejo/workflows/ci.yml".into()));
-        let result = service.run_act(config, repo).unwrap();
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
         assert!(result.success);
     }
 
@@ -59,7 +59,9 @@ mod tests {
         let runtime = FakeRuntime::new();
         let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
         let config = ActRunConfig::new().with_workflow(ActWorkflow::new("nonexistent.yml".into()));
-        let err = service.run_act(config, repo).unwrap_err();
+        let err = service
+            .execute(RunActRequest::new(config, repo))
+            .unwrap_err();
         assert!(err.to_string().contains("nonexistent.yml"), "{}", err);
     }
 
@@ -70,7 +72,9 @@ mod tests {
         let runtime = FakeRuntime::new();
         let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
         let config = ActRunConfig::new();
-        let err = service.run_act(config, repo).unwrap_err();
+        let err = service
+            .execute(RunActRequest::new(config, repo))
+            .unwrap_err();
         assert!(err.to_string().contains("workflows directory"), "{}", err);
     }
 
@@ -95,7 +99,7 @@ mod tests {
             });
         let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
         let config = ActRunConfig::new();
-        let result = service.run_act(config, repo).unwrap();
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
         assert!(!result.success);
     }
 }

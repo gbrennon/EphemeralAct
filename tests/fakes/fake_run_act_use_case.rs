@@ -1,32 +1,31 @@
+use std::time::Duration;
+
 use ephemeral_act::core::{
-    ActRunConfig, Repository, ports::inbound::run_act_port::RunActUseCase,
-    shared_types::ExecutionResult,
+    dtos::{RunActRequest, RunSummary},
+    ports::inbound::run_act_port::RunActPort,
 };
 
 #[allow(dead_code)]
 pub struct FakeRunActUseCase {
-    pub result: ExecutionResult,
+    pub result: RunSummary,
 }
 
 #[allow(dead_code)]
 impl FakeRunActUseCase {
     pub fn new(success: bool) -> Self {
         Self {
-            result: ExecutionResult {
+            result: RunSummary {
+                name: None,
+                job_summaries: vec![],
                 success,
-                stdout: String::new(),
-                stderr: String::new(),
+                total_duration: Duration::ZERO,
             },
         }
     }
 }
 
-impl RunActUseCase for FakeRunActUseCase {
-    fn run_act(
-        &self,
-        _config: ActRunConfig,
-        _repository: Repository,
-    ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
+impl RunActPort for FakeRunActUseCase {
+    fn execute(&self, _request: RunActRequest) -> Result<RunSummary, Box<dyn std::error::Error>> {
         Ok(self.result.clone())
     }
 }

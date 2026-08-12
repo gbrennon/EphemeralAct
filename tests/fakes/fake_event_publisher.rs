@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use ephemeral_act::core::{events::DomainEvent, ports::outbound::EventPublisher};
+use ephemeral_act::core::{events::DomainEvent, ports::outbound::EventPublisherPort};
 
 #[allow(dead_code)]
 pub struct FakeEventPublisher(RefCell<Vec<DomainEvent>>);
@@ -12,7 +12,7 @@ impl FakeEventPublisher {
     }
 }
 
-impl EventPublisher for FakeEventPublisher {
+impl EventPublisherPort for FakeEventPublisher {
     fn publish(&self, event: DomainEvent) {
         self.0.borrow_mut().push(event);
     }

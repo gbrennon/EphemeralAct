@@ -1,21 +1,17 @@
 use std::error::Error;
 
 use ephemeral_act::core::{
-    ActRunConfig, Repository, ports::inbound::run_act_port::RunActUseCase,
-    shared_types::ExecutionResult,
+    dtos::{RunActRequest, RunSummary},
+    ports::inbound::run_act_port::RunActPort,
 };
 
 #[allow(dead_code)]
 pub struct StubUseCase {
-    pub result: Result<ExecutionResult, String>,
+    pub result: Result<RunSummary, String>,
 }
 
-impl RunActUseCase for StubUseCase {
-    fn run_act(
-        &self,
-        _config: ActRunConfig,
-        _repository: Repository,
-    ) -> Result<ExecutionResult, Box<dyn Error>> {
+impl RunActPort for StubUseCase {
+    fn execute(&self, _request: RunActRequest) -> Result<RunSummary, Box<dyn Error>> {
         self.result.clone().map_err(Box::<dyn Error>::from)
     }
 }

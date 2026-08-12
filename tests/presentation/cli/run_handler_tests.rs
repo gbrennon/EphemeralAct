@@ -1,25 +1,51 @@
-use ephemeral_act::presentation::cli::{parse_run_test_args, run_handler::RunHandler};
-
 #[cfg(test)]
 #[path = "../../fakes/stub_use_case.rs"]
 mod stub_use_case;
 
 #[cfg(test)]
 mod tests {
-    use ephemeral_act::core::shared_types::ExecutionResult;
-    use stub_use_case::StubUseCase;
+    use std::time::Duration;
 
-    use super::*;
+    use ephemeral_act::{
+        core::dtos::{JobSummary, RunSummary, StepSummary, StepType},
+        presentation::cli::{parse_run_test_args, run_handler::RunHandler},
+    };
+
+    use crate::stub_use_case::StubUseCase;
+
+    fn step(name: &str, stdout: &str, stderr: &str) -> StepSummary {
+        StepSummary {
+            name: name.into(),
+            step_type: StepType::Run,
+            exit_code: Some(0),
+            continue_on_error: false,
+            duration: Duration::ZERO,
+            stdout: stdout.into(),
+            stderr: stderr.into(),
+        }
+    }
+
+    fn summary(success: bool, steps: Vec<StepSummary>) -> RunSummary {
+        RunSummary {
+            name: Some("test".into()),
+            job_summaries: vec![JobSummary {
+                job_id: "job".into(),
+                name: None,
+                matrix: None,
+                steps,
+                success,
+                completed_at: None,
+            }],
+            success,
+            total_duration: Duration::ZERO,
+        }
+    }
 
     #[test]
     fn handle_success() {
         let args = parse_run_test_args(&[]);
         let use_case = StubUseCase {
-            result: Ok(ExecutionResult {
-                success: true,
-                stdout: String::new(),
-                stderr: String::new(),
-            }),
+            result: Ok(summary(true, vec![])),
         };
         assert!(RunHandler::handle(args, &use_case).is_ok());
     }
@@ -28,11 +54,7 @@ mod tests {
     fn handle_propagates_workflow_failure() {
         let args = parse_run_test_args(&[]);
         let use_case = StubUseCase {
-            result: Ok(ExecutionResult {
-                success: false,
-                stdout: String::new(),
-                stderr: "error".into(),
-            }),
+            result: Ok(summary(false, vec![])),
         };
         let err = RunHandler::handle(args, &use_case).unwrap_err();
         assert!(err.to_string().contains("workflow failed"));
@@ -49,27 +71,19 @@ mod tests {
     }
 
     #[test]
-    fn handle_prints_stdout_when_present() {
+    fn handle_relays_step_stdout_when_present() {
         let args = parse_run_test_args(&[]);
         let use_case = StubUseCase {
-            result: Ok(ExecutionResult {
-                success: true,
-                stdout: "build output".into(),
-                stderr: String::new(),
-            }),
+            result: Ok(summary(true, vec![step("build", "build output", "")])),
         };
         assert!(RunHandler::handle(args, &use_case).is_ok());
     }
 
     #[test]
-    fn handle_prints_stderr_when_present() {
+    fn handle_relays_step_stderr_when_present() {
         let args = parse_run_test_args(&[]);
         let use_case = StubUseCase {
-            result: Ok(ExecutionResult {
-                success: true,
-                stdout: String::new(),
-                stderr: "warning".into(),
-            }),
+            result: Ok(summary(true, vec![step("warn", "", "warning")])),
         };
         assert!(RunHandler::handle(args, &use_case).is_ok());
     }
