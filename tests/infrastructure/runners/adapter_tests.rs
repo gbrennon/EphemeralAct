@@ -57,7 +57,7 @@ mod tests {
         let adapter = adapter!();
         let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
         assert!(result.is_err());
-        let err_text = result.unwrap_err().to_string();
+        let err_text = format!("{:?}", result.unwrap_err());
         assert!(
             err_text.contains("Docker"),
             "Docker variant should preserve 'Docker' in error: {err_text}"
@@ -77,7 +77,7 @@ mod tests {
 
         let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
         assert!(result.is_err());
-        let err_text = result.unwrap_err().to_string();
+        let err_text = format!("{:?}", result.unwrap_err());
         assert!(
             !err_text.contains("Docker"),
             "Podman variant should NOT contain 'Docker' in error: {err_text}"
@@ -276,7 +276,7 @@ mod tests {
         };
         let result = adapter.stop_container("nonexistent-container-xyz-123");
         if let Err(e) = result {
-            let text = e.to_string();
+            let text = format!("{:?}", e);
             assert!(
                 !text.contains("Docker"),
                 "Podman error should not contain 'Docker': {text}"
@@ -295,7 +295,7 @@ mod tests {
         };
         let result = adapter.remove_container("nonexistent-container-xyz-123");
         if let Err(e) = result {
-            let text = e.to_string();
+            let text = format!("{:?}", e);
             assert!(
                 !text.contains("Docker"),
                 "Podman error should not contain 'Docker': {text}"
@@ -326,7 +326,7 @@ mod tests {
         };
         let result = adapter.create_container(&config);
         if let Err(e) = result {
-            let text = e.to_string();
+            let text = format!("{:?}", e);
             assert!(
                 !text.contains("Docker"),
                 "Podman error should not contain 'Docker': {text}"
@@ -359,7 +359,7 @@ mod tests {
         };
         let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
         assert!(result.is_err());
-        let err_text = result.unwrap_err().to_string();
+        let err_text = format!("{:?}", result.unwrap_err());
         assert!(
             !err_text.contains("Docker"),
             "Arc+Podman error should not contain 'Docker': {err_text}"
