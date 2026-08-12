@@ -24,8 +24,8 @@ impl<R: ContainerRuntimePort> ContainerCleanupService<R> {
 impl<R: ContainerRuntimePort> ContainerCleanupPort for ContainerCleanupService<R> {
     fn execute(&self, request: ContainerCleanupRequest) {
         for name in &request.container_names {
+            // Best-effort cleanup: the container may already be gone.
             let _ = self.runtime.stop_container(name);
-            eprintln!("Container stopped: {name}");
             let _ = self.runtime.remove_container(name);
         }
     }
