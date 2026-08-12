@@ -1,6 +1,6 @@
 #[cfg(test)]
-#[path = "../../fakes/stub_use_case.rs"]
-mod stub_use_case;
+#[path = "../../fakes/stub_run_act_port.rs"]
+mod stub_run_act_port;
 
 #[cfg(test)]
 mod tests {
@@ -11,7 +11,7 @@ mod tests {
         presentation::cli::{parse_run_test_args, run_handler::RunHandler},
     };
 
-    use crate::stub_use_case::StubUseCase;
+    use crate::stub_run_act_port::StubRunActPort;
 
     fn step(name: &str, stdout: &str, stderr: &str) -> StepSummary {
         StepSummary {
@@ -27,7 +27,7 @@ mod tests {
 
     fn summary(success: bool, steps: Vec<StepSummary>) -> RunSummary {
         RunSummary {
-            name: Some("test".into()),
+            name: "test".into(),
             job_summaries: vec![JobSummary {
                 job_id: "job".into(),
                 name: None,
@@ -35,54 +35,80 @@ mod tests {
                 success,
             }],
             success,
-            total_duration: Duration::ZERO,
+            duration: Duration::ZERO,
         }
     }
 
     #[test]
     fn handle_success() {
         let args = parse_run_test_args(&[]);
-        let use_case = StubUseCase {
+        let port = StubRunActPort {
             result: Ok(summary(true, vec![])),
         };
-        assert!(RunHandler::handle(args, &use_case).is_ok());
+        assert!(RunHandler::handle(args, &port).is_ok());
     }
 
     #[test]
     fn handle_propagates_workflow_failure() {
         let args = parse_run_test_args(&[]);
-        let use_case = StubUseCase {
+        let port = StubRunActPort {
             result: Ok(summary(false, vec![])),
         };
-        let err = RunHandler::handle(args, &use_case).unwrap_err();
+        let err = RunHandler::handle(args, &port).unwrap_err();
         assert!(err.to_string().contains("workflow failed"));
     }
 
     #[test]
-    fn handle_propagates_use_case_error() {
+    fn handle_propagates_port_error() {
         let args = parse_run_test_args(&[]);
-        let use_case = StubUseCase {
-            result: Err("use case failure".into()),
+        let port = StubRunActPort {
+            result: Err("port failure".into()),
         };
-        let err = RunHandler::handle(args, &use_case).unwrap_err();
-        assert!(err.to_string().contains("use case failure"));
+        let err = RunHandler::handle(args, &port).unwrap_err();
+        assert!(err.to_string().contains("port failure"));
     }
 
     #[test]
-    fn handle_relays_step_stdout_when_present() {
-        let args = parse_run_test_args(&[]);
-        let use_case = StubUseCase {
-            result: Ok(summary(true, vec![step("build", "build output", "")])),
-        };
-        assert!(RunHandler::handle(args, &use_case).is_ok());
+    fn render_prints_workflow_header_with_status() {
+        let rendered = RunHandler::render(&summary(true, vec![]));
+        assert!(
+            rendered.contains("Workflow 'test': succeeded"),
+            "{rendered}"
+        );
     }
 
     #[test]
-    fn handle_relays_step_stderr_when_present() {
-        let args = parse_run_test_args(&[]);
-        let use_case = StubUseCase {
-            result: Ok(summary(true, vec![step("warn", "", "warning")])),
-        };
-        assert!(RunHandler::handle(args, &use_case).is_ok());
+    fn render_prints_failed_workflow_status() {
+        let rendered = RunHandler::render(&summary(false, vec![]));
+        assert!(rendered.contains("Workflow 'test': failed"), "{rendered}");
+    }
+
+    #[test]
+    fn render_relays_step_stdout_when_present() {
+        let rendered = RunHandler::render(&summary(true, vec![step("build", "build output", "")]));
+        assert!(rendered.contains("build output"), "{rendered}");
+    }
+
+    #[test]
+    fn render_relays_step_stderr_when_present() {
+        let rendered = RunHandler::render(&summary(true, vec![step("warn", "", "warning")]));
+        assert!(rendered.contains("warning"), "{rendered}");
+    }
+
+    #[test]
+    fn render_reports_step_kind_and_outcome() {
+        let rendered = RunHandler::render(&summary(true, vec![step("build", "", "")]));
+        assert!(rendered.contains("Step 'build' (run): ok"), "{rendered}");
+    }
+
+    #[test]
+    fn render_reports_failed_step_exit_code() {
+        let mut failed = step("test", "", "");
+        failed.exit_code = Some(1);
+        let rendered = RunHandler::render(&summary(true, vec![failed]));
+        assert!(
+            rendered.contains("Step 'test' (run): failed (exit code: 1)"),
+            "{rendered}"
+        );
     }
 }

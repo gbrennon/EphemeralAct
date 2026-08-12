@@ -1,39 +1,71 @@
 use super::run_args::RunArgs;
-use crate::core::{dtos::RunActRequest, ports::inbound::run_act_port::RunActPort};
+use crate::core::{
+    dtos::{RunActRequest, RunSummary, StepType},
+    ports::inbound::run_act_port::RunActPort,
+};
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
-/// application use case.
+/// application port.
 ///
-/// Owns the presentation concerns (step output relay, result
-/// interpretation) so that neither the domain core nor the CLI
+/// Owns the presentation concerns (summary rendering, step output relay,
+/// result interpretation) so that neither the domain core nor the CLI
 /// argument parser needs to know about terminal I/O or exit semantics.
 pub struct RunHandler;
 
 impl RunHandler {
     /// Executes the `run` subcommand: converts CLI args to domain objects,
-    /// calls the use case, relays step output, and returns an error when the
-    /// workflow reports failure.
-    pub fn handle(
-        args: RunArgs,
-        use_case: &dyn RunActPort,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    /// calls the application port, renders the run summary to stderr, and
+    /// returns an error when the workflow reports failure.
+    pub fn handle(args: RunArgs, port: &dyn RunActPort) -> Result<(), Box<dyn std::error::Error>> {
         let (config, repository) = args.to_domain()?;
-        let summary = use_case.execute(RunActRequest::new(config, repository))?;
-
-        for job in &summary.job_summaries {
-            for step in &job.steps {
-                if !step.stdout.is_empty() {
-                    eprintln!("{}", step.stdout);
-                }
-                if !step.stderr.is_empty() {
-                    eprintln!("{}", step.stderr);
-                }
-            }
-        }
-
+        let summary = port.execute(RunActRequest::new(config, repository))?;
+        eprint!("{}", Self::render(&summary));
         if !summary.success {
             return Err("workflow failed".into());
         }
         Ok(())
+    }
+
+    /// Renders the run summary as plain text for the terminal: a workflow
+    /// header, per-job and per-step status lines, and each step's raw output.
+    pub fn render(summary: &RunSummary) -> String {
+        let mut out = String::new();
+        let status = if summary.success {
+            "succeeded"
+        } else {
+            "failed"
+        };
+        out.push_str(&format!(
+            "Workflow '{}': {} ({:?})\n",
+            summary.name, status, summary.duration
+        ));
+        for job in &summary.job_summaries {
+            let job_status = if job.success { "succeeded" } else { "failed" };
+            let job_label = job.name.as_deref().unwrap_or(&job.job_id);
+            out.push_str(&format!("  Job '{}': {}\n", job_label, job_status));
+            for step in &job.steps {
+                let kind = match step.step_type {
+                    StepType::Run => "run",
+                    StepType::Uses => "uses",
+                    StepType::Composite => "composite",
+                    StepType::Invalid => "invalid",
+                };
+                let outcome = match step.exit_code {
+                    Some(0) => "ok".to_string(),
+                    Some(code) => format!("failed (exit code: {})", code),
+                    None => "error".to_string(),
+                };
+                out.push_str(&format!(
+                    "    Step '{}' ({}): {}\n",
+                    step.name, kind, outcome
+                ));
+                if step.continue_on_error {
+                    out.push_str("      (continue-on-error)\n");
+                }
+                out.push_str(&step.stdout);
+                out.push_str(&step.stderr);
+            }
+        }
+        out
     }
 }

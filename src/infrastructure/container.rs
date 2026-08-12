@@ -20,7 +20,7 @@ pub struct Container;
 
 impl Container {
     /// Builds the application service graph and returns the entry-point
-    /// use case.
+    /// port.
     pub fn build() -> impl RunActPort {
         let runtime = Arc::new(
             ContainerRuntimeAdapter::detect()

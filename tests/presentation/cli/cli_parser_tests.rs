@@ -2,43 +2,43 @@ use clap::Parser;
 use ephemeral_act::presentation::cli::{CliParser, parse_run_test_args, run_handler::RunHandler};
 
 #[cfg(test)]
-#[path = "../../fakes/stub_use_case.rs"]
-mod stub_use_case;
+#[path = "../../fakes/stub_run_act_port.rs"]
+mod stub_run_act_port;
 
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
 
     use ephemeral_act::core::dtos::RunSummary;
-    use stub_use_case::StubUseCase;
+    use stub_run_act_port::StubRunActPort;
 
     use super::*;
 
     fn ok_summary() -> RunSummary {
         RunSummary {
-            name: None,
+            name: "test".into(),
             job_summaries: vec![],
             success: true,
-            total_duration: Duration::ZERO,
+            duration: Duration::ZERO,
         }
     }
 
     #[test]
     fn run_dispatches_success_without_exiting() {
-        let use_case = StubUseCase {
+        let port = StubRunActPort {
             result: Ok(ok_summary()),
         };
         let args = parse_run_test_args(&[]);
-        RunHandler::handle(args, &use_case).unwrap();
+        RunHandler::handle(args, &port).unwrap();
     }
 
     #[test]
     fn run_dispatches_with_workflow_flag() {
-        let use_case = StubUseCase {
+        let port = StubRunActPort {
             result: Ok(ok_summary()),
         };
         let args = parse_run_test_args(&["--workflow", "ci.yml"]);
-        RunHandler::handle(args, &use_case).unwrap();
+        RunHandler::handle(args, &port).unwrap();
     }
 
     #[test]

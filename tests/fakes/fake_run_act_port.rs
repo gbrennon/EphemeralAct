@@ -6,25 +6,25 @@ use ephemeral_act::core::{
 };
 
 #[allow(dead_code)]
-pub struct FakeRunActUseCase {
+pub struct FakeRunActPort {
     pub result: RunSummary,
 }
 
 #[allow(dead_code)]
-impl FakeRunActUseCase {
+impl FakeRunActPort {
     pub fn new(success: bool) -> Self {
         Self {
             result: RunSummary {
-                name: None,
+                name: "test".into(),
                 job_summaries: vec![],
                 success,
-                total_duration: Duration::ZERO,
+                duration: Duration::ZERO,
             },
         }
     }
 }
 
-impl RunActPort for FakeRunActUseCase {
+impl RunActPort for FakeRunActPort {
     fn execute(&self, _request: RunActRequest) -> Result<RunSummary, Box<dyn std::error::Error>> {
         Ok(self.result.clone())
     }

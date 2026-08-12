@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs, path::PathBuf, time::Instant};
 
 use crate::core::{
     ActRunConfig,
-    dtos::{JobSummary, RunActRequest, RunSummary, StepSummary, StepType},
+    dtos::{JobSummary, RunActRequest, RunSummary, StepSummary},
     events::{ActRunCompletedPayload, DomainEvent},
     planner::Planner,
     ports::{
@@ -99,19 +99,13 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
         let repo_path = repository.path().as_path();
 
         let workflow_path = self.find_workflow(&config, repo_path)?;
-        eprintln!("Found workflow: {}", workflow_path.display());
 
         let yaml = fs::read_to_string(&workflow_path)?;
         let workflow: Workflow = serde_yaml::from_str(&yaml)?;
         let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
-        let job_count = workflow.jobs.len();
-        eprintln!("Parsed workflow '{}' ({} job(s))", workflow_name, job_count);
 
         let planner = Planner::new();
         let plan = planner.plan(&workflow)?;
-        let stage_count = plan.stages.len();
-        let total_runs: usize = plan.stages.iter().map(|s| s.runs.len()).sum();
-        eprintln!("Plan: {} stage(s), {} job run(s)", stage_count, total_runs);
 
         let started_at = Instant::now();
         let mut job_summaries: Vec<JobSummary> = Vec::new();
@@ -124,13 +118,10 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                 let runs_on = run.job.runs_on.as_deref().unwrap_or("ubuntu-latest");
                 let mut image = self.image_mapper.map(runs_on);
 
-                eprintln!("Pulling image '{}'...", image);
                 if self.runtime.pull_image(&image, None).is_err() {
                     image = self.image_mapper.fallback();
-                    eprintln!("  Fallback to '{}'...", image);
                     self.runtime.pull_image(&image, None)?;
                 }
-                eprintln!("  Image ready");
 
                 // Build base env: workflow env + job env + GITHUB_* file paths
                 let mut container_env = Self::build_env(&workflow, &run.job.env);
@@ -162,17 +153,14 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                     runner_context: RunnerContext::default(),
                 };
 
-                eprintln!("Creating container '{}'...", container_name);
                 let container = self.runtime.create_container(&container_config)?;
-                container_names.push(container_name.clone());
-                eprintln!("  Container ready");
+                container_names.push(container_name);
 
                 // Per-step env: starts with container env, accumulates PATH and
                 // env vars from GITHUB_PATH / GITHUB_ENV files after each step.
                 let mut step_env = container_env.clone();
                 let mut extra_path: Vec<String> = Vec::new();
 
-                let total_steps = run.job.steps.len();
                 let mut job_success = true;
                 let mut steps: Vec<StepSummary> = Vec::new();
                 for step in &run.job.steps {
@@ -192,24 +180,9 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                         .or(step.run.as_deref())
                         .or(step.uses.as_deref())
                         .unwrap_or("unnamed step");
-                    let step_idx = run
-                        .job
-                        .steps
-                        .iter()
-                        .position(|s| std::ptr::eq(s, step))
-                        .unwrap_or(0);
-                    eprintln!("[{}/{}] {}", step_idx + 1, total_steps, step_label);
 
-                    let step_type = if step.run.is_some() {
-                        StepType::Run
-                    } else if step.uses.as_deref().is_some_and(|u| u.starts_with("./")) {
-                        StepType::Composite
-                    } else if step.uses.is_some() {
-                        StepType::Uses
-                    } else {
-                        StepType::Composite
-                    };
-                    let continue_on_error = step.continue_on_error.as_deref() == Some("true");
+                    let step_type = step.step_type();
+                    let continue_on_error = step.continues_on_error();
                     let step_started_at = Instant::now();
 
                     let (exit_code, stdout, stderr) = match StepRunnerService::execute(
@@ -219,19 +192,13 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                         &step_env,
                     ) {
                         Ok(result) => {
-                            if result.exit_code != 0 {
-                                eprintln!("  FAILED (exit code: {})", result.exit_code);
-                                if !continue_on_error {
-                                    job_success = false;
-                                    success = false;
-                                }
-                            } else {
-                                eprintln!("  OK (exit code: {})", result.exit_code);
+                            if result.exit_code != 0 && !continue_on_error {
+                                job_success = false;
+                                success = false;
                             }
                             (Some(result.exit_code), result.stdout, result.stderr)
                         }
                         Err(e) => {
-                            eprintln!("  ERROR: {}", e);
                             if !continue_on_error {
                                 job_success = false;
                                 success = false;
@@ -286,18 +253,15 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
 
         self.event_publisher
             .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload {
-                container_names: container_names.clone(),
+                container_names,
                 success,
             }));
 
-        let status = if success { "succeeded" } else { "failed" };
-        eprintln!("Workflow {}: {} job(s)", status, job_count);
-
         Ok(RunSummary {
-            name: Some(workflow_name),
+            name: workflow_name,
             job_summaries,
             success,
-            total_duration: started_at.elapsed(),
+            duration: started_at.elapsed(),
         })
     }
 }
@@ -432,7 +396,7 @@ mod tests {
         }
 
         fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-            unimplemented!()
+            Ok(RunnerContext::default())
         }
     }
 
