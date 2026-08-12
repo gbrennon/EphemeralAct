@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs, path::Path};
 
 use crate::core::{
-    ports::outbound::{Container, ExecResult},
+    ports::outbound::{ContainerPort, ExecResult},
     workflow::{ActionDefinition, ActionRuns, Step},
 };
 
@@ -12,9 +12,9 @@ use crate::core::{
 /// - `uses: actions/checkout@*`: no-op (repo is bind-mounted into the container)
 /// - `uses: ./<path>`: resolves and executes a local composite action
 /// - `uses` (other actions): skipped with a warning message in stdout
-pub struct StepRunner;
+pub struct StepRunnerService;
 
-impl StepRunner {
+impl StepRunnerService {
     /// Executes a single step inside the given container.
     ///
     /// `repo_path` is the root of the repository, used to resolve local
@@ -25,9 +25,9 @@ impl StepRunner {
     ///
     /// Returns the exec result on success, or an error message if the step
     /// has neither `run` nor `uses` defined.
-    pub fn run(
+    pub fn execute(
         step: &Step,
-        container: &dyn Container,
+        container: &dyn ContainerPort,
         repo_path: &Path,
         env: &HashMap<String, String>,
     ) -> Result<ExecResult, String> {
@@ -43,7 +43,7 @@ impl StepRunner {
     fn run_shell_command(
         cmd: &str,
         step: &Step,
-        container: &dyn Container,
+        container: &dyn ContainerPort,
         env: &HashMap<String, String>,
     ) -> Result<ExecResult, String> {
         let shell = step.shell.as_deref().unwrap_or("bash");
@@ -56,7 +56,7 @@ impl StepRunner {
     fn run_action(
         action: &str,
         step: &Step,
-        container: &dyn Container,
+        container: &dyn ContainerPort,
         repo_path: &Path,
         env: &HashMap<String, String>,
     ) -> Result<ExecResult, String> {
@@ -85,7 +85,7 @@ impl StepRunner {
     fn run_local_action(
         action: &str,
         step: &Step,
-        container: &dyn Container,
+        container: &dyn ContainerPort,
         repo_path: &Path,
         env: &HashMap<String, String>,
     ) -> Result<ExecResult, String> {
@@ -100,7 +100,7 @@ impl StepRunner {
 
                 for action_step in steps {
                     let resolved_step = Self::resolve_inputs(action_step, &step.with);
-                    match Self::run(&resolved_step, container, repo_path, env) {
+                    match Self::execute(&resolved_step, container, repo_path, env) {
                         Ok(result) => {
                             stdout.push_str(&result.stdout);
                             stderr.push_str(&result.stderr);
@@ -201,7 +201,7 @@ mod tests {
         }
     }
 
-    impl Container for FakeContainer {
+    impl ContainerPort for FakeContainer {
         fn exec(
             &self,
             cmd: &[String],
@@ -260,7 +260,8 @@ mod tests {
         let yaml = "run: echo hello\n";
         let step: Step = serde_yaml::from_str(yaml).unwrap();
 
-        let result = StepRunner::run(&step, &container, Path::new("."), &HashMap::new()).unwrap();
+        let result =
+            StepRunnerService::execute(&step, &container, Path::new("."), &HashMap::new()).unwrap();
         assert_eq!(result.stdout, "hello");
 
         let cmd = container.last_cmd.borrow();
@@ -280,7 +281,7 @@ mod tests {
         let yaml = "run: echo hello\nshell: python\n";
         let step: Step = serde_yaml::from_str(yaml).unwrap();
 
-        StepRunner::run(&step, &container, Path::new("."), &HashMap::new()).unwrap();
+        StepRunnerService::execute(&step, &container, Path::new("."), &HashMap::new()).unwrap();
         let cmd = container.last_cmd.borrow();
         assert_eq!(cmd[0], "python");
     }
@@ -296,7 +297,8 @@ mod tests {
         let yaml = "uses: actions/checkout@v4\n";
         let step: Step = serde_yaml::from_str(yaml).unwrap();
 
-        let result = StepRunner::run(&step, &container, Path::new("."), &HashMap::new()).unwrap();
+        let result =
+            StepRunnerService::execute(&step, &container, Path::new("."), &HashMap::new()).unwrap();
         assert_eq!(result.exit_code, 0);
         assert!(result.stdout.is_empty());
     }
@@ -312,7 +314,8 @@ mod tests {
         let yaml = "uses: docker://node:20\n";
         let step: Step = serde_yaml::from_str(yaml).unwrap();
 
-        let result = StepRunner::run(&step, &container, Path::new("."), &HashMap::new()).unwrap();
+        let result =
+            StepRunnerService::execute(&step, &container, Path::new("."), &HashMap::new()).unwrap();
         assert!(result.stdout.contains("skipped"));
         assert!(result.stdout.contains("docker://node:20"));
     }
@@ -328,7 +331,8 @@ mod tests {
         let yaml = "name: just a name\n";
         let step: Step = serde_yaml::from_str(yaml).unwrap();
 
-        let err = StepRunner::run(&step, &container, Path::new("."), &HashMap::new()).unwrap_err();
+        let err = StepRunnerService::execute(&step, &container, Path::new("."), &HashMap::new())
+            .unwrap_err();
         assert!(err.contains("neither"));
     }
 
@@ -371,7 +375,8 @@ runs:
         let yaml = "uses: ./.forgejo/actions/my-action\n";
         let step: Step = serde_yaml::from_str(yaml).unwrap();
 
-        let result = StepRunner::run(&step, &container, tmp.path(), &HashMap::new()).unwrap();
+        let result =
+            StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap();
         assert_eq!(result.exit_code, 0);
         assert!(result.stdout.contains("ok"));
 
@@ -395,7 +400,8 @@ runs:
         let yaml = "uses: ./.forgejo/actions/nonexistent\n";
         let step: Step = serde_yaml::from_str(yaml).unwrap();
 
-        let err = StepRunner::run(&step, &container, tmp.path(), &HashMap::new()).unwrap_err();
+        let err =
+            StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap_err();
         assert!(err.contains("action.yml not found"));
     }
 
@@ -434,7 +440,8 @@ runs:
         let yaml = "uses: ./.forgejo/actions/failing\n";
         let step: Step = serde_yaml::from_str(yaml).unwrap();
 
-        let result = StepRunner::run(&step, &container, tmp.path(), &HashMap::new()).unwrap();
+        let result =
+            StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap();
         assert_eq!(result.exit_code, 1);
         assert!(result.stdout.contains("fail"));
         // Only first two steps should have executed (third skipped due to failure)
@@ -452,7 +459,7 @@ shell: bash
         let mut with = std::collections::HashMap::new();
         with.insert("path".to_string(), "/tmp/cache".to_string());
 
-        let resolved = StepRunner::resolve_inputs(&step, &with);
+        let resolved = StepRunnerService::resolve_inputs(&step, &with);
         assert_eq!(resolved.run(), Some("echo \"/tmp/cache\""));
     }
 
@@ -466,7 +473,7 @@ run: echo "${{ inputs.key }}-${{ inputs.path }}"
         with.insert("key".to_string(), "linux".to_string());
         with.insert("path".to_string(), "/tmp".to_string());
 
-        let resolved = StepRunner::resolve_inputs(&step, &with);
+        let resolved = StepRunnerService::resolve_inputs(&step, &with);
         assert_eq!(resolved.run(), Some("echo \"linux-/tmp\""));
     }
 
@@ -476,7 +483,7 @@ run: echo "${{ inputs.key }}-${{ inputs.path }}"
         let step: Step = serde_yaml::from_str(yaml).unwrap();
         let with = std::collections::HashMap::new();
 
-        let resolved = StepRunner::resolve_inputs(&step, &with);
+        let resolved = StepRunnerService::resolve_inputs(&step, &with);
         assert_eq!(resolved.run(), Some("echo hello"));
     }
 }

@@ -1,15 +1,18 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf, time::Instant};
 
 use crate::core::{
-    ActRunConfig, Repository,
+    ActRunConfig,
+    dtos::{JobSummary, RunActRequest, RunSummary, StepSummary, StepType},
     events::{ActRunCompletedPayload, DomainEvent},
     planner::Planner,
     ports::{
-        inbound::run_act_port::RunActUseCase,
-        outbound::{ContainerConfig, ContainerRuntime, EventPublisher, ImageMapper, RunnerContext},
+        inbound::run_act_port::RunActPort,
+        outbound::{
+            ContainerConfig, ContainerRuntimePort, EventPublisherPort, ImageMapperPort,
+            RunnerContext,
+        },
     },
-    services::step_runner::StepRunner,
-    shared_types::ExecutionResult,
+    services::step_runner_service::StepRunnerService,
     workflow::Workflow,
 };
 
@@ -17,13 +20,13 @@ use crate::core::{
 /// containers.
 ///
 /// Parses the workflow YAML, plans the job execution DAG, and runs each job
-/// inside an ephemeral container using the provided [`ContainerRuntime`].
-pub struct RunActService<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> {
+/// inside an ephemeral container using the provided [`ContainerRuntimePort`].
+pub struct RunActService<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> {
     runtime: R,
     image_mapper: M,
     event_publisher: E,
 }
-impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActService<R, M, E> {
+impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActService<R, M, E> {
     pub fn new(runtime: R, image_mapper: M, event_publisher: E) -> Self {
         Self {
             runtime,
@@ -88,14 +91,11 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActService<R, M,
         env
     }
 }
-impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
+impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActPort
     for RunActService<R, M, E>
 {
-    fn run_act(
-        &self,
-        config: ActRunConfig,
-        repository: Repository,
-    ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
+    fn execute(&self, request: RunActRequest) -> Result<RunSummary, Box<dyn std::error::Error>> {
+        let RunActRequest { config, repository } = request;
         let repo_path = repository.path().as_path();
 
         let workflow_path = self.find_workflow(&config, repo_path)?;
@@ -113,8 +113,8 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
         let total_runs: usize = plan.stages.iter().map(|s| s.runs.len()).sum();
         eprintln!("Plan: {} stage(s), {} job run(s)", stage_count, total_runs);
 
-        let mut all_stdout = String::new();
-        let mut all_stderr = String::new();
+        let started_at = Instant::now();
+        let mut job_summaries: Vec<JobSummary> = Vec::new();
         let mut success = true;
 
         let mut container_names: Vec<String> = Vec::new();
@@ -165,7 +165,7 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                 eprintln!("Creating container '{}'...", container_name);
                 let container = self.runtime.create_container(&container_config)?;
                 container_names.push(container_name.clone());
-                eprintln!("  Container ready");
+                eprintln!("  ContainerPort ready");
 
                 // Per-step env: starts with container env, accumulates PATH and
                 // env vars from GITHUB_PATH / GITHUB_ENV files after each step.
@@ -173,6 +173,8 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                 let mut extra_path: Vec<String> = Vec::new();
 
                 let total_steps = run.job.steps.len();
+                let mut job_success = true;
+                let mut steps: Vec<StepSummary> = Vec::new();
                 for step in &run.job.steps {
                     // Build PATH from base + accumulated extra paths
                     let path = if extra_path.is_empty() {
@@ -198,12 +200,31 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                         .unwrap_or(0);
                     eprintln!("[{}/{}] {}", step_idx + 1, total_steps, step_label);
 
-                    match StepRunner::run(step, container.as_ref(), repo_path, &step_env) {
+                    let step_type = if step.run.is_some() {
+                        StepType::Run
+                    } else if step.uses.is_some() {
+                        StepType::Uses
+                    } else {
+                        StepType::Composite
+                    };
+                    let step_started_at = Instant::now();
+
+                    match StepRunnerService::execute(step, container.as_ref(), repo_path, &step_env)
+                    {
                         Ok(result) => {
-                            all_stdout.push_str(&result.stdout);
-                            all_stderr.push_str(&result.stderr);
+                            steps.push(StepSummary {
+                                name: step_label.to_string(),
+                                step_type,
+                                exit_code: Some(result.exit_code),
+                                continue_on_error: step.continue_on_error.as_deref()
+                                    == Some("true"),
+                                duration: step_started_at.elapsed(),
+                                stdout: result.stdout,
+                                stderr: result.stderr,
+                            });
                             if result.exit_code != 0 {
                                 eprintln!("  FAILED (exit code: {})", result.exit_code);
+                                job_success = false;
                                 success = false;
                             } else {
                                 eprintln!("  OK (exit code: {})", result.exit_code);
@@ -211,7 +232,17 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                         }
                         Err(e) => {
                             eprintln!("  ERROR: {}", e);
-                            all_stderr.push_str(&format!("step error: {}\n", e));
+                            steps.push(StepSummary {
+                                name: step_label.to_string(),
+                                step_type,
+                                exit_code: None,
+                                continue_on_error: step.continue_on_error.as_deref()
+                                    == Some("true"),
+                                duration: step_started_at.elapsed(),
+                                stdout: String::new(),
+                                stderr: format!("step error: {}\n", e),
+                            });
+                            job_success = false;
                             success = false;
                         }
                     }
@@ -238,6 +269,14 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                         }
                     }
                 }
+                job_summaries.push(JobSummary {
+                    job_id: run.job_id.clone(),
+                    name: run.job.name.clone(),
+                    matrix: None,
+                    steps,
+                    success: job_success,
+                    completed_at: None,
+                });
             }
         }
 
@@ -250,10 +289,11 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
         let status = if success { "succeeded" } else { "failed" };
         eprintln!("Workflow {}: {} job(s)", status, job_count);
 
-        Ok(ExecutionResult {
+        Ok(RunSummary {
+            name: Some(workflow_name),
+            job_summaries,
             success,
-            stdout: all_stdout,
-            stderr: all_stderr,
+            total_duration: started_at.elapsed(),
         })
     }
 }
@@ -264,8 +304,10 @@ mod tests {
 
     use super::*;
     use crate::core::{
+        Repository,
         ports::outbound::{
-            Container, ContainerError, ExecResult, FileEntry, HostInfo, ImageMapper, RunnerContext,
+            ContainerError, ContainerPort, ExecResult, FileEntry, HostInfo, ImageMapperPort,
+            RunnerContext,
         },
         value_objects::{ActWorkflow, RepoPath, RepositoryName},
     };
@@ -273,7 +315,7 @@ mod tests {
     /// Stub image mapper that passes platforms through unchanged.
     struct FakeImageMapper;
 
-    impl ImageMapper for FakeImageMapper {
+    impl ImageMapperPort for FakeImageMapper {
         fn map(&self, platform: &str) -> String {
             platform.to_string()
         }
@@ -291,7 +333,7 @@ mod tests {
         }
     }
 
-    impl EventPublisher for FakeEventPublisher {
+    impl EventPublisherPort for FakeEventPublisher {
         fn publish(&self, event: DomainEvent) {
             self.0.borrow_mut().push(event);
         }
@@ -316,7 +358,7 @@ mod tests {
         }
     }
 
-    impl ContainerRuntime for FakeRuntime {
+    impl ContainerRuntimePort for FakeRuntime {
         fn pull_image(&self, image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
             self.pulled_images.borrow_mut().push(image.to_string());
             Ok(())
@@ -325,7 +367,7 @@ mod tests {
         fn create_container(
             &self,
             config: &ContainerConfig,
-        ) -> Result<Box<dyn Container>, ContainerError> {
+        ) -> Result<Box<dyn ContainerPort>, ContainerError> {
             self.created_containers.borrow_mut().push(config.clone());
             Ok(Box::new(FakeContainer {
                 exec_results: self.exec_results.clone(),
@@ -355,7 +397,7 @@ mod tests {
         exec_results: RefCell<Vec<ExecResult>>,
     }
 
-    impl Container for FakeContainer {
+    impl ContainerPort for FakeContainer {
         fn exec(
             &self,
             _cmd: &[String],
