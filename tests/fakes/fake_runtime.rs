@@ -70,15 +70,26 @@ struct FakeContainerHandle {
 impl ContainerPort for FakeContainerHandle {
     fn exec(
         &self,
-        _cmd: &[String],
+        cmd: &[String],
         _workdir: Option<&str>,
         _env: &HashMap<String, String>,
     ) -> Result<ExecResult, ContainerError> {
-        Ok(self.exec_results.borrow_mut().pop().unwrap_or(ExecResult {
-            exit_code: 0,
-            stdout: String::new(),
-            stderr: String::new(),
-        }))
+        if cmd.first().map(String::as_str) == Some("cat") {
+            return Err(ContainerError::ExecutionFailed(
+                "fake".into(),
+                "No such file or directory".into(),
+            ));
+        }
+        let mut results = self.exec_results.borrow_mut();
+        if results.is_empty() {
+            Ok(ExecResult {
+                exit_code: 0,
+                stdout: String::new(),
+                stderr: String::new(),
+            })
+        } else {
+            Ok(results.remove(0))
+        }
     }
 
     fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
