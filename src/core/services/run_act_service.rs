@@ -274,10 +274,8 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                 job_summaries.push(JobSummary {
                     job_id: run.job_id.clone(),
                     name: run.job.name.clone(),
-                    matrix: None,
                     steps,
                     success: job_success,
-                    completed_at: None,
                 });
             }
         }

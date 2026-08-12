@@ -31,10 +31,8 @@ mod tests {
             job_summaries: vec![JobSummary {
                 job_id: "job".into(),
                 name: None,
-                matrix: None,
                 steps,
                 success,
-                completed_at: None,
             }],
             success,
             total_duration: Duration::ZERO,
