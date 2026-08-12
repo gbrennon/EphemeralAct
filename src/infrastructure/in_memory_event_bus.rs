@@ -1,32 +1,33 @@
 use crate::core::{
+    dtos::ContainerCleanupRequest,
     events::DomainEvent,
     ports::{
-        inbound::container_cleanup_port::ContainerCleanupUseCase,
-        outbound::event_publisher::EventPublisher,
+        inbound::container_cleanup_port::ContainerCleanupPort,
+        outbound::event_publisher::EventPublisherPort,
     },
 };
 
 /// In-memory event bus that dispatches domain events to registered handlers.
 ///
 /// Currently routes [`DomainEvent::ActRunCompleted`] directly to a
-/// [`ContainerCleanupUseCase`] handler. Additional handlers can be added
+/// [`ContainerCleanupPort`] handler. Additional handlers can be added
 /// by extending the `publish` match arm.
 pub struct InMemoryEventBus {
-    cleanup_handler: Box<dyn ContainerCleanupUseCase>,
+    cleanup_handler: Box<dyn ContainerCleanupPort>,
 }
 
 impl InMemoryEventBus {
-    pub fn new(cleanup_handler: Box<dyn ContainerCleanupUseCase>) -> Self {
+    pub fn new(cleanup_handler: Box<dyn ContainerCleanupPort>) -> Self {
         Self { cleanup_handler }
     }
 }
 
-impl EventPublisher for InMemoryEventBus {
+impl EventPublisherPort for InMemoryEventBus {
     fn publish(&self, event: DomainEvent) {
         match event {
             DomainEvent::ActRunCompleted(payload) => {
                 self.cleanup_handler
-                    .handle_act_run_completed(&payload.container_names);
+                    .execute(ContainerCleanupRequest::new(payload.container_names));
             }
         }
     }

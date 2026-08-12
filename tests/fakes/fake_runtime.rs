@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap};
 
 use ephemeral_act::core::ports::outbound::{
-    Container, ContainerConfig, ContainerError, ContainerRuntime, ExecResult, FileEntry, HostInfo,
-    RunnerContext,
+    ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, ExecResult, FileEntry,
+    HostInfo, RunnerContext,
 };
 
 #[allow(dead_code)]
@@ -27,7 +27,7 @@ impl FakeRuntime {
     }
 }
 
-impl ContainerRuntime for FakeRuntime {
+impl ContainerRuntimePort for FakeRuntime {
     fn pull_image(&self, image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
         self.pulled_images.borrow_mut().push(image.to_string());
         Ok(())
@@ -36,7 +36,7 @@ impl ContainerRuntime for FakeRuntime {
     fn create_container(
         &self,
         config: &ContainerConfig,
-    ) -> Result<Box<dyn Container>, ContainerError> {
+    ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         self.created_containers.borrow_mut().push(config.clone());
         Ok(Box::new(FakeContainerHandle {
             exec_results: self.exec_results.clone(),
@@ -67,18 +67,29 @@ struct FakeContainerHandle {
     exec_results: RefCell<Vec<ExecResult>>,
 }
 
-impl Container for FakeContainerHandle {
+impl ContainerPort for FakeContainerHandle {
     fn exec(
         &self,
-        _cmd: &[String],
+        cmd: &[String],
         _workdir: Option<&str>,
         _env: &HashMap<String, String>,
     ) -> Result<ExecResult, ContainerError> {
-        Ok(self.exec_results.borrow_mut().pop().unwrap_or(ExecResult {
-            exit_code: 0,
-            stdout: String::new(),
-            stderr: String::new(),
-        }))
+        if cmd.first().map(String::as_str) == Some("cat") {
+            return Err(ContainerError::ExecutionFailed(
+                "fake".into(),
+                "No such file or directory".into(),
+            ));
+        }
+        let mut results = self.exec_results.borrow_mut();
+        if results.is_empty() {
+            Ok(ExecResult {
+                exit_code: 0,
+                stdout: String::new(),
+                stderr: String::new(),
+            })
+        } else {
+            Ok(results.remove(0))
+        }
     }
 
     fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {

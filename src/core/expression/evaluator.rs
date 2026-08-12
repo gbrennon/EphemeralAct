@@ -55,7 +55,6 @@ impl<'a> Evaluator<'a> {
     }
 
     fn eval_variable(&self, name: &str) -> Result<Value, EvalError> {
-        // Look up in context first; fall back to stub for unknown names
         if let Some(val) = self.context.get(name) {
             return Ok(val.clone());
         }
@@ -147,10 +146,6 @@ impl<'a> Evaluator<'a> {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Free helper functions
-// ---------------------------------------------------------------------------
-
 /// Returns `true` if a [`Value`] is considered truthy in GitHub Actions
 /// expression semantics.
 ///
@@ -214,8 +209,6 @@ mod tests {
         Evaluator::new(&c).evaluate(expr)
     }
 
-    // -- literal evaluation ------------------------------------------------
-
     #[test]
     fn eval_literal_bool_true() {
         let result = eval(&Expr::Literal(Literal::Bool(true))).unwrap();
@@ -258,8 +251,6 @@ mod tests {
         assert_eq!(result, json!(null));
     }
 
-    // -- variable ----------------------------------------------------------
-
     #[test]
     fn eval_variable_stub() {
         let result = eval(&Expr::Variable("foo".into())).unwrap();
@@ -271,8 +262,6 @@ mod tests {
         let result = eval(&Expr::Variable("bar".into())).unwrap();
         assert_eq!(result, json!("${{ bar }}"));
     }
-
-    // -- property access ---------------------------------------------------
 
     #[test]
     fn eval_property_access_on_non_object() {
@@ -292,8 +281,6 @@ mod tests {
         let result = eval(&prop_access).unwrap();
         assert_eq!(result, json!(10));
     }
-
-    // -- index access ------------------------------------------------------
 
     #[test]
     fn eval_index_access_array() {
@@ -330,8 +317,6 @@ mod tests {
         assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
     }
 
-    // -- array deref (stub) ------------------------------------------------
-
     #[test]
     fn eval_array_deref_stub() {
         let inner = Expr::Literal(Literal::Int(99));
@@ -339,8 +324,6 @@ mod tests {
         let result = eval(&deref).unwrap();
         assert_eq!(result, json!(99));
     }
-
-    // -- logical NOT -------------------------------------------------------
 
     #[test]
     fn eval_not_true() {
@@ -383,8 +366,6 @@ mod tests {
         let result = eval(&expr).unwrap();
         assert_eq!(result, json!(true));
     }
-
-    // -- comparisons -------------------------------------------------------
 
     #[test]
     fn eval_compare_eq_numbers_true() {
@@ -518,8 +499,6 @@ mod tests {
         assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
     }
 
-    // -- logical operators -------------------------------------------------
-
     #[test]
     fn eval_logical_and_both_truthy() {
         let expr = Expr::Logical(
@@ -560,8 +539,6 @@ mod tests {
         assert_eq!(eval(&expr).unwrap(), json!("first"));
     }
 
-    // -- function calls ----------------------------------------------------
-
     #[test]
     fn eval_func_call_contains_true() {
         let expr = Expr::FuncCall(
@@ -594,8 +571,6 @@ mod tests {
         assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
     }
 
-    // -- nested expressions ------------------------------------------------
-
     #[test]
     fn eval_nested_logical_with_compare() {
         let left_cmp = Expr::Compare(
@@ -622,8 +597,6 @@ mod tests {
         let expr = Expr::Not(Box::new(cmp));
         assert_eq!(eval(&expr).unwrap(), json!(true));
     }
-
-    // -- truthy / falsy edge cases -----------------------------------------
 
     #[test]
     fn truthy_null_is_falsy() {

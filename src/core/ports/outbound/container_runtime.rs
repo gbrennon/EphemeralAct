@@ -7,7 +7,7 @@ use super::{ContainerConfig, ContainerError, ExecResult, FileEntry, HostInfo, Ru
 /// Adapters implement this trait to provide platform-specific container
 /// lifecycle operations: pulling images, creating containers, and querying
 /// host information.
-pub trait ContainerRuntime {
+pub trait ContainerRuntimePort {
     /// Pull a container image from a registry.
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError>;
 
@@ -16,7 +16,7 @@ pub trait ContainerRuntime {
     fn create_container(
         &self,
         config: &ContainerConfig,
-    ) -> Result<Box<dyn Container>, ContainerError>;
+    ) -> Result<Box<dyn ContainerPort>, ContainerError>;
 
     /// Force-remove a container by name.
     ///
@@ -37,9 +37,9 @@ pub trait ContainerRuntime {
 
 /// Outbound port for interacting with a running container.
 ///
-/// Returned by [`ContainerRuntime::create_container`]. Provides exec, file
+/// Returned by [`ContainerRuntimePort::create_container`]. Provides exec, file
 /// transfer, inspection, and cleanup operations.
-pub trait Container {
+pub trait ContainerPort {
     /// Execute a command inside the container and return the result.
     ///
     /// `env` provides additional environment variables for this execution.

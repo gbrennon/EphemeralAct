@@ -4,7 +4,7 @@ use tokio::runtime::Runtime;
 use super::podman_container::PodmanContainer;
 use crate::{
     core::ports::outbound::{
-        Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+        ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
     },
     infrastructure::bollard_wrapper::{
         API_DEFAULT_VERSION, AuthCredentials, Client,
@@ -33,7 +33,6 @@ impl PodmanRuntime {
     pub fn new() -> Result<Self, ContainerError> {
         let runtime = Runtime::new().map_err(|e| ContainerError::Internal(e.to_string()))?;
 
-        // Try rootless socket first
         let uid = unsafe { libc::getuid() };
         let rootless_socket = format!("unix:///run/user/{}/podman/podman.sock", uid);
         let root_socket = "unix:///run/podman/podman.sock";
@@ -46,7 +45,7 @@ impl PodmanRuntime {
     }
 }
 
-impl ContainerRuntime for PodmanRuntime {
+impl ContainerRuntimePort for PodmanRuntime {
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
         let mut options_builder = CreateImageOptionsBuilder::new().from_image(image);
         if let Some(p) = platform {
@@ -61,7 +60,7 @@ impl ContainerRuntime for PodmanRuntime {
 
             while let Some(result) = stream.next().await {
                 match result {
-                    Ok(_info) => { /* progress */ }
+                    Ok(_info) => {}
                     Err(e) => {
                         return Err(ContainerError::ImagePullFailed(
                             image.to_string(),
@@ -77,7 +76,7 @@ impl ContainerRuntime for PodmanRuntime {
     fn create_container(
         &self,
         config: &ContainerConfig,
-    ) -> Result<Box<dyn Container>, ContainerError> {
+    ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         let env_list: Vec<String> = config
             .env
             .iter()
@@ -139,16 +138,13 @@ impl ContainerRuntime for PodmanRuntime {
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
-            // Inspect first: if the container doesn't exist, nothing to do.
-            // If it exists but isn't running, remove without force to avoid
-            // OCI runtime exec errors on dead containers.
             let force = match self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)
                 .await
             {
                 Ok(inspect) => inspect.state.and_then(|s| s.running).unwrap_or(false),
-                Err(_) => return Ok(()), // container doesn't exist
+                Err(_) => return Ok(()),
             };
             self.client
                 .remove_container(
@@ -165,8 +161,6 @@ impl ContainerRuntime for PodmanRuntime {
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
-            // Only stop if the container is actually running — sending a stop
-            // signal to an already-exited container causes OCI runtime errors.
             if let Ok(inspect) = self
                 .client
                 .inspect_container(name, None::<InspectContainerOptions>)

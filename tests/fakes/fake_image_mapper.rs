@@ -1,9 +1,9 @@
-use ephemeral_act::core::ports::outbound::ImageMapper;
+use ephemeral_act::core::ports::outbound::ImageMapperPort;
 
 #[allow(dead_code)]
 pub struct FakeImageMapper;
 
-impl ImageMapper for FakeImageMapper {
+impl ImageMapperPort for FakeImageMapper {
     fn map(&self, platform: &str) -> String {
         platform.to_string()
     }

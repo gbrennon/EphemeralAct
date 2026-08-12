@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use ephemeral_act::{
-    core::ports::outbound::{ContainerConfig, ContainerRuntime, FileEntry},
+    core::ports::outbound::{ContainerConfig, ContainerRuntimePort, FileEntry},
     infrastructure::runners::DockerRuntime,
 };
 

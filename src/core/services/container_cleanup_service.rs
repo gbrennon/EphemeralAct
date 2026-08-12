@@ -1,28 +1,30 @@
-use crate::core::ports::{
-    inbound::container_cleanup_port::ContainerCleanupUseCase,
-    outbound::container_runtime::ContainerRuntime,
+use crate::core::{
+    dtos::ContainerCleanupRequest,
+    ports::{
+        inbound::container_cleanup_port::ContainerCleanupPort,
+        outbound::container_runtime::ContainerRuntimePort,
+    },
 };
 
 /// Application service that reacts to workflow completion by cleaning up
 /// containers created during the run.
 ///
-/// Implements [`ContainerCleanupUseCase`] — stops and removes containers
+/// Implements [`ContainerCleanupPort`] — stops and removes containers
 /// but does NOT delete cached images.
-pub struct ContainerCleanupService<R: ContainerRuntime> {
+pub struct ContainerCleanupService<R: ContainerRuntimePort> {
     runtime: R,
 }
 
-impl<R: ContainerRuntime> ContainerCleanupService<R> {
+impl<R: ContainerRuntimePort> ContainerCleanupService<R> {
     pub fn new(runtime: R) -> Self {
         Self { runtime }
     }
 }
 
-impl<R: ContainerRuntime> ContainerCleanupUseCase for ContainerCleanupService<R> {
-    fn handle_act_run_completed(&self, container_names: &[String]) {
-        for name in container_names {
+impl<R: ContainerRuntimePort> ContainerCleanupPort for ContainerCleanupService<R> {
+    fn execute(&self, request: ContainerCleanupRequest) {
+        for name in &request.container_names {
             let _ = self.runtime.stop_container(name);
-            eprintln!("Container stopped: {name}");
             let _ = self.runtime.remove_container(name);
         }
     }
@@ -34,8 +36,8 @@ mod tests {
 
     use super::*;
     use crate::core::ports::outbound::{
-        Container, ContainerConfig, ContainerError, ContainerRuntime, ExecResult, FileEntry,
-        HostInfo, RunnerContext,
+        ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, ExecResult,
+        FileEntry, HostInfo, RunnerContext,
     };
 
     type Log = Rc<RefCell<Vec<String>>>;
@@ -63,7 +65,7 @@ mod tests {
     #[allow(dead_code)]
     struct FakeContainer;
 
-    impl Container for FakeContainer {
+    impl ContainerPort for FakeContainer {
         fn exec(
             &self,
             _cmd: &[String],
@@ -86,14 +88,14 @@ mod tests {
         }
     }
 
-    impl ContainerRuntime for FakeRuntime {
+    impl ContainerRuntimePort for FakeRuntime {
         fn pull_image(&self, _i: &str, _p: Option<&str>) -> Result<(), ContainerError> {
             unimplemented!()
         }
         fn create_container(
             &self,
             _c: &ContainerConfig,
-        ) -> Result<Box<dyn Container>, ContainerError> {
+        ) -> Result<Box<dyn ContainerPort>, ContainerError> {
             unimplemented!()
         }
         fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
@@ -116,20 +118,20 @@ mod tests {
     }
 
     #[test]
-    fn handle_empty_list_does_nothing() {
+    fn execute_empty_request_does_nothing() {
         let (runtime, stopped, removed) = FakeRuntime::new();
         let service = ContainerCleanupService::new(runtime);
-        service.handle_act_run_completed(&[]);
+        service.execute(ContainerCleanupRequest::default());
         assert!(stopped.borrow().is_empty());
         assert!(removed.borrow().is_empty());
     }
 
     #[test]
-    fn handle_stops_and_removes_each_container() {
+    fn execute_stops_and_removes_each_container() {
         let (runtime, stopped, removed) = FakeRuntime::new();
         let service = ContainerCleanupService::new(runtime);
-        let names: Vec<String> = vec!["app1".into(), "app2".into()];
-        service.handle_act_run_completed(&names);
+        let request = ContainerCleanupRequest::new(vec!["app1".into(), "app2".into()]);
+        service.execute(request);
         assert_eq!(*stopped.borrow(), vec!["app1", "app2"]);
         assert_eq!(*removed.borrow(), vec!["app1", "app2"]);
     }

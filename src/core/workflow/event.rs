@@ -82,7 +82,6 @@ impl Default for On {
     }
 }
 
-// Custom Deserialize for On to handle the three YAML forms.
 impl<'de> Deserialize<'de> for On {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

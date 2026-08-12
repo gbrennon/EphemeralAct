@@ -1,40 +1,40 @@
 #[cfg(test)]
-#[path = "../../fakes/fake_run_act_use_case.rs"]
-mod fake_run_act_use_case;
+#[path = "../../fakes/fake_run_act_port.rs"]
+mod fake_run_act_port;
 
 #[cfg(test)]
 mod tests {
     use ephemeral_act::presentation::cli::Cli;
-    use fake_run_act_use_case::FakeRunActUseCase;
+    use fake_run_act_port::FakeRunActPort;
 
     use super::*;
 
     #[test]
     fn new_creates_cli_instance() {
-        let use_case = FakeRunActUseCase::new(true);
-        let _cli = Cli::new(use_case);
+        let port = FakeRunActPort::new(true);
+        let _cli = Cli::new(port);
     }
 
     #[test]
     fn run_no_args_displays_help() {
-        let use_case = FakeRunActUseCase::new(true);
-        let cli = Cli::new(use_case);
+        let port = FakeRunActPort::new(true);
+        let cli = Cli::new(port);
         let result = cli.run(["ephemeral-act"]);
         assert!(result.is_ok());
     }
 
     #[test]
     fn run_run_subcommand_succeeds() {
-        let use_case = FakeRunActUseCase::new(true);
-        let cli = Cli::new(use_case);
+        let port = FakeRunActPort::new(true);
+        let cli = Cli::new(port);
         let result = cli.run(["ephemeral-act", "run"]);
         assert!(result.is_ok());
     }
 
     #[test]
     fn run_run_subcommand_propagates_workflow_failure() {
-        let use_case = FakeRunActUseCase::new(false);
-        let cli = Cli::new(use_case);
+        let port = FakeRunActPort::new(false);
+        let cli = Cli::new(port);
         let result = cli.run(["ephemeral-act", "run"]);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("workflow failed"));
@@ -42,16 +42,16 @@ mod tests {
 
     #[test]
     fn run_invalid_subcommand_returns_error() {
-        let use_case = FakeRunActUseCase::new(true);
-        let cli = Cli::new(use_case);
+        let port = FakeRunActPort::new(true);
+        let cli = Cli::new(port);
         let result = cli.run(["ephemeral-act", "nonexistent"]);
         assert!(result.is_err());
     }
 
     #[test]
     fn run_invalid_flag_returns_error() {
-        let use_case = FakeRunActUseCase::new(true);
-        let cli = Cli::new(use_case);
+        let port = FakeRunActPort::new(true);
+        let cli = Cli::new(port);
         let result = cli.run(["ephemeral-act", "--nonexistent-flag"]);
         assert!(result.is_err());
     }

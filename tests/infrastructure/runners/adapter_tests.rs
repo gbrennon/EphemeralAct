@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ephemeral_act::{
-    core::ports::outbound::{ContainerConfig, ContainerRuntime},
+    core::ports::outbound::{ContainerConfig, ContainerRuntimePort},
     infrastructure::{ContainerRuntimeAdapter, runners::PodmanRuntime},
 };
 
