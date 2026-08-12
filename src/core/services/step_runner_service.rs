@@ -1,9 +1,39 @@
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, fmt, fs, path::Path};
 
 use crate::core::{
     ports::outbound::{ContainerPort, ExecResult},
     workflow::{ActionDefinition, ActionRuns, Step},
 };
+
+/// Error raised while executing a workflow step, carrying any partial output
+/// produced before the failure so it can be surfaced in the run summary.
+#[derive(Debug)]
+pub struct StepError {
+    pub message: String,
+    pub stdout: String,
+    pub stderr: String,
+}
+
+impl StepError {
+    fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            stdout: String::new(),
+            stderr: String::new(),
+        }
+    }
+
+    /// Returns `true` if the error message contains `needle`.
+    pub fn contains(&self, needle: &str) -> bool {
+        self.message.contains(needle)
+    }
+}
+
+impl fmt::Display for StepError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
 
 /// Executes individual workflow steps inside a running container.
 ///
@@ -23,20 +53,20 @@ impl StepRunnerService {
     /// `env` provides additional environment variables for this step
     /// (e.g. `GITHUB_PATH`, `GITHUB_ENV`, accumulated PATH).
     ///
-    /// Returns the exec result on success, or an error message if the step
-    /// has neither `run` nor `uses` defined.
+    /// Returns the exec result on success, or a [`StepError`] carrying any
+    /// partial output produced before the failure.
     pub fn execute(
         step: &Step,
         container: &dyn ContainerPort,
         repo_path: &Path,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, String> {
+    ) -> Result<ExecResult, StepError> {
         if let Some(cmd) = step.run() {
             Self::run_shell_command(cmd, step, container, env)
         } else if let Some(action) = step.uses() {
             Self::run_action(action, step, container, repo_path, env)
         } else {
-            Err("step has neither `run` nor `uses` defined".into())
+            Err(StepError::new("step has neither `run` nor `uses` defined"))
         }
     }
 
@@ -45,12 +75,12 @@ impl StepRunnerService {
         step: &Step,
         container: &dyn ContainerPort,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, String> {
+    ) -> Result<ExecResult, StepError> {
         let shell = step.shell.as_deref().unwrap_or("bash");
         let cmd_parts: Vec<String> = vec![shell.to_string(), "-c".to_string(), cmd.to_string()];
         container
             .exec(&cmd_parts, step.working_directory.as_deref(), env)
-            .map_err(|e| e.to_string())
+            .map_err(|e| StepError::new(e.to_string()))
     }
 
     fn run_action(
@@ -59,7 +89,7 @@ impl StepRunnerService {
         container: &dyn ContainerPort,
         repo_path: &Path,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, String> {
+    ) -> Result<ExecResult, StepError> {
         if action.starts_with("actions/checkout@") {
             Ok(ExecResult {
                 exit_code: 0,
@@ -88,10 +118,10 @@ impl StepRunnerService {
         container: &dyn ContainerPort,
         repo_path: &Path,
         env: &HashMap<String, String>,
-    ) -> Result<ExecResult, String> {
+    ) -> Result<ExecResult, StepError> {
         let action_dir = repo_path.join(action.trim_start_matches("./"));
         let action_def = Self::load_action_definition(&action_dir)
-            .map_err(|e| format!("failed to load action '{}': {}", action, e))?;
+            .map_err(|e| StepError::new(format!("failed to load action '{}': {}", action, e)))?;
 
         match &action_def.runs {
             ActionRuns::Composite { steps } => {
@@ -112,7 +142,13 @@ impl StepRunnerService {
                                 });
                             }
                         }
-                        Err(e) => return Err(e),
+                        Err(e) => {
+                            return Err(StepError {
+                                message: e.message,
+                                stdout: format!("{}{}", stdout, e.stdout),
+                                stderr: format!("{}{}", stderr, e.stderr),
+                            });
+                        }
                     }
                 }
 
@@ -447,6 +483,39 @@ runs:
         // Only first two steps should have executed (third skipped due to failure)
         let cmd = container.last_cmd.borrow();
         assert_eq!(cmd.len(), 6); // bash, -c, echo before, bash, -c, exit 1
+    }
+
+    #[test]
+    fn local_action_error_preserves_partial_output() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action_dir = tmp.path().join(".forgejo").join("actions").join("broken");
+        fs::create_dir_all(&action_dir).unwrap();
+        fs::write(
+            action_dir.join("action.yml"),
+            r#"
+name: Broken Action
+runs:
+  using: composite
+  steps:
+    - run: echo partial-output
+    - name: not a runnable step
+"#,
+        )
+        .unwrap();
+
+        let container = FakeContainer::new(vec![ExecResult {
+            exit_code: 0,
+            stdout: "partial-output\n".into(),
+            stderr: String::new(),
+        }]);
+
+        let yaml = "uses: ./.forgejo/actions/broken\n";
+        let step: Step = serde_yaml::from_str(yaml).unwrap();
+
+        let err =
+            StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap_err();
+        assert!(err.contains("neither"));
+        assert_eq!(err.stdout, "partial-output\n");
     }
 
     #[test]

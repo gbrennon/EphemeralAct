@@ -170,6 +170,41 @@ mod tests {
     }
 
     #[test]
+    fn run_act_preserves_partial_output_on_step_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".forgejo/workflows")).unwrap();
+        std::fs::create_dir_all(tmp.path().join(".forgejo/actions/broken")).unwrap();
+        std::fs::write(
+            tmp.path().join(".forgejo/actions/broken/action.yml"),
+            "name: Broken\nruns:\n  using: composite\n  steps:\n    - run: echo partial-output\n    - name: not a runnable step\n",
+        )
+        .unwrap();
+        std::fs::write(
+            tmp.path().join(".forgejo/workflows/action.yml"),
+            "name: Action\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: ./.forgejo/actions/broken\n",
+        )
+        .unwrap();
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        runtime
+            .exec_results
+            .borrow_mut()
+            .push(ephemeral_act::core::ports::outbound::ExecResult {
+                exit_code: 0,
+                stdout: "partial-output\n".into(),
+                stderr: String::new(),
+            });
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new();
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
+        assert!(!result.success);
+        let step = &result.job_summaries[0].steps[0];
+        assert_eq!(step.exit_code, None);
+        assert_eq!(step.stdout, "partial-output\n");
+        assert!(step.stderr.contains("step error:"), "{}", step.stderr);
+    }
+
+    #[test]
     fn run_act_labels_remote_action_step_as_uses() {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::create_dir_all(tmp.path().join(".forgejo/workflows")).unwrap();

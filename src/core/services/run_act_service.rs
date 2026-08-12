@@ -236,7 +236,11 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                                 job_success = false;
                                 success = false;
                             }
-                            (None, String::new(), format!("step error: {}\n", e))
+                            (
+                                None,
+                                e.stdout,
+                                format!("step error: {}\n{}", e.message, e.stderr),
+                            )
                         }
                     };
                     steps.push(StepSummary {
