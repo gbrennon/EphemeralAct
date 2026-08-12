@@ -90,7 +90,7 @@ impl StepRunnerService {
         let cmd_parts: Vec<String> = vec![shell.to_string(), "-c".to_string(), cmd.to_string()];
         container
             .exec(&cmd_parts, step.working_directory.as_deref(), env)
-            .map_err(|e| StepError::new(e.to_string()))
+            .map_err(|e| StepError::new(format!("{:?}", e)))
     }
 
     fn run_action(
