@@ -13,8 +13,9 @@ mod tests {
     use std::path::Path;
 
     use ephemeral_act::core::{
-        ActRunConfig, ActWorkflow, RepoPath, Repository, RepositoryName, dtos::RunActRequest,
-        dtos::StepType, ports::inbound::run_act_port::RunActPort,
+        ActRunConfig, ActWorkflow, RepoPath, Repository, RepositoryName,
+        dtos::{RunActRequest, StepType},
+        ports::inbound::run_act_port::RunActPort,
         services::run_act_service::RunActService,
     };
     use fake_event_publisher::FakeEventPublisher;
@@ -162,7 +163,10 @@ mod tests {
         let config = ActRunConfig::new();
         let result = service.execute(RunActRequest::new(config, repo)).unwrap();
         assert!(result.success);
-        assert_eq!(result.job_summaries[0].steps[0].step_type, StepType::Composite);
+        assert_eq!(
+            result.job_summaries[0].steps[0].step_type,
+            StepType::Composite
+        );
     }
 
     #[test]

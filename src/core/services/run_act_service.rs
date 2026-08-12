@@ -212,18 +212,13 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                     let continue_on_error = step.continue_on_error.as_deref() == Some("true");
                     let step_started_at = Instant::now();
 
-                    match StepRunnerService::execute(step, container.as_ref(), repo_path, &step_env)
-                    {
+                    let (exit_code, stdout, stderr) = match StepRunnerService::execute(
+                        step,
+                        container.as_ref(),
+                        repo_path,
+                        &step_env,
+                    ) {
                         Ok(result) => {
-                            steps.push(StepSummary {
-                                name: step_label.to_string(),
-                                step_type,
-                                exit_code: Some(result.exit_code),
-                                continue_on_error,
-                                duration: step_started_at.elapsed(),
-                                stdout: result.stdout,
-                                stderr: result.stderr,
-                            });
                             if result.exit_code != 0 {
                                 eprintln!("  FAILED (exit code: {})", result.exit_code);
                                 if !continue_on_error {
@@ -233,24 +228,26 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                             } else {
                                 eprintln!("  OK (exit code: {})", result.exit_code);
                             }
+                            (Some(result.exit_code), result.stdout, result.stderr)
                         }
                         Err(e) => {
                             eprintln!("  ERROR: {}", e);
-                            steps.push(StepSummary {
-                                name: step_label.to_string(),
-                                step_type,
-                                exit_code: None,
-                                continue_on_error,
-                                duration: step_started_at.elapsed(),
-                                stdout: String::new(),
-                                stderr: format!("step error: {}\n", e),
-                            });
                             if !continue_on_error {
                                 job_success = false;
                                 success = false;
                             }
+                            (None, String::new(), format!("step error: {}\n", e))
                         }
-                    }
+                    };
+                    steps.push(StepSummary {
+                        name: step_label.to_string(),
+                        step_type,
+                        exit_code,
+                        continue_on_error,
+                        duration: step_started_at.elapsed(),
+                        stdout,
+                        stderr,
+                    });
 
                     // Read GITHUB_PATH and GITHUB_ENV files to accumulate changes
                     if let Ok(output) =
