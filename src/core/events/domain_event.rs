@@ -1,10 +1,10 @@
 /// Domain events published by application services.
 ///
-/// These events are dispatched in-memory via the [`EventPublisher`] outbound
+/// These events are dispatched in-memory via the [`EventPublisherPort`] outbound
 /// port. Infrastructure handlers subscribe to specific event variants to
 /// perform side effects (e.g. container cleanup).
 ///
-/// [`EventPublisher`]: crate::core::ports::outbound::event_publisher::EventPublisher
+/// [`EventPublisherPort`]: crate::core::ports::outbound::event_publisher::EventPublisherPort
 #[derive(Debug, Clone)]
 pub enum DomainEvent {
     /// Published when a workflow run completes (success or failure).
