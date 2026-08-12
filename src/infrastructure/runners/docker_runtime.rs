@@ -4,7 +4,7 @@ use tokio::runtime::Runtime;
 use super::docker_container::DockerContainer;
 use crate::{
     core::ports::outbound::{
-        Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+        ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
     },
     infrastructure::bollard_wrapper::{
         AuthCredentials, Client,
@@ -34,7 +34,7 @@ impl DockerRuntime {
     }
 }
 
-impl ContainerRuntime for DockerRuntime {
+impl ContainerRuntimePort for DockerRuntime {
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
         let mut options_builder = CreateImageOptionsBuilder::new().from_image(image);
         if let Some(p) = platform {
@@ -64,7 +64,7 @@ impl ContainerRuntime for DockerRuntime {
     fn create_container(
         &self,
         config: &ContainerConfig,
-    ) -> Result<Box<dyn Container>, ContainerError> {
+    ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         let env_list: Vec<String> = config
             .env
             .iter()

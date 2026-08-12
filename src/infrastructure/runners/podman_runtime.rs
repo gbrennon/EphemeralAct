@@ -4,7 +4,7 @@ use tokio::runtime::Runtime;
 use super::podman_container::PodmanContainer;
 use crate::{
     core::ports::outbound::{
-        Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+        ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
     },
     infrastructure::bollard_wrapper::{
         API_DEFAULT_VERSION, AuthCredentials, Client,
@@ -46,7 +46,7 @@ impl PodmanRuntime {
     }
 }
 
-impl ContainerRuntime for PodmanRuntime {
+impl ContainerRuntimePort for PodmanRuntime {
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
         let mut options_builder = CreateImageOptionsBuilder::new().from_image(image);
         if let Some(p) = platform {
@@ -77,7 +77,7 @@ impl ContainerRuntime for PodmanRuntime {
     fn create_container(
         &self,
         config: &ContainerConfig,
-    ) -> Result<Box<dyn Container>, ContainerError> {
+    ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         let env_list: Vec<String> = config
             .env
             .iter()

@@ -4,7 +4,7 @@ use bytes::Bytes;
 use futures_util::StreamExt;
 
 use crate::{
-    core::ports::outbound::{Container, ContainerError, ExecResult, FileEntry, RunnerContext},
+    core::ports::outbound::{ContainerError, ContainerPort, ExecResult, FileEntry, RunnerContext},
     infrastructure::bollard_wrapper::{
         Client, body_full,
         types::{
@@ -23,7 +23,7 @@ pub(super) struct PodmanContainer {
     pub(super) runner_context: RunnerContext,
 }
 
-impl Container for PodmanContainer {
+impl ContainerPort for PodmanContainer {
     fn exec(
         &self,
         cmd: &[String],

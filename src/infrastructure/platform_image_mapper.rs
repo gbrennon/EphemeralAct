@@ -1,4 +1,4 @@
-use crate::core::ports::outbound::ImageMapper;
+use crate::core::ports::outbound::ImageMapperPort;
 
 /// Maps CI platform `runs-on` labels to container image names.
 ///
@@ -10,7 +10,7 @@ use crate::core::ports::outbound::ImageMapper;
 /// # Examples
 ///
 /// ```
-/// use ephemeral_act::core::ports::outbound::ImageMapper;
+/// use ephemeral_act::core::ports::outbound::ImageMapperPort;
 /// use ephemeral_act::infrastructure::PlatformImageMapper;
 ///
 /// let mapper = PlatformImageMapper;
@@ -21,7 +21,7 @@ use crate::core::ports::outbound::ImageMapper;
 /// ```
 pub struct PlatformImageMapper;
 
-impl ImageMapper for PlatformImageMapper {
+impl ImageMapperPort for PlatformImageMapper {
     fn map(&self, platform: &str) -> String {
         match platform {
             "ubuntu-latest" => "catthehacker/ubuntu:act-latest",
