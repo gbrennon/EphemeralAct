@@ -40,7 +40,7 @@ impl ContainerRuntimeAdapter {
         if name == "Docker" {
             return err;
         }
-        let text = err.to_string().replace("Docker", name);
+        let text = format!("{:?}", err).replace("Docker", name);
         ContainerError::Internal(text)
     }
 }
