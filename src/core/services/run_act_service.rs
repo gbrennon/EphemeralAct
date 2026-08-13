@@ -1,5 +1,17 @@
-use std::{collections::HashMap, fs, path::PathBuf, time::Instant};
-
+use std::{
+    collections::HashMap,
+    fs::{
+        read_dir,
+        read_to_string
+    },
+    process,
+    path::{
+        Path,
+        PathBuf,
+    },
+    time::Instant,
+    error::Error
+};
 use crate::core::{
     ActRunConfig,
     dtos::{JobSummary, RunActRequest, RunSummary, StepSummary},
@@ -26,6 +38,7 @@ pub struct RunActService<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPu
     image_mapper: M,
     event_publisher: E,
 }
+
 impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActService<R, M, E> {
     pub fn new(runtime: R, image_mapper: M, event_publisher: E) -> Self {
         Self {
@@ -42,8 +55,8 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActS
     fn find_workflow(
         &self,
         config: &ActRunConfig,
-        repo_path: &std::path::Path,
-    ) -> Result<PathBuf, Box<dyn std::error::Error>> {
+        repo_path: &Path,
+    ) -> Result<PathBuf, Box<dyn Error>> {
         if let Some(wf) = config.workflow() {
             let direct = repo_path.join(wf.as_str());
             if direct.exists() {
@@ -61,7 +74,7 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActS
         for platform_dir in &[".forgejo/workflows", ".github/workflows"] {
             let workflows_dir = repo_path.join(platform_dir);
             if workflows_dir.exists() {
-                for entry in fs::read_dir(&workflows_dir)? {
+                for entry in read_dir(&workflows_dir)? {
                     let entry = entry?;
                     let path = entry.path();
                     if path
@@ -90,16 +103,17 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActS
         env
     }
 }
+
 impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActPort
     for RunActService<R, M, E>
 {
-    fn execute(&self, request: RunActRequest) -> Result<RunSummary, Box<dyn std::error::Error>> {
+    fn execute(&self, request: RunActRequest) -> Result<RunSummary, Box<dyn Error>> {
         let RunActRequest { config, repository } = request;
         let repo_path = repository.path().as_path();
 
         let workflow_path = self.find_workflow(&config, repo_path)?;
 
-        let yaml = fs::read_to_string(&workflow_path)?;
+        let yaml = read_to_string(&workflow_path)?;
         let workflow: Workflow = serde_yaml::from_str(&yaml)?;
         let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
 
@@ -132,7 +146,7 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
                 container_env.entry("PATH".to_string()).or_insert_with(|| {
                     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin".to_string()
                 });
-                let container_name = format!("ephemeral-act-{}-{}", run.job_id, std::process::id());
+                let container_name = format!("ephemeral-act-{}-{}", run.job_id, process::id());
                 let legacy_name = format!("ephemeral-act-{}", run.job_id);
                 let _ = self.runtime.remove_container(&legacy_name);
                 let _ = self.runtime.remove_container(&container_name);
