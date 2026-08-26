@@ -1,17 +1,14 @@
 #[cfg(test)]
-#[path = "../../fakes/fake_run_act_port.rs"]
-mod fake_run_act_port;
-
-#[cfg(test)]
 mod tests {
     use ephemeral_act::presentation::composition_root::CompositionRoot;
-    use fake_run_act_port::FakeRunActPort;
 
-    use super::*;
+    use crate::common::fakes::{fake_list_actions_port::FakeListActionsPort, fake_list_workflows_port::FakeListWorkflowsPort, fake_run_act_port::FakeRunActPort};
 
     #[test]
     fn compose_creates_app_with_fake_port() {
-        let port = FakeRunActPort::new(true);
-        let _app = CompositionRoot::compose(port);
+        let run_port = Box::new(FakeRunActPort::new(true));
+        let list_workflows_port = Box::new(FakeListWorkflowsPort::new());
+        let list_actions_port = Box::new(FakeListActionsPort::new());
+        let _app = CompositionRoot::compose(run_port, list_workflows_port, list_actions_port);
     }
 }
