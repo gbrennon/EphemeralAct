@@ -1,14 +1,4 @@
 #[cfg(test)]
-#[path = "../../fakes/fake_event_publisher.rs"]
-mod fake_event_publisher;
-#[cfg(test)]
-#[path = "../../fakes/fake_image_mapper.rs"]
-mod fake_image_mapper;
-#[cfg(test)]
-#[path = "../../fakes/fake_runtime.rs"]
-mod fake_runtime;
-
-#[cfg(test)]
 mod tests {
     use std::path::Path;
 
@@ -19,11 +9,11 @@ mod tests {
         ports::{inbound::run_act_port::RunActPort, outbound::ExecResult},
         services::run_act_service::RunActService,
     };
-    use fake_event_publisher::FakeEventPublisher;
-    use fake_image_mapper::FakeImageMapper;
-    use fake_runtime::FakeRuntime;
 
-    use super::*;
+    use crate::common::fakes::{
+        fake_event_publisher::FakeEventPublisher, fake_image_mapper::FakeImageMapper,
+        fake_runtime::FakeRuntime,
+    };
 
     fn make_repo(path: &Path) -> Repository {
         let git_dir = path.join(".git");
