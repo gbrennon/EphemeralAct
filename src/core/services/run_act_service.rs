@@ -1,17 +1,12 @@
 use std::{
     collections::HashMap,
-    fs::{
-        read_dir,
-        read_to_string
-    },
+    error::Error,
+    fs::{read_dir, read_to_string},
+    path::{Path, PathBuf},
     process,
-    path::{
-        Path,
-        PathBuf,
-    },
     time::Instant,
-    error::Error
 };
+
 use crate::core::{
     ActRunConfig,
     dtos::{JobSummary, RunActRequest, RunSummary, StepSummary},
