@@ -14,6 +14,12 @@ build:
 run *args:
 	cargo run -- run {{args}}
 
+list-workflows:
+  cargo run -- list-workflows
+
+list-actions:
+  cargo run -- list-actions
+
 # Install debug binary (fast, for local iteration)
 install-dev:
 	cargo install --path . --debug
