@@ -1,9 +1,12 @@
-use std::fs;
-use std::path::Path;
+use std::{fs, path::Path};
 
-use crate::core::dtos::{ListWorkflowsRequest, ListWorkflowsResponse, WorkflowListItem};
-use crate::core::ports::inbound::list_workflows_port::ListWorkflowsPort;
-use crate::core::ports::outbound::workflow_file_parser::WorkflowFileParserPort;
+use crate::core::{
+    dtos::{ListWorkflowsRequest, ListWorkflowsResponse, WorkflowListItem},
+    ports::{
+        inbound::list_workflows_port::ListWorkflowsPort,
+        outbound::workflow_file_parser::WorkflowFileParserPort,
+    },
+};
 
 /// Service that lists CI workflow files found in a repository.
 ///
@@ -26,7 +29,10 @@ impl<W: WorkflowFileParserPort> ListWorkflowsService<W> {
     }
 
     /// Execute the service: discover and summarize workflow files.
-    pub fn execute(request: ListWorkflowsRequest, parser: &W) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
+    pub fn execute(
+        request: ListWorkflowsRequest,
+        parser: &W,
+    ) -> Result<ListWorkflowsResponse, Box<dyn std::error::Error>> {
         let path = request.path;
 
         // Collect workflow directories to scan
@@ -47,7 +53,9 @@ impl<W: WorkflowFileParserPort> ListWorkflowsService<W> {
             let entries = fs::read_dir(&full_path)?;
             for entry in entries.flatten() {
                 let file_path = entry.path();
-                if file_path.extension().is_some_and(|ext| ext == "yaml" || ext == "yml")
+                if file_path
+                    .extension()
+                    .is_some_and(|ext| ext == "yaml" || ext == "yml")
                     && let Ok(content) = fs::read_to_string(&file_path)
                 {
                     let (name, file) = parser.extract_summary(&content);

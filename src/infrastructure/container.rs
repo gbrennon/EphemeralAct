@@ -8,8 +8,7 @@ use crate::{
         },
         services::{
             container_cleanup_service::ContainerCleanupService,
-            list_actions_service::ListActionsService,
-            list_workflows_service::ListWorkflowsService,
+            list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
             run_act_service::RunActService,
         },
     },

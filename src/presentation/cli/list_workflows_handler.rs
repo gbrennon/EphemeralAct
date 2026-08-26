@@ -1,7 +1,6 @@
 use super::list_workflows_args::ListWorkflowsArgs;
 use crate::core::{
-    dtos::ListWorkflowsResponse,
-    ports::inbound::list_workflows_port::ListWorkflowsPort,
+    dtos::ListWorkflowsResponse, ports::inbound::list_workflows_port::ListWorkflowsPort,
 };
 
 /// Handles the `list-workflows` subcommand by dispatching parsed CLI arguments to the

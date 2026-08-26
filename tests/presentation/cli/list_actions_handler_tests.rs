@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod tests {
+    use ephemeral_act::presentation::cli::{ListActionsHandler, parse_list_actions_test_args};
+
     use crate::common::fakes::fake_list_actions_port::FakeListActionsPort;
-    use ephemeral_act::presentation::cli::{
-        ListActionsHandler, parse_list_actions_test_args,
-    };
 
     #[test]
     fn handle_with_fake_port_succeeds_on_empty_response() {

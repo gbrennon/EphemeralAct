@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
-use ephemeral_act::core::dtos::ListWorkflowsRequest;
-use ephemeral_act::presentation::cli::parse_list_workflows_test_args;
+use ephemeral_act::{
+    core::dtos::ListWorkflowsRequest, presentation::cli::parse_list_workflows_test_args,
+};
 
 #[cfg(test)]
 mod tests {

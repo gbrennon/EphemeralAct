@@ -3,8 +3,8 @@ mod tests {
     use ephemeral_act::presentation::cli::Cli;
 
     use crate::common::fakes::{
-        fake_list_actions_port::FakeListActionsPort, fake_list_workflows_port::FakeListWorkflowsPort,
-        fake_run_act_port::FakeRunActPort,
+        fake_list_actions_port::FakeListActionsPort,
+        fake_list_workflows_port::FakeListWorkflowsPort, fake_run_act_port::FakeRunActPort,
     };
 
     fn make_cli() -> Cli {

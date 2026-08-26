@@ -1,10 +1,12 @@
-use std::collections::BTreeSet;
-use std::fs;
-use std::path::Path;
+use std::{collections::BTreeSet, fs, path::Path};
 
-use crate::core::dtos::{ListActionsRequest, ListActionsResponse};
-use crate::core::ports::inbound::list_actions_port::ListActionsPort;
-use crate::core::ports::outbound::workflow_file_parser::WorkflowFileParserPort;
+use crate::core::{
+    dtos::{ListActionsRequest, ListActionsResponse},
+    ports::{
+        inbound::list_actions_port::ListActionsPort,
+        outbound::workflow_file_parser::WorkflowFileParserPort,
+    },
+};
 
 /// Service that lists action references (`uses:`) across repository workflow files.
 ///
@@ -27,7 +29,10 @@ impl<W: WorkflowFileParserPort> ListActionsService<W> {
     }
 
     /// Execute the service: scan workflow directories and collect action refs.
-    pub fn execute(request: ListActionsRequest, parser: &W) -> Result<ListActionsResponse, Box<dyn std::error::Error>> {
+    pub fn execute(
+        request: ListActionsRequest,
+        parser: &W,
+    ) -> Result<ListActionsResponse, Box<dyn std::error::Error>> {
         let path = request.path;
 
         // Collect workflow directories to scan
@@ -48,7 +53,9 @@ impl<W: WorkflowFileParserPort> ListActionsService<W> {
             let entries = fs::read_dir(&full_path)?;
             for entry in entries.flatten() {
                 let file_path = entry.path();
-                if file_path.extension().is_some_and(|ext| ext == "yaml" || ext == "yml")
+                if file_path
+                    .extension()
+                    .is_some_and(|ext| ext == "yaml" || ext == "yml")
                     && let Ok(content) = fs::read_to_string(&file_path)
                 {
                     let extracted = parser.extract_actions(&content);
@@ -59,9 +66,7 @@ impl<W: WorkflowFileParserPort> ListActionsService<W> {
             }
         }
 
-        Ok(ListActionsResponse::new(
-            actions.into_iter().collect(),
-        ))
+        Ok(ListActionsResponse::new(actions.into_iter().collect()))
     }
 }
 

@@ -1,8 +1,5 @@
 use super::list_actions_args::ListActionsArgs;
-use crate::core::{
-    dtos::ListActionsResponse,
-    ports::inbound::list_actions_port::ListActionsPort,
-};
+use crate::core::{dtos::ListActionsResponse, ports::inbound::list_actions_port::ListActionsPort};
 
 /// Handles the `list-actions` subcommand by dispatching parsed CLI arguments to the
 /// application port.

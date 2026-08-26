@@ -1,8 +1,7 @@
 use std::fs;
 
 use ephemeral_act::core::{
-    dtos::ListActionsRequest,
-    services::list_actions_service::ListActionsService,
+    dtos::ListActionsRequest, services::list_actions_service::ListActionsService,
 };
 
 use crate::common::fakes::fake_workflow_file_parser::FakeWorkflowFileParser;
@@ -32,7 +31,11 @@ fn list_when_yaml_has_uses_actions() {
     let request = ListActionsRequest::new(repo_path.into());
     let response = ListActionsService::execute(request, &parser).unwrap();
 
-    assert!(response.actions.contains(&"actions/checkout@v4".to_string()));
+    assert!(
+        response
+            .actions
+            .contains(&"actions/checkout@v4".to_string())
+    );
     assert!(response.actions.contains(&"./local-action".to_string()));
     assert_eq!(response.actions.len(), 2);
 }
@@ -57,8 +60,16 @@ fn list_when_multiple_workflows_with_actions() {
     let request = ListActionsRequest::new(repo_path.into());
     let response = ListActionsService::execute(request, &parser).unwrap();
 
-    assert!(response.actions.contains(&"actions/checkout@v4".to_string()));
-    assert!(response.actions.contains(&"actions/setup-node@v3".to_string()));
+    assert!(
+        response
+            .actions
+            .contains(&"actions/checkout@v4".to_string())
+    );
+    assert!(
+        response
+            .actions
+            .contains(&"actions/setup-node@v3".to_string())
+    );
     assert_eq!(response.actions.len(), 2);
 }
 
@@ -77,7 +88,11 @@ fn list_when_github_workflows_directory() {
     let request = ListActionsRequest::new(repo_path.into());
     let response = ListActionsService::execute(request, &parser).unwrap();
 
-    assert!(response.actions.contains(&"actions/checkout@v4".to_string()));
+    assert!(
+        response
+            .actions
+            .contains(&"actions/checkout@v4".to_string())
+    );
     assert_eq!(response.actions.len(), 1);
 }
 
@@ -97,7 +112,11 @@ fn list_duplicate_actions_dedup() {
     let response = ListActionsService::execute(request, &parser).unwrap();
 
     assert_eq!(response.actions.len(), 1);
-    assert!(response.actions.contains(&"actions/checkout@v4".to_string()));
+    assert!(
+        response
+            .actions
+            .contains(&"actions/checkout@v4".to_string())
+    );
 }
 
 #[test]

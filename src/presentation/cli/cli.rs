@@ -3,15 +3,11 @@ use std::{ffi::OsString, io::Write};
 use clap::Parser;
 
 use super::{
-    cli_parser::CliParser,
-    command::Command,
-    list_actions_handler::ListActionsHandler,
-    list_workflows_handler::ListWorkflowsHandler,
-    run_handler::RunHandler,
+    cli_parser::CliParser, command::Command, list_actions_handler::ListActionsHandler,
+    list_workflows_handler::ListWorkflowsHandler, run_handler::RunHandler,
 };
 use crate::core::ports::inbound::{
-    list_actions_port::ListActionsPort,
-    list_workflows_port::ListWorkflowsPort,
+    list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
     run_act_port::RunActPort,
 };
 
@@ -70,8 +66,12 @@ impl Cli {
         };
         match cli.command {
             Command::Run(args) => RunHandler::handle(*args, &*self.port),
-            Command::ListWorkflows(args) => ListWorkflowsHandler::handle(*args, &*self.list_workflows_port),
-            Command::ListActions(args) => ListActionsHandler::handle(*args, &*self.list_actions_port),
+            Command::ListWorkflows(args) => {
+                ListWorkflowsHandler::handle(*args, &*self.list_workflows_port)
+            }
+            Command::ListActions(args) => {
+                ListActionsHandler::handle(*args, &*self.list_actions_port)
+            }
         }
     }
 }

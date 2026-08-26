@@ -2,7 +2,10 @@
 mod tests {
     use ephemeral_act::presentation::composition_root::CompositionRoot;
 
-    use crate::common::fakes::{fake_list_actions_port::FakeListActionsPort, fake_list_workflows_port::FakeListWorkflowsPort, fake_run_act_port::FakeRunActPort};
+    use crate::common::fakes::{
+        fake_list_actions_port::FakeListActionsPort,
+        fake_list_workflows_port::FakeListWorkflowsPort, fake_run_act_port::FakeRunActPort,
+    };
 
     #[test]
     fn compose_creates_app_with_fake_port() {

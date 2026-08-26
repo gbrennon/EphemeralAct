@@ -64,7 +64,11 @@ mod tests {
         let container = runtime.create_container(&config).unwrap();
 
         let result = container
-            .exec(&["sh".into(), "-c".into(), "exit 42".into()], None, &HashMap::new())
+            .exec(
+                &["sh".into(), "-c".into(), "exit 42".into()],
+                None,
+                &HashMap::new(),
+            )
             .unwrap();
 
         assert_eq!(result.exit_code, 42);

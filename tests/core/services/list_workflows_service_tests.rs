@@ -1,8 +1,7 @@
 use std::fs;
 
 use ephemeral_act::core::{
-    dtos::ListWorkflowsRequest,
-    services::list_workflows_service::ListWorkflowsService,
+    dtos::ListWorkflowsRequest, services::list_workflows_service::ListWorkflowsService,
 };
 
 use crate::common::fakes::fake_workflow_file_parser::FakeWorkflowFileParser;

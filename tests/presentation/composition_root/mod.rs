@@ -1,2 +1,2 @@
-mod composition_root_tests;
 mod application_tests;
+mod composition_root_tests;

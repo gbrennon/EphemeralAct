@@ -1,7 +1,6 @@
 use ephemeral_act::{
     core::ports::inbound::{
-        list_actions_port::ListActionsPort,
-        list_workflows_port::ListWorkflowsPort,
+        list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
         run_act_port::RunActPort,
     },
     infrastructure::{AppContainer, Container, runners::ContainerRuntimeAdapter},

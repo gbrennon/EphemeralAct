@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
-use ephemeral_act::core::dtos::ListActionsRequest;
-use ephemeral_act::presentation::cli::parse_list_actions_test_args;
+use ephemeral_act::{
+    core::dtos::ListActionsRequest, presentation::cli::parse_list_actions_test_args,
+};
 
 #[cfg(test)]
 mod tests {

@@ -1,5 +1,7 @@
-use ephemeral_act::core::ports::outbound::workflow_file_parser::WorkflowFileParserPort;
-use ephemeral_act::infrastructure::workflow_file_parser::FilesystemWorkflowFileParser;
+use ephemeral_act::{
+    core::ports::outbound::workflow_file_parser::WorkflowFileParserPort,
+    infrastructure::workflow_file_parser::FilesystemWorkflowFileParser,
+};
 
 #[cfg(test)]
 mod tests {

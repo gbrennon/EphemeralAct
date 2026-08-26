@@ -588,7 +588,8 @@ mod tests {
         let c = ctx();
         let f = fns(&c);
         assert_eq!(
-            f.call("startswith", &[json!("Hello"), json!("he")]).unwrap(),
+            f.call("startswith", &[json!("Hello"), json!("he")])
+                .unwrap(),
             json!(true)
         );
     }
@@ -675,8 +676,14 @@ mod tests {
     fn format_null_and_bool_and_array_replacement() {
         let c = ctx();
         let f = fns(&c);
-        assert_eq!(f.format(&json!("{0}"), &[json!(null)]).unwrap(), json!("null"));
-        assert_eq!(f.format(&json!("{0}"), &[json!(true)]).unwrap(), json!("true"));
+        assert_eq!(
+            f.format(&json!("{0}"), &[json!(null)]).unwrap(),
+            json!("null")
+        );
+        assert_eq!(
+            f.format(&json!("{0}"), &[json!(true)]).unwrap(),
+            json!("true")
+        );
         assert_eq!(
             f.format(&json!("{0}"), &[json!([1, 2])]).unwrap(),
             json!("[1,2]")
