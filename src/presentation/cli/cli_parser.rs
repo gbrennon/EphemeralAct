@@ -34,5 +34,32 @@ pub fn parse_run_test_args(args: &[&str]) -> super::run_args::RunArgs {
     let cli = CliParser::parse_from(&full);
     match cli.command {
         super::command::Command::Run(args) => *args,
+        _ => unreachable!(),
+    }
+}
+
+/// Parses CLI arguments for the `list-workflows` subcommand from a string slice.
+///
+/// Intended for use in tests.
+pub fn parse_list_workflows_test_args(args: &[&str]) -> super::list_workflows_args::ListWorkflowsArgs {
+    let mut full: Vec<&str> = vec!["ephemeral-act", "list-workflows"];
+    full.extend_from_slice(args);
+    let cli = CliParser::parse_from(&full);
+    match cli.command {
+        super::command::Command::ListWorkflows(args) => *args,
+        _ => unreachable!(),
+    }
+}
+
+/// Parses CLI arguments for the `list-actions` subcommand from a string slice.
+///
+/// Intended for use in tests.
+pub fn parse_list_actions_test_args(args: &[&str]) -> super::list_actions_args::ListActionsArgs {
+    let mut full: Vec<&str> = vec!["ephemeral-act", "list-actions"];
+    full.extend_from_slice(args);
+    let cli = CliParser::parse_from(&full);
+    match cli.command {
+        super::command::Command::ListActions(args) => *args,
+        _ => unreachable!(),
     }
 }
