@@ -652,4 +652,48 @@ mod tests {
     fn truthy_empty_object_is_truthy() {
         assert!(is_truthy(&json!({})));
     }
+
+    #[test]
+    fn eval_variable_from_context() {
+        let expr = Expr::Variable("github".into());
+        let c = ctx();
+        let result = Evaluator::new(&c).evaluate(&expr).unwrap();
+        assert!(result.is_object());
+    }
+
+    #[test]
+    fn eval_property_access_missing_key_errors() {
+        let json_str = Expr::Literal(Literal::String(r#"{"x": 10}"#.into()));
+        let from_json = Expr::FuncCall("fromJson".into(), vec![json_str]);
+        let prop_access = Expr::PropertyAccess(Box::new(from_json), "missing".into());
+        let result = eval(&prop_access);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn eval_index_access_negative_index_errors() {
+        let arr = Expr::FuncCall(
+            "fromJson".into(),
+            vec![Expr::Literal(Literal::String("[1,2,3]".into()))],
+        );
+        let idx = Expr::Literal(Literal::Int(-1));
+        let expr = Expr::IndexAccess(Box::new(arr), Box::new(idx));
+        let result = eval(&expr);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn eval_index_access_out_of_bounds_errors() {
+        let arr = Expr::FuncCall(
+            "fromJson".into(),
+            vec![Expr::Literal(Literal::String("[1,2,3]".into()))],
+        );
+        let idx = Expr::Literal(Literal::Int(10));
+        let expr = Expr::IndexAccess(Box::new(arr), Box::new(idx));
+        let result = eval(&expr);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), EvalError::TypeError(_)));
+    }
 }
