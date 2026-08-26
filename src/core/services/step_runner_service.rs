@@ -291,7 +291,7 @@ mod tests {
         fn get_runner_context(
             &self,
         ) -> Result<crate::core::ports::outbound::RunnerContext, ContainerError> {
-            unimplemented!()
+            Ok(crate::core::ports::outbound::RunnerContext::default())
         }
     }
 
@@ -562,5 +562,134 @@ run: echo "${{ inputs.key }}-${{ inputs.path }}"
 
         let resolved = StepRunnerService::resolve_inputs(&step, &with);
         assert_eq!(resolved.run(), Some("echo hello"));
+    }
+
+    #[test]
+    fn step_error_display_prints_message() {
+        let err = StepError::new("boom");
+        assert_eq!(err.to_string(), "boom");
+    }
+
+    #[test]
+    fn local_action_success_returns_zero_exit() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action_dir = tmp.path().join(".forgejo").join("actions").join("ok");
+        fs::create_dir_all(&action_dir).unwrap();
+        fs::write(
+            action_dir.join("action.yml"),
+            r#"
+name: Ok Action
+runs:
+  using: composite
+  steps:
+    - run: echo one
+    - run: echo two
+"#,
+        )
+        .unwrap();
+
+        let container = FakeContainer::new(vec![
+            ExecResult {
+                exit_code: 0,
+                stdout: "one".into(),
+                stderr: String::new(),
+            },
+            ExecResult {
+                exit_code: 0,
+                stdout: "two".into(),
+                stderr: String::new(),
+            },
+        ]);
+
+        let yaml = "uses: ./.forgejo/actions/ok\n";
+        let step: Step = serde_yaml::from_str(yaml).unwrap();
+
+        let result =
+            StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap();
+        assert_eq!(result.exit_code, 0);
+        assert!(result.stdout.contains("one"));
+        assert!(result.stdout.contains("two"));
+    }
+
+    #[test]
+    fn local_action_missing_definition_errors() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action_dir = tmp.path().join(".forgejo").join("actions").join("missing");
+        fs::create_dir_all(&action_dir).unwrap();
+
+        let container = FakeContainer::new(vec![]);
+        let yaml = "uses: ./.forgejo/actions/missing\n";
+        let step: Step = serde_yaml::from_str(yaml).unwrap();
+
+        let err =
+            StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap_err();
+        assert!(err.contains("action.yml not found"));
+    }
+
+    #[test]
+    fn fake_container_supports_all_port_operations() {
+        let container = FakeContainer::new(vec![]);
+        let empty = container.exec(&[], None, &HashMap::new()).unwrap();
+        assert_eq!(empty.exit_code, 0);
+        container.copy_to("path", &[]).unwrap();
+        assert!(container.copy_from("path").unwrap().is_empty());
+        container.remove().unwrap();
+        container.get_runner_context().unwrap();
+    }
+
+    #[test]
+    fn local_action_unsupported_run_type_is_skipped() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action_dir = tmp.path().join(".forgejo").join("actions").join("node");
+        fs::create_dir_all(&action_dir).unwrap();
+        fs::write(
+            action_dir.join("action.yml"),
+            r#"
+name: Node Action
+runs:
+  using: node16
+  main: index.js
+"#,
+        )
+        .unwrap();
+
+        let container = FakeContainer::new(vec![]);
+        let yaml = "uses: ./.forgejo/actions/node\n";
+        let step: Step = serde_yaml::from_str(yaml).unwrap();
+
+        let result =
+            StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap();
+        assert_eq!(result.exit_code, 0);
+        assert!(result.stdout.contains("[skipped]"));
+    }
+
+    #[test]
+    fn local_action_loads_yaml_extension() {
+        let tmp = tempfile::tempdir().unwrap();
+        let action_dir = tmp.path().join(".forgejo").join("actions").join("yaml");
+        fs::create_dir_all(&action_dir).unwrap();
+        fs::write(
+            action_dir.join("action.yaml"),
+            r#"
+name: Yaml Action
+runs:
+  using: composite
+  steps:
+    - run: echo hi
+"#,
+        )
+        .unwrap();
+
+        let container = FakeContainer::new(vec![ExecResult {
+            exit_code: 0,
+            stdout: "hi".into(),
+            stderr: String::new(),
+        }]);
+        let yaml = "uses: ./.forgejo/actions/yaml\n";
+        let step: Step = serde_yaml::from_str(yaml).unwrap();
+
+        let result =
+            StepRunnerService::execute(&step, &container, tmp.path(), &HashMap::new()).unwrap();
+        assert_eq!(result.exit_code, 0);
     }
 }
