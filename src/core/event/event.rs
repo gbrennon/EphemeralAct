@@ -251,4 +251,21 @@ mod tests {
             serde_json::json!({"environment": "production"})
         );
     }
+
+    #[test]
+    fn unit_variant_event_names_and_payloads() {
+        let events = [
+            (Event::Schedule, "schedule"),
+            (Event::Gollum, "gollum"),
+            (Event::PageBuild, "page_build"),
+            (Event::Public, "public"),
+            (Event::Status, "status"),
+            (Event::Watch, "watch"),
+            (Event::WorkflowRun, "workflow_run"),
+        ];
+        for (event, name) in events {
+            assert_eq!(event.event_name(), name);
+            assert_eq!(event.to_payload(), serde_json::json!({}));
+        }
+    }
 }
