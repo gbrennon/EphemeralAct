@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{cell::RefCell, collections::HashMap};
 
 use ephemeral_act::core::ports::outbound::{
@@ -5,7 +6,6 @@ use ephemeral_act::core::ports::outbound::{
     HostInfo, RunnerContext,
 };
 
-#[allow(dead_code)]
 pub struct FakeRuntime {
     pub pulled_images: RefCell<Vec<String>>,
     pub created_containers: RefCell<Vec<ContainerConfig>>,
@@ -14,7 +14,6 @@ pub struct FakeRuntime {
     pub stopped_containers: RefCell<Vec<String>>,
 }
 
-#[allow(dead_code)]
 impl FakeRuntime {
     pub fn new() -> Self {
         Self {
@@ -62,7 +61,6 @@ impl ContainerRuntimePort for FakeRuntime {
     }
 }
 
-#[allow(dead_code)]
 struct FakeContainerHandle {
     exec_results: RefCell<Vec<ExecResult>>,
 }
