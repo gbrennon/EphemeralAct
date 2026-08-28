@@ -10,11 +10,6 @@ use crate::core::workflow::Workflow;
 pub struct Planner;
 
 impl Planner {
-    /// Creates a new planner.
-    pub fn new() -> Self {
-        Self
-    }
-
     /// Plans the execution of a single workflow.
     ///
     /// Jobs with no `needs` go in the first stage. Jobs that depend on
@@ -39,7 +34,7 @@ impl Planner {
     ///     steps: [{run: make test}]
     /// "#;
     /// let wf: Workflow = serde_yaml::from_str(yaml).unwrap();
-    /// let plan = Planner::new().plan(&wf).unwrap();
+    /// let plan = Planner.plan(&wf).unwrap();
     /// assert_eq!(plan.stages.len(), 2);
     /// ```
     pub fn plan(&self, workflow: &Workflow) -> Result<Plan, PlanError> {
@@ -175,12 +170,6 @@ impl Planner {
     }
 }
 
-impl Default for Planner {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -193,7 +182,7 @@ mod tests {
     #[test]
     fn plan_single_job() {
         let wf = make_workflow("  build:\n    runs-on: ubuntu-latest\n    steps: [{run: echo}]");
-        let plan = Planner::new().plan(&wf).unwrap();
+        let plan = Planner.plan(&wf).unwrap();
         assert_eq!(plan.stages.len(), 1);
         assert_eq!(plan.stages[0].runs.len(), 1);
         assert_eq!(plan.stages[0].runs[0].job_id, "build");
@@ -204,7 +193,7 @@ mod tests {
         let wf = make_workflow(
             "  build:\n    runs-on: ubuntu-latest\n    steps: [{run: make}]\n  lint:\n    runs-on: ubuntu-latest\n    steps: [{run: cargo clippy}]",
         );
-        let plan = Planner::new().plan(&wf).unwrap();
+        let plan = Planner.plan(&wf).unwrap();
         assert_eq!(plan.stages.len(), 1);
         assert_eq!(plan.stages[0].runs.len(), 2);
     }
@@ -214,7 +203,7 @@ mod tests {
         let wf = make_workflow(
             "  build:\n    runs-on: ubuntu-latest\n    steps: [{run: make}]\n  test:\n    runs-on: ubuntu-latest\n    needs: [build]\n    steps: [{run: make test}]",
         );
-        let plan = Planner::new().plan(&wf).unwrap();
+        let plan = Planner.plan(&wf).unwrap();
         assert_eq!(plan.stages.len(), 2);
         assert_eq!(plan.stages[0].runs[0].job_id, "build");
         assert_eq!(plan.stages[1].runs[0].job_id, "test");
@@ -225,7 +214,7 @@ mod tests {
         let wf = make_workflow(
             "  build:\n    runs-on: ubuntu-latest\n    steps: [{run: make}]\n  test:\n    runs-on: ubuntu-latest\n    needs: [build]\n    steps: [{run: make test}]\n  lint:\n    runs-on: ubuntu-latest\n    needs: [build]\n    steps: [{run: cargo clippy}]\n  deploy:\n    runs-on: ubuntu-latest\n    needs: [test, lint]\n    steps: [{run: deploy}]",
         );
-        let plan = Planner::new().plan(&wf).unwrap();
+        let plan = Planner.plan(&wf).unwrap();
         assert_eq!(plan.stages.len(), 3);
         assert_eq!(plan.stages[0].runs.len(), 1);
         assert_eq!(plan.stages[1].runs.len(), 2);
@@ -237,7 +226,7 @@ mod tests {
         let wf = make_workflow(
             "  a:\n    runs-on: ubuntu-latest\n    needs: [b]\n    steps: [{run: echo}]\n  b:\n    runs-on: ubuntu-latest\n    needs: [a]\n    steps: [{run: echo}]",
         );
-        let result = Planner::new().plan(&wf);
+        let result = Planner.plan(&wf);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -250,17 +239,12 @@ mod tests {
         let wf = make_workflow(
             "  build:\n    runs-on: ubuntu-latest\n    needs: [nonexistent]\n    steps: [{run: echo}]",
         );
-        let result = Planner::new().plan(&wf);
+        let result = Planner.plan(&wf);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
             PlanError::MissingDependency { .. }
         ));
-    }
-
-    #[test]
-    fn default_creates_planner() {
-        let _planner = Planner::default();
     }
 
     #[test]
