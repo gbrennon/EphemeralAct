@@ -14,6 +14,10 @@ build:
 run *args:
 	cargo run -- run {{args}}
 
+# Run all workflows found in the repository
+run-all-workflows *args:
+	cargo run -- run --all-workflows {{args}}
+
 list-workflows:
   cargo run -- list-workflows
 
