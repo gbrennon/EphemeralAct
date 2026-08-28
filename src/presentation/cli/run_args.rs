@@ -44,6 +44,10 @@ pub struct RunArgs {
     #[arg(long = "extra-arg")]
     extra_args: Vec<String>,
 
+    /// Run every workflow found in the repository instead of a single one.
+    #[arg(long = "all-workflows")]
+    all_workflows: bool,
+
     /// Preserve the ephemeral repository after execution instead of cleaning
     /// it up.
     #[arg(long)]
@@ -74,6 +78,7 @@ impl RunArgs {
         if let Some(ref event) = self.event {
             config = config.with_event(ActEvent::new(event.clone()));
         }
+        config = config.with_all_workflows(self.all_workflows);
         for input_str in &self.inputs {
             let (k, v) = Self::parse_key_value(input_str)?;
             config = config.add_input(ActInput::new(k, v));
