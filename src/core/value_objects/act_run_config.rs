@@ -8,6 +8,7 @@ pub struct ActRunConfig {
     inputs: Vec<ActInput>,
     secrets: Vec<Secret>,
     extra_args: Vec<ActExtraArg>,
+    all_workflows: bool,
 }
 
 /// Constructors for [`ActRunConfig`].
@@ -29,6 +30,7 @@ impl ActRunConfig {
             inputs: Vec::new(),
             secrets: Vec::new(),
             extra_args: Vec::new(),
+            all_workflows: false,
         }
     }
 }
@@ -76,6 +78,12 @@ impl ActRunConfig {
         self.extra_args.push(arg);
         self
     }
+
+    /// Enable running all workflows found in the repository.
+    pub fn with_all_workflows(mut self, all_workflows: bool) -> Self {
+        self.all_workflows = all_workflows;
+        self
+    }
 }
 
 /// Read-only access to each field of [`ActRunConfig`].
@@ -108,6 +116,11 @@ impl ActRunConfig {
     /// Returns all extra arguments.
     pub fn extra_args(&self) -> &[ActExtraArg] {
         &self.extra_args
+    }
+
+    /// Returns whether to run all workflows.
+    pub fn all_workflows(&self) -> bool {
+        self.all_workflows
     }
 }
 
@@ -168,5 +181,15 @@ mod tests {
         let config = ActRunConfig::default();
         assert!(config.workflow.is_none());
         assert!(config.job.is_none());
+    }
+
+    #[test]
+    fn new_config_disables_all_workflows() {
+        assert!(!ActRunConfig::new().all_workflows());
+    }
+
+    #[test]
+    fn with_all_workflows_enables_running_every_workflow() {
+        assert!(ActRunConfig::new().with_all_workflows(true).all_workflows());
     }
 }
