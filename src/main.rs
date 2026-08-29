@@ -36,8 +36,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let use_case = Container::build();
-    let app = CompositionRoot::compose(use_case);
+    let container = Container::build();
+    let app = CompositionRoot::compose(
+        container.run_act_port,
+        container.list_workflows_port,
+        container.list_actions_port,
+    );
     let result = app.cli.run(std::env::args_os());
     if restore_fd >= 0 {
         unsafe { libc::dup2(restore_fd, libc::STDERR_FILENO) };

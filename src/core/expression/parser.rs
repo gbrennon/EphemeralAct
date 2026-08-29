@@ -644,4 +644,40 @@ mod tests {
         let result = parse("a[0");
         assert!(result.is_err());
     }
+
+    #[test]
+    fn parse_error_func_call_on_non_variable() {
+        let result = parse("(true)(x)");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_unexpected_token_in_primary() {
+        let result = parse("&&");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_mismatched_delimiter() {
+        let result = parse("a[1 2]");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_expect_ident_mismatch() {
+        let result = parse("a.1");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_error_expect_ident_end() {
+        let result = parse("a.");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn parse_expr_lexer_error() {
+        let result = parse_expr("'");
+        assert!(result.is_err());
+    }
 }

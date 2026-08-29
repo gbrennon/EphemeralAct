@@ -62,7 +62,6 @@ mod tests {
         }
     }
 
-    #[allow(dead_code)]
     struct FakeContainer;
 
     impl ContainerPort for FakeContainer {
@@ -72,31 +71,35 @@ mod tests {
             _workdir: Option<&str>,
             _env: &HashMap<String, String>,
         ) -> Result<ExecResult, ContainerError> {
-            unimplemented!()
+            Ok(ExecResult {
+                exit_code: 0,
+                stdout: String::new(),
+                stderr: String::new(),
+            })
         }
         fn copy_to(&self, _p: &str, _e: &[FileEntry]) -> Result<(), ContainerError> {
-            unimplemented!()
+            Ok(())
         }
         fn copy_from(&self, _p: &str) -> Result<Vec<FileEntry>, ContainerError> {
-            unimplemented!()
+            Ok(vec![])
         }
         fn remove(&self) -> Result<(), ContainerError> {
-            unimplemented!()
+            Ok(())
         }
         fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-            unimplemented!()
+            Ok(RunnerContext::default())
         }
     }
 
     impl ContainerRuntimePort for FakeRuntime {
         fn pull_image(&self, _i: &str, _p: Option<&str>) -> Result<(), ContainerError> {
-            unimplemented!()
+            Ok(())
         }
         fn create_container(
             &self,
             _c: &ContainerConfig,
         ) -> Result<Box<dyn ContainerPort>, ContainerError> {
-            unimplemented!()
+            Ok(Box::new(FakeContainer))
         }
         fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
             self.removed.borrow_mut().push(name.to_string());
@@ -107,8 +110,38 @@ mod tests {
             Ok(())
         }
         fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-            unimplemented!()
+            Ok(HostInfo {
+                os: "linux".into(),
+                arch: "amd64".into(),
+                engine_version: "1.0".into(),
+            })
         }
+    }
+
+    #[test]
+    fn fake_supports_all_runtime_operations() {
+        let (runtime, _, _) = FakeRuntime::new();
+        runtime.pull_image("img", None).unwrap();
+        runtime.get_host_info().unwrap();
+        let container = runtime
+            .create_container(&ContainerConfig {
+                image: "img".into(),
+                platform: None,
+                env: HashMap::new(),
+                binds: vec![],
+                workdir: None,
+                cmd: None,
+                entrypoint: None,
+                network: None,
+                name: None,
+                runner_context: RunnerContext::default(),
+            })
+            .unwrap();
+        container.exec(&[], None, &HashMap::new()).unwrap();
+        container.copy_to("p", &[]).unwrap();
+        assert!(container.copy_from("p").unwrap().is_empty());
+        container.remove().unwrap();
+        container.get_runner_context().unwrap();
     }
 
     #[test]

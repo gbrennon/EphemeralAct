@@ -2,23 +2,37 @@ use std::{ffi::OsString, io::Write};
 
 use clap::Parser;
 
-use super::{cli_parser::CliParser, command::Command};
-use crate::core::ports::inbound::run_act_port::RunActPort;
+use super::{
+    cli_parser::CliParser, command::Command, list_actions_handler::ListActionsHandler,
+    list_workflows_handler::ListWorkflowsHandler, run_handler::RunHandler,
+};
+use crate::core::ports::inbound::{
+    list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
+    run_act_port::RunActPort,
+};
 
 /// Entry point for the presentation layer.
 ///
-/// Holds the fully-wired application port (injected via [`Cli::new`]) and
+/// Holds the fully-wired application ports (injected via [`Cli::new`]) and
 /// exposes [`run`](Cli::run) to parse CLI arguments and dispatch to the
 /// appropriate handler.
 pub struct Cli {
     port: Box<dyn RunActPort>,
+    list_workflows_port: Box<dyn ListWorkflowsPort>,
+    list_actions_port: Box<dyn ListActionsPort>,
 }
 
 impl Cli {
-    /// Creates a new [`Cli`] backed by the given application port.
-    pub fn new<U: RunActPort + 'static>(port: U) -> Self {
+    /// Creates a new [`Cli`] backed by the given application ports.
+    pub fn new(
+        run_port: Box<dyn RunActPort>,
+        list_workflows_port: Box<dyn ListWorkflowsPort>,
+        list_actions_port: Box<dyn ListActionsPort>,
+    ) -> Self {
         Self {
-            port: Box::new(port),
+            port: run_port,
+            list_workflows_port,
+            list_actions_port,
         }
     }
 
@@ -51,7 +65,13 @@ impl Cli {
             }
         };
         match cli.command {
-            Command::Run(args) => super::run_handler::RunHandler::handle(*args, &*self.port),
+            Command::Run(args) => RunHandler::handle(*args, &*self.port),
+            Command::ListWorkflows(args) => {
+                ListWorkflowsHandler::handle(*args, &*self.list_workflows_port)
+            }
+            Command::ListActions(args) => {
+                ListActionsHandler::handle(*args, &*self.list_actions_port)
+            }
         }
     }
 }

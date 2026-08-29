@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::error::Error;
 
 use ephemeral_act::core::{
@@ -5,7 +6,6 @@ use ephemeral_act::core::{
     ports::inbound::run_act_port::RunActPort,
 };
 
-#[allow(dead_code)]
 pub struct StubRunActPort {
     pub result: Result<RunSummary, String>,
 }

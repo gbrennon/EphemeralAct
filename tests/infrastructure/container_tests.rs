@@ -1,6 +1,9 @@
 use ephemeral_act::{
-    core::ports::inbound::RunActPort,
-    infrastructure::{Container, runners::ContainerRuntimeAdapter},
+    core::ports::inbound::{
+        list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
+        run_act_port::RunActPort,
+    },
+    infrastructure::{AppContainer, Container, runners::ContainerRuntimeAdapter},
 };
 
 #[cfg(test)]
@@ -17,15 +20,20 @@ mod tests {
     }
 
     #[test]
-    fn build_returns_port_when_runtime_available() {
+    fn build_returns_app_container_when_runtime_available() {
         require_container_runtime!();
-        let _use_case = Container::build();
+        let _container = Container::build();
     }
 
     #[test]
-    fn build_result_implements_run_act_port() {
+    fn build_result_contains_all_ports() {
         require_container_runtime!();
-        fn _assert(_: impl RunActPort) {}
-        _assert(Container::build());
+        let container: AppContainer = Container::build();
+        fn _assert_run(_: Box<dyn RunActPort>) {}
+        fn _assert_list_workflows(_: Box<dyn ListWorkflowsPort>) {}
+        fn _assert_list_actions(_: Box<dyn ListActionsPort>) {}
+        _assert_run(container.run_act_port);
+        _assert_list_workflows(container.list_workflows_port);
+        _assert_list_actions(container.list_actions_port);
     }
 }

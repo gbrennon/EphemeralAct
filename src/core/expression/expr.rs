@@ -125,4 +125,25 @@ mod tests {
         );
         assert_eq!(expr.to_string(), "true && false");
     }
+
+    #[test]
+    fn display_index_access() {
+        let expr = Expr::IndexAccess(
+            Box::new(Expr::Variable("arr".into())),
+            Box::new(Expr::Literal(Literal::Int(0))),
+        );
+        assert_eq!(expr.to_string(), "arr[0]");
+    }
+
+    #[test]
+    fn display_array_deref() {
+        let expr = Expr::ArrayDeref(Box::new(Expr::Variable("arr".into())));
+        assert_eq!(expr.to_string(), "arr.*");
+    }
+
+    #[test]
+    fn display_not() {
+        let expr = Expr::Not(Box::new(Expr::Variable("flag".into())));
+        assert_eq!(expr.to_string(), "!flag");
+    }
 }

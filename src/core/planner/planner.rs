@@ -260,6 +260,18 @@ mod tests {
 
     #[test]
     fn default_creates_planner() {
-        let _planner = Planner;
+        let _planner = Planner::default();
+    }
+
+    #[test]
+    fn topological_sort_reports_unresolved_dependencies_on_cycle() {
+        let wf = make_workflow(
+            "  a:\n    runs-on: ubuntu-latest\n    needs: [b]\n    steps: [{run: echo}]\n  b:\n    runs-on: ubuntu-latest\n    needs: [a]\n    steps: [{run: echo}]",
+        );
+        let mut deps = HashMap::new();
+        deps.insert("a", vec!["b"]);
+        deps.insert("b", vec!["a"]);
+        let result = Planner.topological_sort(&deps, &wf);
+        assert!(matches!(result, Err(PlanError::UnresolvedDependencies)));
     }
 }

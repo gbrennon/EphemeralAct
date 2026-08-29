@@ -1,8 +1,4 @@
 #[cfg(test)]
-#[path = "../../fakes/stub_run_act_port.rs"]
-mod stub_run_act_port;
-
-#[cfg(test)]
 mod tests {
     use std::time::Duration;
 
@@ -11,7 +7,7 @@ mod tests {
         presentation::cli::{parse_run_test_args, run_handler::RunHandler},
     };
 
-    use crate::stub_run_act_port::StubRunActPort;
+    use crate::common::fakes::stub_run_act_port::StubRunActPort;
 
     fn step(name: &str, stdout: &str, stderr: &str) -> StepSummary {
         StepSummary {

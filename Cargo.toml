@@ -22,49 +22,13 @@ bytes = "1"
 tempfile = "3"
 
 [[test]]
-name = "core_services_run_act_service"
-path = "tests/core/services/run_act_service_tests.rs"
+name = "core"
+path = "tests/core/mod.rs"
 
 [[test]]
-name = "infrastructure_platform_image_mapper"
-path = "tests/infrastructure/platform_image_mapper_tests.rs"
+name = "infrastructure"
+path = "tests/infrastructure/mod.rs"
 
 [[test]]
-name = "infrastructure_runners_podman_runtime"
-path = "tests/infrastructure/runners/podman_runtime_tests.rs"
-
-[[test]]
-name = "infrastructure_runners_docker_runtime"
-path = "tests/infrastructure/runners/docker_runtime_tests.rs"
-
-[[test]]
-name = "infrastructure_runners_adapter"
-path = "tests/infrastructure/runners/adapter_tests.rs"
-
-[[test]]
-name = "infrastructure_container"
-path = "tests/infrastructure/container_tests.rs"
-
-[[test]]
-name = "infrastructure_in_memory_event_bus"
-path = "tests/infrastructure/in_memory_event_bus_tests.rs"
-
-[[test]]
-name = "presentation_composition_root"
-path = "tests/presentation/composition_root/composition_root_tests.rs"
-
-[[test]]
-name = "presentation_cli_parser"
-path = "tests/presentation/cli/cli_parser_tests.rs"
-
-[[test]]
-name = "presentation_run_handler"
-path = "tests/presentation/cli/run_handler_tests.rs"
-
-[[test]]
-name = "presentation_run_args"
-path = "tests/presentation/cli/run_args_tests.rs"
-
-[[test]]
-name = "presentation_cli"
-path = "tests/presentation/cli/cli_tests.rs"
+name = "presentation"
+path = "tests/presentation/mod.rs"

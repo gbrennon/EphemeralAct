@@ -61,13 +61,11 @@ runs:
         let action: ActionDefinition = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(action.name, "Test Action");
         assert_eq!(action.description.as_deref(), Some("Does stuff"));
-        match &action.runs {
-            ActionRuns::Composite { steps } => {
-                assert_eq!(steps.len(), 2);
-                assert_eq!(steps[0].run(), Some("echo hello"));
-                assert_eq!(steps[1].name.as_deref(), Some("Check"));
-            }
-            _ => panic!("expected Composite"),
+        assert!(matches!(action.runs, ActionRuns::Composite { .. }));
+        if let ActionRuns::Composite { steps } = &action.runs {
+            assert_eq!(steps.len(), 2);
+            assert_eq!(steps[0].run(), Some("echo hello"));
+            assert_eq!(steps[1].name.as_deref(), Some("Check"));
         }
     }
 
