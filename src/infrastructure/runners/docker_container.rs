@@ -4,7 +4,7 @@ use bytes::Bytes;
 use futures_util::StreamExt;
 
 use crate::{
-    core::ports::outbound::{Container, ContainerError, ExecResult, FileEntry, RunnerContext},
+    core::ports::outbound::{ContainerError, ContainerPort, ExecResult, FileEntry, RunnerContext},
     infrastructure::bollard_wrapper::{
         Client, body_full,
         types::{
@@ -23,7 +23,7 @@ pub(super) struct DockerContainer {
     pub(super) runner_context: RunnerContext,
 }
 
-impl Container for DockerContainer {
+impl ContainerPort for DockerContainer {
     fn exec(
         &self,
         cmd: &[String],
@@ -81,12 +81,8 @@ impl Container for DockerContainer {
                             }
                         }
                     }
-                    // Drop the input stream before the output stream to signal
-                    // EOF to Podman. This prevents crun from flushing debug
-                    // errors when the upgraded connection closes.
                     drop(input);
 
-                    // Inspect the exec instance to get the real exit code
                     let exit_code = self
                         .docker
                         .inspect_exec(&exec.id)

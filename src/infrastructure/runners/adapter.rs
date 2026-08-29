@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use super::{docker_runtime::DockerRuntime, podman_runtime::PodmanRuntime};
 use crate::core::ports::outbound::{
-    Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+    ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
 };
 
 /// Enum dispatch over available container runtimes.
 ///
-/// Probes Docker first, then Podman. Implements [`ContainerRuntime`] by
+/// Probes Docker first, then Podman. Implements [`ContainerRuntimePort`] by
 /// delegating to the inner adapter.
 pub enum ContainerRuntimeAdapter {
     Docker(DockerRuntime),
@@ -40,11 +40,11 @@ impl ContainerRuntimeAdapter {
         if name == "Docker" {
             return err;
         }
-        let text = err.to_string().replace("Docker", name);
+        let text = format!("{:?}", err).replace("Docker", name);
         ContainerError::Internal(text)
     }
 }
-impl ContainerRuntime for ContainerRuntimeAdapter {
+impl ContainerRuntimePort for ContainerRuntimeAdapter {
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
         let result = match self {
             ContainerRuntimeAdapter::Docker(rt) => rt.pull_image(image, platform),
@@ -56,7 +56,7 @@ impl ContainerRuntime for ContainerRuntimeAdapter {
     fn create_container(
         &self,
         config: &ContainerConfig,
-    ) -> Result<Box<dyn Container>, ContainerError> {
+    ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         let result = match self {
             ContainerRuntimeAdapter::Docker(rt) => rt.create_container(config),
             ContainerRuntimeAdapter::Podman(rt) => rt.create_container(config),
@@ -88,14 +88,14 @@ impl ContainerRuntime for ContainerRuntimeAdapter {
     }
 }
 
-impl ContainerRuntime for Arc<ContainerRuntimeAdapter> {
+impl ContainerRuntimePort for Arc<ContainerRuntimeAdapter> {
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
         self.as_ref().pull_image(image, platform)
     }
     fn create_container(
         &self,
         config: &ContainerConfig,
-    ) -> Result<Box<dyn Container>, ContainerError> {
+    ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         self.as_ref().create_container(config)
     }
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {

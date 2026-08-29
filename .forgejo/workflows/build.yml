@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build:
+    name: Build
+    runs-on: codeberg-medium
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.forgejo/actions/install-dependencies
+      - uses: ./.forgejo/actions/cache-rust-deps
+        with:
+          cache-key-prefix: ephemeral-act-release
+          rustc-version: stable
+          include-sysroot: "false"
+      - name: Build release binary
+        run: cargo build --release --locked
+        timeout-minutes: 15
+      - name: Create artifact
+        run: |
+          mkdir -p artifacts
+          cp target/release/ephemeral_act artifacts/ephemeral-act
+          chmod +x artifacts/ephemeral-act
+          tar -czf artifacts/ephemeral-act.tar.gz -C artifacts ephemeral-act
+      - name: Upload artifact
+        run: |
+          echo "Artifact created:"
+          ls -la artifacts/ephemeral-act.tar.gz || echo "No artifact found"

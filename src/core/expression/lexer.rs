@@ -1,4 +1,4 @@
-use super::{lexer_error::LexerError, token::Token};
+use super::{LexerError, token::Token};
 
 /// A hand-written lexer for GitHub Actions `${{ }}` expression syntax.
 ///
@@ -166,7 +166,7 @@ impl<'a> Lexer<'a> {
     /// the string.
     fn lex_string(&mut self) -> Result<Token, LexerError> {
         let start = self.pos;
-        self.bump(); // consume opening quote
+        self.bump();
 
         let mut value = String::new();
 
@@ -175,12 +175,10 @@ impl<'a> Lexer<'a> {
                 None => return Err(LexerError::UnterminatedString(start)),
                 Some('\'') => {
                     self.bump();
-                    // Check for escaped quote: `''`
                     if self.current_char() == Some('\'') {
                         self.bump();
                         value.push('\'');
                     } else {
-                        // Closing quote
                         return Ok(Token::String(value));
                     }
                 }
@@ -201,29 +199,25 @@ impl<'a> Lexer<'a> {
         let mut num_str = String::new();
         let mut is_float = false;
 
-        // Optional leading minus
         if self.current_char() == Some('-') {
             num_str.push('-');
             self.bump();
         }
 
-        // Integer part
         while self.current_char().is_some_and(|c| c.is_ascii_digit()) {
             num_str.push(self.current_char().unwrap());
             self.bump();
         }
 
-        // Fractional part
-        if self.current_char() == Some('.') {
-            // Peek ahead to ensure at least one digit follows the dot
-            if self.peek_next_char().is_some_and(|c| c.is_ascii_digit()) {
-                is_float = true;
-                num_str.push('.');
+        if self.current_char() == Some('.')
+            && self.peek_next_char().is_some_and(|c| c.is_ascii_digit())
+        {
+            is_float = true;
+            num_str.push('.');
+            self.bump();
+            while self.current_char().is_some_and(|c| c.is_ascii_digit()) {
+                num_str.push(self.current_char().unwrap());
                 self.bump();
-                while self.current_char().is_some_and(|c| c.is_ascii_digit()) {
-                    num_str.push(self.current_char().unwrap());
-                    self.bump();
-                }
             }
         }
 
@@ -247,7 +241,6 @@ impl<'a> Lexer<'a> {
     fn lex_ident_or_keyword(&mut self) -> Result<Token, LexerError> {
         let mut ident = String::new();
 
-        // First character already verified as alphabetic or underscore
         ident.push(self.current_char().unwrap());
         self.bump();
 
@@ -282,7 +275,7 @@ impl<'a> Lexer<'a> {
     /// Returns the character after the current one without consuming anything.
     fn peek_next_char(&self) -> Option<char> {
         let mut iter = self.chars.chars();
-        iter.next(); // skip current
+        iter.next();
         iter.next()
     }
 
@@ -313,8 +306,6 @@ mod tests {
         }
         Ok(tokens)
     }
-
-    // -- basic single-character tokens --
 
     #[test]
     fn lex_dot() {
@@ -351,8 +342,6 @@ mod tests {
         let tokens = lex_all("!").unwrap();
         assert_eq!(tokens, vec![Token::Not, Token::Eof]);
     }
-
-    // -- multi-character operators --
 
     #[test]
     fn lex_eq() {
@@ -402,8 +391,6 @@ mod tests {
         assert_eq!(tokens, vec![Token::Or, Token::Eof]);
     }
 
-    // -- strings --
-
     #[test]
     fn lex_simple_string() {
         let tokens = lex_all("'hello'").unwrap();
@@ -433,8 +420,6 @@ mod tests {
         let err = lex_all("'no end").unwrap_err();
         assert_eq!(err, LexerError::UnterminatedString(0));
     }
-
-    // -- numbers --
 
     #[test]
     fn lex_positive_int() {
@@ -468,12 +453,9 @@ mod tests {
 
     #[test]
     fn lex_float_with_trailing_dot_is_int() {
-        // "42." without digits after dot -> Int(42) then Dot
         let tokens = lex_all("42.").unwrap();
         assert_eq!(tokens, vec![Token::Int(42), Token::Dot, Token::Eof]);
     }
-
-    // -- keywords --
 
     #[test]
     fn lex_true() {
@@ -492,8 +474,6 @@ mod tests {
         let tokens = lex_all("null").unwrap();
         assert_eq!(tokens, vec![Token::Null, Token::Eof]);
     }
-
-    // -- identifiers --
 
     #[test]
     fn lex_simple_ident() {
@@ -525,8 +505,6 @@ mod tests {
         assert_eq!(tokens, vec![Token::Ident("_private".into()), Token::Eof]);
     }
 
-    // -- peek behaviour --
-
     #[test]
     fn peek_does_not_consume() {
         let mut lexer = Lexer::new("foo");
@@ -553,15 +531,11 @@ mod tests {
         assert_eq!(lexer.next_token().unwrap(), Token::Ident("b".into()));
     }
 
-    // -- whitespace handling --
-
     #[test]
     fn lex_skips_whitespace() {
         let tokens = lex_all("  \t\n\r  foo  ").unwrap();
         assert_eq!(tokens, vec![Token::Ident("foo".into()), Token::Eof]);
     }
-
-    // -- compound expressions --
 
     #[test]
     fn lex_full_expression() {
@@ -600,8 +574,6 @@ mod tests {
             ]
         );
     }
-
-    // -- error cases --
 
     #[test]
     fn lex_unexpected_char() {

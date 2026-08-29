@@ -1,15 +1,18 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf, time::Instant};
 
 use crate::core::{
-    ActRunConfig, Repository,
+    ActRunConfig,
+    dtos::{JobSummary, RunActRequest, RunSummary, StepSummary},
     events::{ActRunCompletedPayload, DomainEvent},
     planner::Planner,
     ports::{
-        inbound::run_act_port::RunActUseCase,
-        outbound::{ContainerConfig, ContainerRuntime, EventPublisher, ImageMapper, RunnerContext},
+        inbound::run_act_port::RunActPort,
+        outbound::{
+            ContainerConfig, ContainerRuntimePort, EventPublisherPort, ImageMapperPort,
+            RunnerContext,
+        },
     },
-    services::step_runner::StepRunner,
-    shared_types::ExecutionResult,
+    services::step_runner_service::StepRunnerService,
     workflow::Workflow,
 };
 
@@ -17,13 +20,13 @@ use crate::core::{
 /// containers.
 ///
 /// Parses the workflow YAML, plans the job execution DAG, and runs each job
-/// inside an ephemeral container using the provided [`ContainerRuntime`].
-pub struct RunActService<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> {
+/// inside an ephemeral container using the provided [`ContainerRuntimePort`].
+pub struct RunActService<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> {
     runtime: R,
     image_mapper: M,
     event_publisher: E,
 }
-impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActService<R, M, E> {
+impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActService<R, M, E> {
     pub fn new(runtime: R, image_mapper: M, event_publisher: E) -> Self {
         Self {
             runtime,
@@ -42,7 +45,6 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActService<R, M,
         repo_path: &std::path::Path,
     ) -> Result<PathBuf, Box<dyn std::error::Error>> {
         if let Some(wf) = config.workflow() {
-            // Try direct path first, then search in platform subdirectories
             let direct = repo_path.join(wf.as_str());
             if direct.exists() {
                 return Ok(direct);
@@ -88,33 +90,24 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActService<R, M,
         env
     }
 }
-impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
+impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActPort
     for RunActService<R, M, E>
 {
-    fn run_act(
-        &self,
-        config: ActRunConfig,
-        repository: Repository,
-    ) -> Result<ExecutionResult, Box<dyn std::error::Error>> {
+    fn execute(&self, request: RunActRequest) -> Result<RunSummary, Box<dyn std::error::Error>> {
+        let RunActRequest { config, repository } = request;
         let repo_path = repository.path().as_path();
 
         let workflow_path = self.find_workflow(&config, repo_path)?;
-        eprintln!("Found workflow: {}", workflow_path.display());
 
         let yaml = fs::read_to_string(&workflow_path)?;
         let workflow: Workflow = serde_yaml::from_str(&yaml)?;
         let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
-        let job_count = workflow.jobs.len();
-        eprintln!("Parsed workflow '{}' ({} job(s))", workflow_name, job_count);
 
         let planner = Planner::new();
-        let plan = planner.plan(&workflow)?;
-        let stage_count = plan.stages.len();
-        let total_runs: usize = plan.stages.iter().map(|s| s.runs.len()).sum();
-        eprintln!("Plan: {} stage(s), {} job run(s)", stage_count, total_runs);
+        let plan = planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
 
-        let mut all_stdout = String::new();
-        let mut all_stderr = String::new();
+        let started_at = Instant::now();
+        let mut job_summaries: Vec<JobSummary> = Vec::new();
         let mut success = true;
 
         let mut container_names: Vec<String> = Vec::new();
@@ -124,28 +117,22 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                 let runs_on = run.job.runs_on.as_deref().unwrap_or("ubuntu-latest");
                 let mut image = self.image_mapper.map(runs_on);
 
-                eprintln!("Pulling image '{}'...", image);
                 if self.runtime.pull_image(&image, None).is_err() {
                     image = self.image_mapper.fallback();
-                    eprintln!("  Fallback to '{}'...", image);
-                    self.runtime.pull_image(&image, None)?;
+                    self.runtime
+                        .pull_image(&image, None)
+                        .map_err(|e| format!("{:?}", e))?;
                 }
-                eprintln!("  Image ready");
 
-                // Build base env: workflow env + job env + GITHUB_* file paths
                 let mut container_env = Self::build_env(&workflow, &run.job.env);
                 let github_path = "/workspace/.github_path";
                 let github_env = "/workspace/.github_env";
                 container_env.insert("GITHUB_PATH".into(), github_path.into());
                 container_env.insert("GITHUB_ENV".into(), github_env.into());
-                // Preserve a default PATH so the container can find bash, etc.
                 container_env.entry("PATH".to_string()).or_insert_with(|| {
                     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin".to_string()
                 });
                 let container_name = format!("ephemeral-act-{}-{}", run.job_id, std::process::id());
-                // Clean up any stale container from a prior run (both legacy
-                // and current name formats). Ignore errors — the container may
-                // not exist.
                 let legacy_name = format!("ephemeral-act-{}", run.job_id);
                 let _ = self.runtime.remove_container(&legacy_name);
                 let _ = self.runtime.remove_container(&container_name);
@@ -162,19 +149,18 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                     runner_context: RunnerContext::default(),
                 };
 
-                eprintln!("Creating container '{}'...", container_name);
-                let container = self.runtime.create_container(&container_config)?;
-                container_names.push(container_name.clone());
-                eprintln!("  Container ready");
+                let container = self
+                    .runtime
+                    .create_container(&container_config)
+                    .map_err(|e| format!("{:?}", e))?;
+                container_names.push(container_name);
 
-                // Per-step env: starts with container env, accumulates PATH and
-                // env vars from GITHUB_PATH / GITHUB_ENV files after each step.
                 let mut step_env = container_env.clone();
                 let mut extra_path: Vec<String> = Vec::new();
 
-                let total_steps = run.job.steps.len();
+                let mut job_success = true;
+                let mut steps: Vec<StepSummary> = Vec::new();
                 for step in &run.job.steps {
-                    // Build PATH from base + accumulated extra paths
                     let path = if extra_path.is_empty() {
                         step_env.get("PATH").cloned().unwrap_or_default()
                     } else {
@@ -190,33 +176,46 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                         .or(step.run.as_deref())
                         .or(step.uses.as_deref())
                         .unwrap_or("unnamed step");
-                    let step_idx = run
-                        .job
-                        .steps
-                        .iter()
-                        .position(|s| std::ptr::eq(s, step))
-                        .unwrap_or(0);
-                    eprintln!("[{}/{}] {}", step_idx + 1, total_steps, step_label);
 
-                    match StepRunner::run(step, container.as_ref(), repo_path, &step_env) {
+                    let step_type = step.step_type();
+                    let continue_on_error = step.continues_on_error();
+                    let step_started_at = Instant::now();
+
+                    let (exit_code, stdout, stderr) = match StepRunnerService::execute(
+                        step,
+                        container.as_ref(),
+                        repo_path,
+                        &step_env,
+                    ) {
                         Ok(result) => {
-                            all_stdout.push_str(&result.stdout);
-                            all_stderr.push_str(&result.stderr);
-                            if result.exit_code != 0 {
-                                eprintln!("  FAILED (exit code: {})", result.exit_code);
+                            if result.exit_code != 0 && !continue_on_error {
+                                job_success = false;
                                 success = false;
-                            } else {
-                                eprintln!("  OK (exit code: {})", result.exit_code);
                             }
+                            (Some(result.exit_code), result.stdout, result.stderr)
                         }
                         Err(e) => {
-                            eprintln!("  ERROR: {}", e);
-                            all_stderr.push_str(&format!("step error: {}\n", e));
-                            success = false;
+                            if !continue_on_error {
+                                job_success = false;
+                                success = false;
+                            }
+                            (
+                                None,
+                                e.stdout,
+                                format!("step error: {}\n{}", e.message, e.stderr),
+                            )
                         }
-                    }
+                    };
+                    steps.push(StepSummary {
+                        name: step_label.to_string(),
+                        step_type,
+                        exit_code,
+                        continue_on_error,
+                        duration: step_started_at.elapsed(),
+                        stdout,
+                        stderr,
+                    });
 
-                    // Read GITHUB_PATH and GITHUB_ENV files to accumulate changes
                     if let Ok(output) =
                         container.exec(&["cat".into(), github_path.into()], None, &HashMap::new())
                     {
@@ -238,22 +237,26 @@ impl<R: ContainerRuntime, M: ImageMapper, E: EventPublisher> RunActUseCase
                         }
                     }
                 }
+                job_summaries.push(JobSummary {
+                    job_id: run.job_id.clone(),
+                    name: run.job.name.clone(),
+                    steps,
+                    success: job_success,
+                });
             }
         }
 
         self.event_publisher
             .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload {
-                container_names: container_names.clone(),
+                container_names,
                 success,
             }));
 
-        let status = if success { "succeeded" } else { "failed" };
-        eprintln!("Workflow {}: {} job(s)", status, job_count);
-
-        Ok(ExecutionResult {
+        Ok(RunSummary {
+            name: workflow_name,
+            job_summaries,
             success,
-            stdout: all_stdout,
-            stderr: all_stderr,
+            duration: started_at.elapsed(),
         })
     }
 }
@@ -264,8 +267,10 @@ mod tests {
 
     use super::*;
     use crate::core::{
+        Repository,
         ports::outbound::{
-            Container, ContainerError, ExecResult, FileEntry, HostInfo, ImageMapper, RunnerContext,
+            ContainerError, ContainerPort, ExecResult, FileEntry, HostInfo, ImageMapperPort,
+            RunnerContext,
         },
         value_objects::{ActWorkflow, RepoPath, RepositoryName},
     };
@@ -273,7 +278,7 @@ mod tests {
     /// Stub image mapper that passes platforms through unchanged.
     struct FakeImageMapper;
 
-    impl ImageMapper for FakeImageMapper {
+    impl ImageMapperPort for FakeImageMapper {
         fn map(&self, platform: &str) -> String {
             platform.to_string()
         }
@@ -291,7 +296,7 @@ mod tests {
         }
     }
 
-    impl EventPublisher for FakeEventPublisher {
+    impl EventPublisherPort for FakeEventPublisher {
         fn publish(&self, event: DomainEvent) {
             self.0.borrow_mut().push(event);
         }
@@ -316,7 +321,7 @@ mod tests {
         }
     }
 
-    impl ContainerRuntime for FakeRuntime {
+    impl ContainerRuntimePort for FakeRuntime {
         fn pull_image(&self, image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
             self.pulled_images.borrow_mut().push(image.to_string());
             Ok(())
@@ -325,7 +330,7 @@ mod tests {
         fn create_container(
             &self,
             config: &ContainerConfig,
-        ) -> Result<Box<dyn Container>, ContainerError> {
+        ) -> Result<Box<dyn ContainerPort>, ContainerError> {
             self.created_containers.borrow_mut().push(config.clone());
             Ok(Box::new(FakeContainer {
                 exec_results: self.exec_results.clone(),
@@ -355,7 +360,7 @@ mod tests {
         exec_results: RefCell<Vec<ExecResult>>,
     }
 
-    impl Container for FakeContainer {
+    impl ContainerPort for FakeContainer {
         fn exec(
             &self,
             _cmd: &[String],
@@ -386,7 +391,7 @@ mod tests {
         }
 
         fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-            unimplemented!()
+            Ok(RunnerContext::default())
         }
     }
 

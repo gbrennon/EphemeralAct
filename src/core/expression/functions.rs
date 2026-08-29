@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use super::{context::EvalContext, eval_error::EvalError};
+use super::{EvalError, context::EvalContext};
 
 /// Built-in function dispatcher for GitHub Actions expressions.
 ///
@@ -19,10 +19,6 @@ impl<'a> Functions<'a> {
     pub fn new(context: &'a EvalContext) -> Self {
         Self { context }
     }
-
-    // ------------------------------------------------------------------
-    // String / array helpers
-    // ------------------------------------------------------------------
 
     /// Returns `true` if `search` contains `item`.
     ///
@@ -77,10 +73,6 @@ impl<'a> Functions<'a> {
         Ok(Value::Bool(s.to_lowercase().ends_with(&sfx.to_lowercase())))
     }
 
-    // ------------------------------------------------------------------
-    // Formatting
-    // ------------------------------------------------------------------
-
     /// Formats a template string by replacing `{0}`, `{1}`, ... with the
     /// string representations of the positional arguments.
     ///
@@ -97,8 +89,7 @@ impl<'a> Functions<'a> {
 
         while let Some((i, ch)) = chars.next() {
             if ch == '{' {
-                // Collect digits until '}'
-                let start = i + 1; // after '{'
+                let start = i + 1;
                 let mut end = start;
                 let mut found_close = false;
                 for (j, c) in chars.by_ref() {
@@ -129,7 +120,7 @@ impl<'a> Functions<'a> {
                     ))
                 })?;
                 result.push_str(&value_to_string(replacement));
-                rest = &rest[end + 1..]; // after '}'
+                rest = &rest[end + 1..];
                 chars = rest.char_indices();
             } else if ch == '}' {
                 return Err(EvalError::FormatError(
@@ -159,10 +150,6 @@ impl<'a> Functions<'a> {
         Ok(Value::String(parts.join(separator)))
     }
 
-    // ------------------------------------------------------------------
-    // JSON
-    // ------------------------------------------------------------------
-
     /// Serializes `value` to a JSON string.
     ///
     /// # Errors
@@ -184,10 +171,6 @@ impl<'a> Functions<'a> {
         let s = expect_string(value, "fromJson", "value")?;
         serde_json::from_str(s).map_err(|e| EvalError::JsonError(format!("fromJson: {e}")))
     }
-
-    // ------------------------------------------------------------------
-    // Status check stubs
-    // ------------------------------------------------------------------
 
     /// Always returns `true` — stub for job status check.
     ///
@@ -211,10 +194,6 @@ impl<'a> Functions<'a> {
     pub fn failure(&self) -> Result<Value, EvalError> {
         Ok(Value::Bool(false))
     }
-
-    // ------------------------------------------------------------------
-    // Dispatch
-    // ------------------------------------------------------------------
 
     /// Dispatches a function call by name (case-insensitive).
     ///
@@ -278,10 +257,6 @@ impl<'a> Functions<'a> {
     }
 }
 
-// ------------------------------------------------------------------
-// Free helper functions
-// ------------------------------------------------------------------
-
 /// Extracts a string reference from a `Value`, or returns a type error.
 fn expect_string<'v>(value: &'v Value, func: &str, arg_name: &str) -> Result<&'v str, EvalError> {
     value.as_str().ok_or_else(|| {
@@ -344,8 +319,6 @@ mod tests {
         Functions::new(ctx)
     }
 
-    // -- contains -------------------------------------------------------
-
     #[test]
     fn contains_string_match_case_insensitive() {
         let c = ctx();
@@ -386,8 +359,6 @@ mod tests {
         assert!(matches!(err, EvalError::TypeError(_)));
     }
 
-    // -- startsWith -----------------------------------------------------
-
     #[test]
     fn starts_with_match() {
         let c = ctx();
@@ -408,8 +379,6 @@ mod tests {
         assert_eq!(result, json!(false));
     }
 
-    // -- endsWith -------------------------------------------------------
-
     #[test]
     fn ends_with_match() {
         let c = ctx();
@@ -425,8 +394,6 @@ mod tests {
         let result = f.ends_with(&json!("Hello World"), &json!("Hello")).unwrap();
         assert_eq!(result, json!(false));
     }
-
-    // -- format ---------------------------------------------------------
 
     #[test]
     fn format_basic() {
@@ -464,8 +431,6 @@ mod tests {
         assert!(matches!(err, EvalError::FormatError(_)));
     }
 
-    // -- join -----------------------------------------------------------
-
     #[test]
     fn join_basic() {
         let c = ctx();
@@ -490,8 +455,6 @@ mod tests {
         assert_eq!(result, json!(""));
     }
 
-    // -- toJson / fromJson ----------------------------------------------
-
     #[test]
     fn to_json_roundtrip() {
         let c = ctx();
@@ -509,8 +472,6 @@ mod tests {
         let err = f.from_json(&json!("not json")).unwrap_err();
         assert!(matches!(err, EvalError::JsonError(_)));
     }
-
-    // -- Status stubs ---------------------------------------------------
 
     #[test]
     fn success_returns_true() {
@@ -540,8 +501,6 @@ mod tests {
         assert_eq!(f.failure().unwrap(), json!(false));
     }
 
-    // -- call dispatch --------------------------------------------------
-
     #[test]
     fn call_unknown_function_error() {
         let c = ctx();
@@ -562,7 +521,6 @@ mod tests {
     fn call_case_insensitive() {
         let c = ctx();
         let f = fns(&c);
-        // "CoNtAiNs" should still dispatch to contains
         let result = f
             .call("CoNtAiNs", &[json!("Hello World"), json!("world")])
             .unwrap();

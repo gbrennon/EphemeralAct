@@ -79,7 +79,7 @@ max-parallel: 2
         assert!(strategy.has_matrix());
         assert!(!strategy.fail_fast);
         assert_eq!(strategy.max_parallel, Some(2));
-        assert_eq!(strategy.combination_count(), 4); // 2 os × 2 rust
+        assert_eq!(strategy.combination_count(), 4);
     }
 
     #[test]
@@ -105,7 +105,7 @@ matrix:
     fn parse_strategy_defaults() {
         let yaml = "matrix:\n  os: [ubuntu-latest]\n";
         let strategy: Strategy = serde_yaml::from_str(yaml).unwrap();
-        assert!(strategy.fail_fast); // default
+        assert!(strategy.fail_fast);
         assert_eq!(strategy.max_parallel, None);
     }
 

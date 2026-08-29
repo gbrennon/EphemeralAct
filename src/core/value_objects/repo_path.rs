@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use super::git_dir_kind::GitDirKind;
-use crate::core::errors::CoreError;
+use crate::core::errors::core_error::CoreError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RepoPath {

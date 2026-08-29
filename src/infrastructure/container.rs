@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     core::{
-        ports::inbound::run_act_port::RunActUseCase,
+        ports::inbound::run_act_port::RunActPort,
         services::{
             container_cleanup_service::ContainerCleanupService, run_act_service::RunActService,
         },
@@ -14,14 +14,14 @@ use crate::{
 };
 
 /// Dependency-injection container that constructs and wires all application
-/// dependencies. Returns a fully-wired [`RunActUseCase`] ready for the
+/// dependencies. Returns a fully-wired [`RunActPort`] ready for the
 /// presentation layer to consume.
 pub struct Container;
 
 impl Container {
     /// Builds the application service graph and returns the entry-point
-    /// use case.
-    pub fn build() -> impl RunActUseCase {
+    /// port.
+    pub fn build() -> impl RunActPort {
         let runtime = Arc::new(
             ContainerRuntimeAdapter::detect()
                 .expect("no container runtime available (Docker or Podman required)"),

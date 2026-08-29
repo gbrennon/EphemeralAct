@@ -3,22 +3,22 @@ use std::{ffi::OsString, io::Write};
 use clap::Parser;
 
 use super::{cli_parser::CliParser, command::Command};
-use crate::core::ports::inbound::run_act_port::RunActUseCase;
+use crate::core::ports::inbound::run_act_port::RunActPort;
 
 /// Entry point for the presentation layer.
 ///
-/// Holds a fully-wired use case (injected via [`Cli::new`]) and exposes
-/// [`run`](Cli::run) to parse CLI arguments and dispatch to the appropriate
-/// handler.
+/// Holds the fully-wired application port (injected via [`Cli::new`]) and
+/// exposes [`run`](Cli::run) to parse CLI arguments and dispatch to the
+/// appropriate handler.
 pub struct Cli {
-    use_case: Box<dyn RunActUseCase>,
+    port: Box<dyn RunActPort>,
 }
 
 impl Cli {
-    /// Creates a new [`Cli`] backed by the given use case.
-    pub fn new<U: RunActUseCase + 'static>(use_case: U) -> Self {
+    /// Creates a new [`Cli`] backed by the given application port.
+    pub fn new<U: RunActPort + 'static>(port: U) -> Self {
         Self {
-            use_case: Box::new(use_case),
+            port: Box::new(port),
         }
     }
 
@@ -51,7 +51,7 @@ impl Cli {
             }
         };
         match cli.command {
-            Command::Run(args) => super::run_handler::RunHandler::handle(*args, &*self.use_case),
+            Command::Run(args) => super::run_handler::RunHandler::handle(*args, &*self.port),
         }
     }
 }

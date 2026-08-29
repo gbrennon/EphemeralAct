@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -14,9 +14,9 @@ env:
 jobs:
   validate:
     name: Validate
-    runs-on: docker
+    runs-on: codeberg-tiny
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
@@ -28,10 +28,10 @@ jobs:
 
   test:
     name: Test
-    runs-on: docker
+    runs-on: codeberg-medium
     needs: [validate]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
@@ -42,10 +42,10 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: docker
+    runs-on: codeberg-medium
     needs: [validate]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
@@ -54,56 +54,3 @@ jobs:
           include-sysroot: "false"
       - name: Clippy
         run: cargo clippy --all-targets --locked -- -D warnings
-
-  coverage:
-    name: Coverage
-    runs-on: docker
-    needs: [validate]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.forgejo/actions/install-dependencies
-      - uses: ./.forgejo/actions/cache-rust-deps
-        with:
-          cache-key-prefix: ephemeral-act-coverage
-          rustc-version: stable
-          include-sysroot: "false"
-      - name: Install tarpaulin
-        run: cargo install cargo-tarpaulin
-      - name: Generate coverage
-        run: cargo tarpaulin --locked --out Xml --timeout 300
-        timeout-minutes: 15
-      - name: Upload to Codecov
-        run: |
-          if [ -f ./cobertura.xml ]; then
-            bash <(curl -s https://codecov.io/bash) -f ./cobertura.xml || echo "Codecov upload skipped (no token)"
-          else
-            echo "No coverage file found, skipping upload"
-          fi
-
-  build:
-    name: Build
-    runs-on: docker
-    needs: [test, lint]
-    if: github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ./.forgejo/actions/install-dependencies
-      - uses: ./.forgejo/actions/cache-rust-deps
-        with:
-          cache-key-prefix: ephemeral-act-release
-          rustc-version: stable
-          include-sysroot: "false"
-      - name: Build release binary
-        run: cargo build --release --locked
-        timeout-minutes: 15
-      - name: Create artifact
-        run: |
-          mkdir -p artifacts
-          cp target/release/ephemeral_act artifacts/
-          chmod +x artifacts/ephemeral_act
-          tar -czf artifacts/ephemeral-act.tar.gz -C artifacts ephemeral_act
-      - name: Upload artifact
-        run: |
-          echo "Artifact created:"
-          ls -la artifacts/ephemeral-act-*.tar.gz || echo "No artifact found"

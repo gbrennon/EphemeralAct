@@ -4,7 +4,7 @@ use tokio::runtime::Runtime;
 use super::docker_container::DockerContainer;
 use crate::{
     core::ports::outbound::{
-        Container, ContainerConfig, ContainerError, ContainerRuntime, HostInfo,
+        ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
     },
     infrastructure::bollard_wrapper::{
         AuthCredentials, Client,
@@ -34,7 +34,7 @@ impl DockerRuntime {
     }
 }
 
-impl ContainerRuntime for DockerRuntime {
+impl ContainerRuntimePort for DockerRuntime {
     fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
         let mut options_builder = CreateImageOptionsBuilder::new().from_image(image);
         if let Some(p) = platform {
@@ -48,7 +48,7 @@ impl ContainerRuntime for DockerRuntime {
 
             while let Some(result) = stream.next().await {
                 match result {
-                    Ok(_info) => { /* progress */ }
+                    Ok(_info) => {}
                     Err(e) => {
                         return Err(ContainerError::ImagePullFailed(
                             image.to_string(),
@@ -64,7 +64,7 @@ impl ContainerRuntime for DockerRuntime {
     fn create_container(
         &self,
         config: &ContainerConfig,
-    ) -> Result<Box<dyn Container>, ContainerError> {
+    ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         let env_list: Vec<String> = config
             .env
             .iter()
@@ -126,16 +126,13 @@ impl ContainerRuntime for DockerRuntime {
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
-            // Inspect first: if the container doesn't exist, nothing to do.
-            // If it exists but isn't running, remove without force to avoid
-            // OCI runtime exec errors on dead containers.
             let force = match self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)
                 .await
             {
                 Ok(inspect) => inspect.state.and_then(|s| s.running).unwrap_or(false),
-                Err(_) => return Ok(()), // container doesn't exist
+                Err(_) => return Ok(()),
             };
             self.docker
                 .remove_container(
@@ -152,8 +149,6 @@ impl ContainerRuntime for DockerRuntime {
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
         self.runtime.block_on(async {
-            // Only stop if the container is actually running — sending a stop
-            // signal to an already-exited container causes OCI runtime errors.
             if let Ok(inspect) = self
                 .docker
                 .inspect_container(name, None::<InspectContainerOptions>)

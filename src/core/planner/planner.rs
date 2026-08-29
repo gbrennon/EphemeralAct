@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use super::{plan::Plan, plan_error::PlanError, run::Run, stage::Stage};
+use super::{PlanError, plan::Plan, run::Run, stage::Stage};
 use crate::core::workflow::Workflow;
 
 /// Plans the execution order of workflow jobs.
@@ -45,7 +45,6 @@ impl Planner {
     pub fn plan(&self, workflow: &Workflow) -> Result<Plan, PlanError> {
         let job_ids: Vec<&String> = workflow.jobs.keys().collect();
 
-        // Build adjacency: job_id -> set of jobs it depends on
         let mut dependencies: HashMap<&str, Vec<&str>> = HashMap::new();
         for id in &job_ids {
             let job = &workflow.jobs[*id];
@@ -53,10 +52,8 @@ impl Planner {
             dependencies.insert(id.as_str(), deps);
         }
 
-        // Detect cycles via DFS
         self.detect_cycles(&dependencies)?;
 
-        // Topological sort into stages
         let stages = self.topological_sort(&dependencies, workflow)?;
 
         Ok(Plan { stages })
@@ -128,7 +125,6 @@ impl Planner {
             }
         }
 
-        // Queue jobs with no dependencies
         let mut queue: VecDeque<&str> = in_degree
             .iter()
             .filter(|(_, deg)| **deg == 0)
@@ -140,7 +136,6 @@ impl Planner {
         let total = deps.len();
 
         while !queue.is_empty() {
-            // All jobs currently in the queue form one stage
             let stage_jobs: Vec<&str> = queue.drain(..).collect();
             let runs: Vec<Run> = stage_jobs
                 .iter()
@@ -158,7 +153,6 @@ impl Planner {
             stages.push(Stage { runs });
             processed += stage_jobs.len();
 
-            // Decrease in-degree of dependents
             for &job_id in &stage_jobs {
                 if let Some(deps) = dependents.get(job_id) {
                     for &dep_id in deps {
@@ -233,11 +227,8 @@ mod tests {
         );
         let plan = Planner::new().plan(&wf).unwrap();
         assert_eq!(plan.stages.len(), 3);
-        // Stage 0: build
         assert_eq!(plan.stages[0].runs.len(), 1);
-        // Stage 1: test, lint (both depend on build)
         assert_eq!(plan.stages[1].runs.len(), 2);
-        // Stage 2: deploy (depends on test and lint)
         assert_eq!(plan.stages[2].runs.len(), 1);
     }
 

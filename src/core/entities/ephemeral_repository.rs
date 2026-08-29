@@ -93,7 +93,6 @@ mod tests {
         let source = source_repo();
         let ephemeral = EphemeralRepository::new(&source, CleanupPolicy::CleanupOnExit);
 
-        // Our test repo is a worktree, so this should be true
         let is_worktree = source.path().is_worktree();
         assert_eq!(ephemeral.needs_standalone_conversion(), is_worktree);
     }
