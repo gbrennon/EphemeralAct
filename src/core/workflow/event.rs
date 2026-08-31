@@ -200,4 +200,38 @@ schedule:
         let on: On = serde_yaml::from_str(yaml).unwrap();
         assert!(on.has_event("schedule"));
     }
+
+    #[test]
+    fn has_event_for_single() {
+        let on: On = serde_yaml::from_str("push").unwrap();
+        assert!(on.has_event("push"));
+        assert!(!on.has_event("pull_request"));
+    }
+
+    #[test]
+    fn event_names_for_with_types() {
+        let yaml = "push:\npull_request:\n";
+        let on: On = serde_yaml::from_str(yaml).unwrap();
+        let mut names = on.event_names();
+        names.sort();
+        assert_eq!(names, vec!["pull_request", "push"]);
+    }
+
+    #[test]
+    fn default_is_single_push() {
+        assert_eq!(On::default(), On::Single("push".to_owned()));
+    }
+
+    #[test]
+    fn deserialize_invalid_type_errors() {
+        let result: Result<On, _> = serde_yaml::from_str("123");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn deserialize_from_value_string() {
+        let value: serde_yaml::Value = serde_yaml::from_str("push").unwrap();
+        let on: On = serde_yaml::from_value(value).unwrap();
+        assert_eq!(on, On::Single("push".to_owned()));
+    }
 }

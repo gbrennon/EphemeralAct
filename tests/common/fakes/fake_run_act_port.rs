@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::time::Duration;
 
 use ephemeral_act::core::{
@@ -5,12 +6,10 @@ use ephemeral_act::core::{
     ports::inbound::run_act_port::RunActPort,
 };
 
-#[allow(dead_code)]
 pub struct FakeRunActPort {
     pub result: RunSummary,
 }
 
-#[allow(dead_code)]
 impl FakeRunActPort {
     pub fn new(success: bool) -> Self {
         Self {

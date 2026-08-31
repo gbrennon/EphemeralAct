@@ -542,4 +542,157 @@ mod tests {
         let err = f.call("success", &[json!("extra")]).unwrap_err();
         assert!(matches!(err, EvalError::ArgCount(_)));
     }
+
+    #[test]
+    fn contains_errors_when_search_string_and_item_not_string() {
+        let c = ctx();
+        let f = fns(&c);
+        let err = f.contains(&json!("hello"), &json!(42)).unwrap_err();
+        assert!(matches!(err, EvalError::TypeError(_)));
+    }
+
+    #[test]
+    fn format_invalid_placeholder_character() {
+        let c = ctx();
+        let f = fns(&c);
+        let err = f.format(&json!("{a}"), &[json!("x")]).unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn format_unclosed_placeholder() {
+        let c = ctx();
+        let f = fns(&c);
+        let err = f.format(&json!("{0"), &[]).unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn format_invalid_placeholder_index() {
+        let c = ctx();
+        let f = fns(&c);
+        let err = f.format(&json!("{}"), &[json!("x")]).unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn format_unexpected_closing_brace() {
+        let c = ctx();
+        let f = fns(&c);
+        let err = f.format(&json!("a}b"), &[json!("x")]).unwrap_err();
+        assert!(matches!(err, EvalError::FormatError(_)));
+    }
+
+    #[test]
+    fn call_dispatches_starts_with() {
+        let c = ctx();
+        let f = fns(&c);
+        assert_eq!(
+            f.call("startswith", &[json!("Hello"), json!("he")])
+                .unwrap(),
+            json!(true)
+        );
+    }
+
+    #[test]
+    fn call_dispatches_ends_with() {
+        let c = ctx();
+        let f = fns(&c);
+        assert_eq!(
+            f.call("endswith", &[json!("Hello"), json!("lo")]).unwrap(),
+            json!(true)
+        );
+    }
+
+    #[test]
+    fn call_format_with_no_args_errors() {
+        let c = ctx();
+        let f = fns(&c);
+        let err = f.call("format", &[]).unwrap_err();
+        assert!(matches!(err, EvalError::ArgCount(_)));
+    }
+
+    #[test]
+    fn call_dispatches_format() {
+        let c = ctx();
+        let f = fns(&c);
+        assert_eq!(
+            f.call("format", &[json!("Hi {0}"), json!("bob")]).unwrap(),
+            json!("Hi bob")
+        );
+    }
+
+    #[test]
+    fn call_dispatches_join() {
+        let c = ctx();
+        let f = fns(&c);
+        assert_eq!(
+            f.call("join", &[json!(["a", "b"]), json!("-")]).unwrap(),
+            json!("a-b")
+        );
+    }
+
+    #[test]
+    fn call_dispatches_to_json() {
+        let c = ctx();
+        let f = fns(&c);
+        assert_eq!(
+            f.call("tojson", &[json!({"a": 1})]).unwrap(),
+            json!(r#"{"a":1}"#)
+        );
+    }
+
+    #[test]
+    fn call_dispatches_from_json() {
+        let c = ctx();
+        let f = fns(&c);
+        assert_eq!(
+            f.call("fromjson", &[json!(r#"{"a":1}"#)]).unwrap(),
+            json!({"a": 1})
+        );
+    }
+
+    #[test]
+    fn call_dispatches_always_cancelled_failure() {
+        let c = ctx();
+        let f = fns(&c);
+        assert_eq!(f.call("always", &[]).unwrap(), json!(true));
+        assert_eq!(f.call("cancelled", &[]).unwrap(), json!(false));
+        assert_eq!(f.call("failure", &[]).unwrap(), json!(false));
+    }
+
+    #[test]
+    fn expect_string_error_names_value_type() {
+        let c = ctx();
+        let f = fns(&c);
+        assert!(f.starts_with(&json!(null), &json!("a")).is_err());
+        assert!(f.starts_with(&json!(true), &json!("a")).is_err());
+        assert!(f.starts_with(&json!(42), &json!("a")).is_err());
+        assert!(f.starts_with(&json!([1, 2]), &json!("a")).is_err());
+        assert!(f.starts_with(&json!({"k": 1}), &json!("a")).is_err());
+    }
+
+    #[test]
+    fn format_null_and_bool_and_array_replacement() {
+        let c = ctx();
+        let f = fns(&c);
+        assert_eq!(
+            f.format(&json!("{0}"), &[json!(null)]).unwrap(),
+            json!("null")
+        );
+        assert_eq!(
+            f.format(&json!("{0}"), &[json!(true)]).unwrap(),
+            json!("true")
+        );
+        assert_eq!(
+            f.format(&json!("{0}"), &[json!([1, 2])]).unwrap(),
+            json!("[1,2]")
+        );
+    }
+
+    #[test]
+    fn expect_arg_count_reports_range() {
+        let err = expect_arg_count("x", 4, 1, 3).unwrap_err();
+        assert!(matches!(err, EvalError::ArgCount(_)));
+    }
 }

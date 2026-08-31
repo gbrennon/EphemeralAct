@@ -1,6 +1,6 @@
+#![allow(dead_code)]
 use ephemeral_act::core::ports::outbound::ImageMapperPort;
 
-#[allow(dead_code)]
 pub struct FakeImageMapper;
 
 impl ImageMapperPort for FakeImageMapper {

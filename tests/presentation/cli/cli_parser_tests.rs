@@ -2,17 +2,13 @@ use clap::Parser;
 use ephemeral_act::presentation::cli::{CliParser, parse_run_test_args, run_handler::RunHandler};
 
 #[cfg(test)]
-#[path = "../../fakes/stub_run_act_port.rs"]
-mod stub_run_act_port;
-
-#[cfg(test)]
 mod tests {
     use std::time::Duration;
 
     use ephemeral_act::core::dtos::RunSummary;
-    use stub_run_act_port::StubRunActPort;
 
     use super::*;
+    use crate::common::fakes::stub_run_act_port::StubRunActPort;
 
     fn ok_summary() -> RunSummary {
         RunSummary {
