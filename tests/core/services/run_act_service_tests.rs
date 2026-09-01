@@ -7,7 +7,7 @@ mod tests {
         dtos::{RunActRequest, StepType},
         events::DomainEvent,
         ports::{inbound::run_act_port::RunActPort, outbound::ExecResult},
-        services::run_act_service::RunActService,
+        services::run_act_service::{ALL_WORKFLOWS_SUMMARY_NAME, RunActService},
     };
 
     use crate::common::fakes::{
@@ -28,6 +28,11 @@ mod tests {
     fn write_workflow(dir: &Path, name: &str, body: &str) {
         std::fs::create_dir_all(dir.join(".forgejo/workflows")).unwrap();
         std::fs::write(dir.join(".forgejo/workflows").join(name), body).unwrap();
+    }
+
+    fn write_github_workflow(dir: &Path, name: &str, body: &str) {
+        std::fs::create_dir_all(dir.join(".github/workflows")).unwrap();
+        std::fs::write(dir.join(".github/workflows").join(name), body).unwrap();
     }
 
     fn push_result(runtime: &FakeRuntime, exit_code: i64, stdout: &str, stderr: &str) {
@@ -271,5 +276,150 @@ mod tests {
         let result = service.execute(RunActRequest::new(config, repo)).unwrap();
         assert!(result.success);
         assert_eq!(result.job_summaries[0].steps[0].step_type, StepType::Uses);
+    }
+
+    #[test]
+    fn execute_all_workflows_summarizes_jobs_from_every_workflow_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_workflow(
+            tmp.path(),
+            "alpha.yml",
+            "name: Alpha\non: push\njobs:\n  first:\n    name: One\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+        );
+        write_github_workflow(
+            tmp.path(),
+            "beta.yml",
+            "name: Beta\non: push\njobs:\n  second:\n    name: Two\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+        );
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        push_result(&runtime, 0, "hi\n", "");
+        push_result(&runtime, 0, "hi\n", "");
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new().with_all_workflows(true);
+
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
+
+        assert_eq!(result.name, ALL_WORKFLOWS_SUMMARY_NAME);
+        assert!(result.success);
+        assert_eq!(
+            result
+                .job_summaries
+                .iter()
+                .map(|job| job.name.clone())
+                .collect::<Vec<_>>(),
+            vec![
+                Some("Alpha / One".to_string()),
+                Some("Beta / Two".to_string())
+            ]
+        );
+    }
+
+    #[test]
+    fn execute_all_workflows_errors_when_repository_has_no_workflow_files() {
+        let tmp = tempfile::tempdir().unwrap();
+        let repo = make_repo(tmp.path());
+        let service = RunActService::new(
+            FakeRuntime::new(),
+            FakeImageMapper,
+            FakeEventPublisher::new(),
+        );
+        let config = ActRunConfig::new().with_all_workflows(true);
+
+        let error = service
+            .execute(RunActRequest::new(config, repo))
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("no workflow files found"), "{}", error);
+    }
+
+    #[test]
+    fn execute_all_workflows_fails_the_run_when_any_job_fails() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_workflow(
+            tmp.path(),
+            "alpha.yml",
+            "name: Alpha\non: push\njobs:\n  first:\n    name: One\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+        );
+        write_github_workflow(
+            tmp.path(),
+            "beta.yml",
+            "name: Beta\non: push\njobs:\n  second:\n    name: Two\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n      - run: exit 1\n",
+        );
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        push_result(&runtime, 0, "", "");
+        push_result(&runtime, 1, "", "boom");
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new().with_all_workflows(true);
+
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
+
+        assert!(!result.success);
+        assert_eq!(
+            result
+                .job_summaries
+                .iter()
+                .map(|job| job.success)
+                .collect::<Vec<_>>(),
+            vec![true, false]
+        );
+    }
+
+    #[test]
+    fn execute_all_workflows_keeps_run_successful_when_erroring_step_continues_on_error() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(tmp.path().join(".forgejo/actions/broken")).unwrap();
+        std::fs::write(
+            tmp.path().join(".forgejo/actions/broken/action.yml"),
+            "name: Broken\nruns:\n  using: composite\n  steps:\n    - run: echo partial-output\n    - name: not a runnable step\n",
+        )
+        .unwrap();
+        write_workflow(
+            tmp.path(),
+            "action.yml",
+            "name: Action\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: ./.forgejo/actions/broken\n        continue-on-error: true\n",
+        );
+        let repo = make_repo(tmp.path());
+        let runtime = FakeRuntime::new();
+        push_result(&runtime, 0, "partial-output\n", "");
+        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let config = ActRunConfig::new().with_all_workflows(true);
+
+        let result = service.execute(RunActRequest::new(config, repo)).unwrap();
+
+        assert!(result.success);
+        let step = &result.job_summaries[0].steps[0];
+        assert_eq!(step.exit_code, None);
+        assert_eq!(step.stdout, "partial-output\n");
+        assert!(step.stderr.contains("step error:"), "{}", step.stderr);
+    }
+
+    #[test]
+    fn execute_all_workflows_publishes_one_completed_event_with_every_container() {
+        let tmp = tempfile::tempdir().unwrap();
+        write_workflow(
+            tmp.path(),
+            "alpha.yml",
+            "name: Alpha\non: push\njobs:\n  first:\n    name: One\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+        );
+        write_github_workflow(
+            tmp.path(),
+            "beta.yml",
+            "name: Beta\non: push\njobs:\n  second:\n    name: Two\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hi\n",
+        );
+        let repo = make_repo(tmp.path());
+        let publisher = FakeEventPublisher::new();
+        let service = RunActService::new(FakeRuntime::new(), FakeImageMapper, publisher.clone());
+        let config = ActRunConfig::new().with_all_workflows(true);
+
+        service.execute(RunActRequest::new(config, repo)).unwrap();
+
+        let events = publisher.events();
+        assert_eq!(events.len(), 1);
+        let DomainEvent::ActRunCompleted(payload) = &events[0];
+        assert_eq!(payload.container_names.len(), 2);
+        assert!(payload.success);
     }
 }
