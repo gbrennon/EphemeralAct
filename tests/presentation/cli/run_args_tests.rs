@@ -65,4 +65,18 @@ mod tests {
         let (config, _repo) = args.to_domain().unwrap();
         assert_eq!(config.extra_args().len(), 2);
     }
+
+    #[test]
+    fn to_domain_with_all_workflows() {
+        let args = parse_run_test_args(&["--all-workflows"]);
+        let (config, _repo) = args.to_domain().unwrap();
+        assert!(config.all_workflows());
+    }
+
+    #[test]
+    fn to_domain_without_all_workflows_defaults_to_disabled() {
+        let args = parse_run_test_args(&[]);
+        let (config, _repo) = args.to_domain().unwrap();
+        assert!(!config.all_workflows());
+    }
 }

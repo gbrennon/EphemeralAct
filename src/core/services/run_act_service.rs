@@ -11,7 +11,7 @@ use crate::core::{
     ActRunConfig,
     dtos::{JobSummary, RunActRequest, RunSummary, StepSummary},
     events::{ActRunCompletedPayload, DomainEvent},
-    planner::Planner,
+    planner::{Planner, Run},
     ports::{
         inbound::run_act_port::RunActPort,
         outbound::{
@@ -22,6 +22,17 @@ use crate::core::{
     services::step_runner_service::StepRunnerService,
     workflow::Workflow,
 };
+
+/// Summary name used when every workflow in the repository is executed.
+pub const ALL_WORKFLOWS_SUMMARY_NAME: &str = "all-workflows";
+
+/// Aggregated outcome of executing the jobs of one or more workflow files.
+struct WorkflowExecution {
+    workflow_name: String,
+    job_summaries: Vec<JobSummary>,
+    container_names: Vec<String>,
+    success: bool,
+}
 
 /// Application service that executes GitHub Actions workflows natively in
 /// containers.
@@ -42,6 +53,23 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActS
             event_publisher,
         }
     }
+
+    /// Returns every `.yml`/`.yaml` file directly inside `dir`, sorted by path.
+    fn workflow_files_in(dir: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+        let mut files = Vec::new();
+        for entry in read_dir(dir)? {
+            let path = entry?.path();
+            if path
+                .extension()
+                .is_some_and(|ext| ext == "yml" || ext == "yaml")
+            {
+                files.push(path);
+            }
+        }
+        files.sort();
+        Ok(files)
+    }
+
     /// Finds the workflow file to execute.
     ///
     /// If the config specifies a workflow path, uses it directly. Otherwise
@@ -69,21 +97,31 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActS
         for platform_dir in &[".forgejo/workflows", ".github/workflows"] {
             let workflows_dir = repo_path.join(platform_dir);
             if workflows_dir.exists() {
-                for entry in read_dir(&workflows_dir)? {
-                    let entry = entry?;
-                    let path = entry.path();
-                    if path
-                        .extension()
-                        .is_some_and(|ext| ext == "yml" || ext == "yaml")
-                    {
-                        return Ok(path);
-                    }
-                }
-                return Err(format!("no workflow files found in {}/", platform_dir).into());
+                return match Self::workflow_files_in(&workflows_dir)?.into_iter().next() {
+                    Some(path) => Ok(path),
+                    None => Err(format!("no workflow files found in {}/", platform_dir).into()),
+                };
             }
         }
 
         Err("no workflows directory found (.forgejo/workflows/ or .github/workflows/)".into())
+    }
+
+    /// Returns every workflow file in the repository, `.forgejo` before `.github`.
+    fn find_all_workflows(&self, repo_path: &Path) -> Result<Vec<PathBuf>, Box<dyn Error>> {
+        let mut workflows = Vec::new();
+        for platform_dir in &[".forgejo/workflows", ".github/workflows"] {
+            let workflows_dir = repo_path.join(platform_dir);
+            if workflows_dir.exists() {
+                workflows.extend(Self::workflow_files_in(&workflows_dir)?);
+            }
+        }
+        if workflows.is_empty() {
+            return Err(
+                "no workflow files found in .forgejo/workflows/ or .github/workflows/".into(),
+            );
+        }
+        Ok(workflows)
     }
 
     /// Merges workflow-level and job-level environment variables.
@@ -97,6 +135,208 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActS
         }
         env
     }
+
+    /// Runs one planned job inside a fresh ephemeral container.
+    ///
+    /// Returns the job summary and the name of the container that was created.
+    fn execute_run(
+        &self,
+        run: &Run,
+        workflow: &Workflow,
+        repo_path: &Path,
+    ) -> Result<(JobSummary, String), Box<dyn Error>> {
+        let runs_on = run.job.runs_on.as_deref().unwrap_or("ubuntu-latest");
+        let mut image = self.image_mapper.map(runs_on);
+
+        if self.runtime.pull_image(&image, None).is_err() {
+            image = self.image_mapper.fallback();
+            self.runtime
+                .pull_image(&image, None)
+                .map_err(|e| format!("{:?}", e))?;
+        }
+
+        let mut container_env = Self::build_env(workflow, &run.job.env);
+        let github_path = "/workspace/.github_path";
+        let github_env = "/workspace/.github_env";
+        container_env.insert("GITHUB_PATH".into(), github_path.into());
+        container_env.insert("GITHUB_ENV".into(), github_env.into());
+        container_env.entry("PATH".to_string()).or_insert_with(|| {
+            "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin".to_string()
+        });
+        let container_name = format!("ephemeral-act-{}-{}", run.job_id, process::id());
+        let legacy_name = format!("ephemeral-act-{}", run.job_id);
+        let _ = self.runtime.remove_container(&legacy_name);
+        let _ = self.runtime.remove_container(&container_name);
+        let container_config = ContainerConfig {
+            image: image.clone(),
+            platform: None,
+            env: HashMap::new(),
+            binds: vec![format!("{}:/workspace:Z", repo_path.display())],
+            workdir: Some("/workspace".into()),
+            cmd: Some(vec!["sleep".into(), "infinity".into()]),
+            entrypoint: None,
+            network: None,
+            name: Some(container_name.clone()),
+            runner_context: RunnerContext::default(),
+        };
+
+        let container = self
+            .runtime
+            .create_container(&container_config)
+            .map_err(|e| format!("{:?}", e))?;
+
+        let mut step_env = container_env.clone();
+        let mut extra_path: Vec<String> = Vec::new();
+
+        let mut job_success = true;
+        let mut steps: Vec<StepSummary> = Vec::new();
+        for step in &run.job.steps {
+            let path = if extra_path.is_empty() {
+                step_env.get("PATH").cloned().unwrap_or_default()
+            } else {
+                let base = step_env.get("PATH").cloned().unwrap_or_default();
+                format!("{}:{}", extra_path.join(":"), base)
+            };
+            step_env.insert("PATH".into(), path);
+
+            let step_label = step
+                .name
+                .as_deref()
+                .or(step.id.as_deref())
+                .or(step.run.as_deref())
+                .or(step.uses.as_deref())
+                .unwrap_or("unnamed step");
+
+            let step_type = step.step_type();
+            let continue_on_error = step.continues_on_error();
+            let step_started_at = Instant::now();
+
+            let (exit_code, stdout, stderr) =
+                match StepRunnerService::execute(step, container.as_ref(), repo_path, &step_env) {
+                    Ok(result) => {
+                        if result.exit_code != 0 && !continue_on_error {
+                            job_success = false;
+                        }
+                        (Some(result.exit_code), result.stdout, result.stderr)
+                    }
+                    Err(e) => {
+                        if !continue_on_error {
+                            job_success = false;
+                        }
+                        (
+                            None,
+                            e.stdout,
+                            format!("step error: {}\n{}", e.message, e.stderr),
+                        )
+                    }
+                };
+            steps.push(StepSummary {
+                name: step_label.to_string(),
+                step_type,
+                exit_code,
+                continue_on_error,
+                duration: step_started_at.elapsed(),
+                stdout,
+                stderr,
+            });
+
+            if let Ok(output) =
+                container.exec(&["cat".into(), github_path.into()], None, &HashMap::new())
+            {
+                for line in output.stdout.lines() {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        extra_path.push(trimmed.to_string());
+                    }
+                }
+            }
+            if let Ok(output) =
+                container.exec(&["cat".into(), github_env.into()], None, &HashMap::new())
+            {
+                for line in output.stdout.lines() {
+                    let trimmed = line.trim();
+                    if let Some((key, value)) = trimmed.split_once('=') {
+                        step_env.insert(key.to_string(), value.to_string());
+                    }
+                }
+            }
+        }
+
+        Ok((
+            JobSummary {
+                job_id: run.job_id.clone(),
+                name: run.job.name.clone(),
+                steps,
+                success: job_success,
+            },
+            container_name,
+        ))
+    }
+
+    /// Runs every job of a single workflow file.
+    fn execute_workflow(
+        &self,
+        workflow_path: &Path,
+        repo_path: &Path,
+    ) -> Result<WorkflowExecution, Box<dyn Error>> {
+        let yaml = read_to_string(workflow_path)?;
+        let workflow: Workflow = serde_yaml::from_str(&yaml)?;
+        let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
+        let plan = Planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
+
+        let mut job_summaries: Vec<JobSummary> = Vec::new();
+        let mut container_names: Vec<String> = Vec::new();
+        let mut success = true;
+
+        for stage in &plan.stages {
+            for run in &stage.runs {
+                let (job_summary, container_name) = self.execute_run(run, &workflow, repo_path)?;
+                success &= job_summary.success;
+                job_summaries.push(job_summary);
+                container_names.push(container_name);
+            }
+        }
+
+        Ok(WorkflowExecution {
+            workflow_name,
+            job_summaries,
+            container_names,
+            success,
+        })
+    }
+
+    /// Runs every workflow file in the repository sequentially.
+    fn execute_every_workflow(
+        &self,
+        repo_path: &Path,
+    ) -> Result<WorkflowExecution, Box<dyn Error>> {
+        let mut merged = WorkflowExecution {
+            workflow_name: ALL_WORKFLOWS_SUMMARY_NAME.into(),
+            job_summaries: Vec::new(),
+            container_names: Vec::new(),
+            success: true,
+        };
+
+        for workflow_path in self.find_all_workflows(repo_path)? {
+            let WorkflowExecution {
+                workflow_name,
+                job_summaries,
+                container_names,
+                success,
+            } = self.execute_workflow(&workflow_path, repo_path)?;
+
+            merged
+                .job_summaries
+                .extend(job_summaries.into_iter().map(|mut job| {
+                    job.name = job.name.map(|name| format!("{} / {}", workflow_name, name));
+                    job
+                }));
+            merged.container_names.extend(container_names);
+            merged.success &= success;
+        }
+
+        Ok(merged)
+    }
 }
 
 impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActPort
@@ -105,166 +345,24 @@ impl<R: ContainerRuntimePort, M: ImageMapperPort, E: EventPublisherPort> RunActP
     fn execute(&self, request: RunActRequest) -> Result<RunSummary, Box<dyn Error>> {
         let RunActRequest { config, repository } = request;
         let repo_path = repository.path().as_path();
-
-        let workflow_path = self.find_workflow(&config, repo_path)?;
-
-        let yaml = read_to_string(&workflow_path)?;
-        let workflow: Workflow = serde_yaml::from_str(&yaml)?;
-        let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
-
-        let planner = Planner::new();
-        let plan = planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
-
         let started_at = Instant::now();
-        let mut job_summaries: Vec<JobSummary> = Vec::new();
-        let mut success = true;
 
-        let mut container_names: Vec<String> = Vec::new();
-
-        for stage in &plan.stages {
-            for run in &stage.runs {
-                let runs_on = run.job.runs_on.as_deref().unwrap_or("ubuntu-latest");
-                let mut image = self.image_mapper.map(runs_on);
-
-                if self.runtime.pull_image(&image, None).is_err() {
-                    image = self.image_mapper.fallback();
-                    self.runtime
-                        .pull_image(&image, None)
-                        .map_err(|e| format!("{:?}", e))?;
-                }
-
-                let mut container_env = Self::build_env(&workflow, &run.job.env);
-                let github_path = "/workspace/.github_path";
-                let github_env = "/workspace/.github_env";
-                container_env.insert("GITHUB_PATH".into(), github_path.into());
-                container_env.insert("GITHUB_ENV".into(), github_env.into());
-                container_env.entry("PATH".to_string()).or_insert_with(|| {
-                    "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin".to_string()
-                });
-                let container_name = format!("ephemeral-act-{}-{}", run.job_id, process::id());
-                let legacy_name = format!("ephemeral-act-{}", run.job_id);
-                let _ = self.runtime.remove_container(&legacy_name);
-                let _ = self.runtime.remove_container(&container_name);
-                let container_config = ContainerConfig {
-                    image: image.clone(),
-                    platform: None,
-                    env: HashMap::new(),
-                    binds: vec![format!("{}:/workspace:Z", repo_path.display())],
-                    workdir: Some("/workspace".into()),
-                    cmd: Some(vec!["sleep".into(), "infinity".into()]),
-                    entrypoint: None,
-                    network: None,
-                    name: Some(container_name.clone()),
-                    runner_context: RunnerContext::default(),
-                };
-
-                let container = self
-                    .runtime
-                    .create_container(&container_config)
-                    .map_err(|e| format!("{:?}", e))?;
-                container_names.push(container_name);
-
-                let mut step_env = container_env.clone();
-                let mut extra_path: Vec<String> = Vec::new();
-
-                let mut job_success = true;
-                let mut steps: Vec<StepSummary> = Vec::new();
-                for step in &run.job.steps {
-                    let path = if extra_path.is_empty() {
-                        step_env.get("PATH").cloned().unwrap_or_default()
-                    } else {
-                        let base = step_env.get("PATH").cloned().unwrap_or_default();
-                        format!("{}:{}", extra_path.join(":"), base)
-                    };
-                    step_env.insert("PATH".into(), path);
-
-                    let step_label = step
-                        .name
-                        .as_deref()
-                        .or(step.id.as_deref())
-                        .or(step.run.as_deref())
-                        .or(step.uses.as_deref())
-                        .unwrap_or("unnamed step");
-
-                    let step_type = step.step_type();
-                    let continue_on_error = step.continues_on_error();
-                    let step_started_at = Instant::now();
-
-                    let (exit_code, stdout, stderr) = match StepRunnerService::execute(
-                        step,
-                        container.as_ref(),
-                        repo_path,
-                        &step_env,
-                    ) {
-                        Ok(result) => {
-                            if result.exit_code != 0 && !continue_on_error {
-                                job_success = false;
-                                success = false;
-                            }
-                            (Some(result.exit_code), result.stdout, result.stderr)
-                        }
-                        Err(e) => {
-                            if !continue_on_error {
-                                job_success = false;
-                                success = false;
-                            }
-                            (
-                                None,
-                                e.stdout,
-                                format!("step error: {}\n{}", e.message, e.stderr),
-                            )
-                        }
-                    };
-                    steps.push(StepSummary {
-                        name: step_label.to_string(),
-                        step_type,
-                        exit_code,
-                        continue_on_error,
-                        duration: step_started_at.elapsed(),
-                        stdout,
-                        stderr,
-                    });
-
-                    if let Ok(output) =
-                        container.exec(&["cat".into(), github_path.into()], None, &HashMap::new())
-                    {
-                        for line in output.stdout.lines() {
-                            let trimmed = line.trim();
-                            if !trimmed.is_empty() {
-                                extra_path.push(trimmed.to_string());
-                            }
-                        }
-                    }
-                    if let Ok(output) =
-                        container.exec(&["cat".into(), github_env.into()], None, &HashMap::new())
-                    {
-                        for line in output.stdout.lines() {
-                            let trimmed = line.trim();
-                            if let Some((key, value)) = trimmed.split_once('=') {
-                                step_env.insert(key.to_string(), value.to_string());
-                            }
-                        }
-                    }
-                }
-                job_summaries.push(JobSummary {
-                    job_id: run.job_id.clone(),
-                    name: run.job.name.clone(),
-                    steps,
-                    success: job_success,
-                });
-            }
-        }
+        let execution = if config.all_workflows() {
+            self.execute_every_workflow(repo_path)?
+        } else {
+            self.execute_workflow(&self.find_workflow(&config, repo_path)?, repo_path)?
+        };
 
         self.event_publisher
             .publish(DomainEvent::ActRunCompleted(ActRunCompletedPayload {
-                container_names,
-                success,
+                container_names: execution.container_names,
+                success: execution.success,
             }));
 
         Ok(RunSummary {
-            name: workflow_name,
-            job_summaries,
-            success,
+            name: execution.workflow_name,
+            job_summaries: execution.job_summaries,
+            success: execution.success,
             duration: started_at.elapsed(),
         })
     }
