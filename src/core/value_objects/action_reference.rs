@@ -17,7 +17,7 @@ const DEFAULT_GIT_REF: &str = "main";
 /// # Examples
 ///
 /// ```
-/// # use ephemeral_act::core::value_objects::ActionReference;
+/// # use ephact::core::value_objects::ActionReference;
 /// let reference = ActionReference::parse("https://data.forgejo.org/actions/cache@v4").unwrap();
 /// let ActionReference::Remote(remote) = reference else { panic!("expected a remote action") };
 /// assert_eq!(remote.clone_url(), "https://data.forgejo.org/actions/cache");

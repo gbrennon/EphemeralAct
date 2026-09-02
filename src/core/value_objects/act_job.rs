@@ -7,7 +7,7 @@ impl ActJob {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::ActJob;
+    /// # use ephact::core::value_objects::ActJob;
     /// let job = ActJob::new("test".into());
     /// assert_eq!(job.as_str(), "test");
     /// ```

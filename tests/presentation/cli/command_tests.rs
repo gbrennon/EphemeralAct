@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ephemeral_act::presentation::cli::Cli;
+    use ephact::presentation::cli::Cli;
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
@@ -19,7 +19,7 @@ mod tests {
     fn run_subcommand_dispatches_to_run_handler() {
         let cli = make_cli();
 
-        let result = cli.run(["ephemeral-act", "run"]);
+        let result = cli.run(["ephact", "run"]);
 
         assert!(result.is_ok());
     }
@@ -28,7 +28,7 @@ mod tests {
     fn list_workflows_subcommand_dispatches_to_list_workflows_handler() {
         let cli = make_cli();
 
-        let result = cli.run(["ephemeral-act", "list-workflows"]);
+        let result = cli.run(["ephact", "list-workflows"]);
 
         assert!(result.is_ok());
     }
@@ -37,7 +37,7 @@ mod tests {
     fn list_actions_subcommand_dispatches_to_list_actions_handler() {
         let cli = make_cli();
 
-        let result = cli.run(["ephemeral-act", "list-actions"]);
+        let result = cli.run(["ephact", "list-actions"]);
 
         assert!(result.is_ok());
     }

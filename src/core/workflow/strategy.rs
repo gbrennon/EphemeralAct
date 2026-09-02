@@ -10,7 +10,7 @@ use super::Matrix;
 /// # Examples
 ///
 /// ```
-/// use ephemeral_act::core::workflow::Strategy;
+/// use ephact::core::workflow::Strategy;
 ///
 /// let yaml = r#"
 /// matrix:

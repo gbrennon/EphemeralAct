@@ -2,7 +2,7 @@
 mod tests {
     use std::time::Duration;
 
-    use ephemeral_act::{
+    use ephact::{
         core::dtos::{JobSummary, RunSummary, StepSummary, StepType},
         presentation::cli::{parse_run_test_args, run_handler::RunHandler},
     };

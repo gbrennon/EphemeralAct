@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use ephemeral_act::core::{
+use ephact::core::{
     dtos::ExecuteActionRequest, expression::EvalContext, ports::outbound::ContainerPort,
 };
 

@@ -7,7 +7,7 @@ impl ActWorkflow {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::ActWorkflow;
+    /// # use ephact::core::value_objects::ActWorkflow;
     /// let wf = ActWorkflow::new(".github/workflows/ci.yml".into());
     /// assert_eq!(wf.as_str(), ".github/workflows/ci.yml");
     /// ```

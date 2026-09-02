@@ -10,8 +10,8 @@ use crate::core::ports::outbound::ImageMapperPort;
 /// # Examples
 ///
 /// ```
-/// use ephemeral_act::core::ports::outbound::ImageMapperPort;
-/// use ephemeral_act::infrastructure::PlatformImageMapper;
+/// use ephact::core::ports::outbound::ImageMapperPort;
+/// use ephact::infrastructure::PlatformImageMapper;
 ///
 /// let mapper = PlatformImageMapper;
 /// assert_eq!(mapper.map("ubuntu-latest"), "catthehacker/ubuntu:act-latest");

@@ -6,17 +6,17 @@ use clap::Parser;
 /// never interact with it directly.
 #[derive(Parser)]
 #[command(
-    name = "ephemeral-act",
+    name = "ephact",
     about = "Run GitHub Actions locally in ephemeral repositories",
     long_about = "Runs CI workflows in an ephemeral copy of a repository using \
                   `act`. The CI host is auto-detected from the \
                   repository layout; see `run --help` for the available options.",
     arg_required_else_help = true,
     after_long_help = r#"EXAMPLES:
-    ephemeral-act run
-    ephemeral-act run --workflow ci.yml --job test
-    ephemeral-act run --event push --secret TOKEN=abc123
-    ephemeral-act run --container-engine docker
+    ephact run
+    ephact run --workflow ci.yml --job test
+    ephact run --event push --secret TOKEN=abc123
+    ephact run --container-engine docker
 
 CI host from the repository layout and manages ephemeral copies internally."#
 )]
@@ -29,7 +29,7 @@ pub struct CliParser {
 ///
 /// Intended for use in tests — avoids depending on `std::env::args()`.
 pub fn parse_run_test_args(args: &[&str]) -> super::run_args::RunArgs {
-    let mut full: Vec<&str> = vec!["ephemeral-act", "run"];
+    let mut full: Vec<&str> = vec!["ephact", "run"];
     full.extend_from_slice(args);
     let cli = CliParser::parse_from(&full);
     match cli.command {
@@ -44,7 +44,7 @@ pub fn parse_run_test_args(args: &[&str]) -> super::run_args::RunArgs {
 pub fn parse_list_workflows_test_args(
     args: &[&str],
 ) -> super::list_workflows_args::ListWorkflowsArgs {
-    let mut full: Vec<&str> = vec!["ephemeral-act", "list-workflows"];
+    let mut full: Vec<&str> = vec!["ephact", "list-workflows"];
     full.extend_from_slice(args);
     let cli = CliParser::parse_from(&full);
     match cli.command {
@@ -57,7 +57,7 @@ pub fn parse_list_workflows_test_args(
 ///
 /// Intended for use in tests.
 pub fn parse_list_actions_test_args(args: &[&str]) -> super::list_actions_args::ListActionsArgs {
-    let mut full: Vec<&str> = vec!["ephemeral-act", "list-actions"];
+    let mut full: Vec<&str> = vec!["ephact", "list-actions"];
     full.extend_from_slice(args);
     let cli = CliParser::parse_from(&full);
     match cli.command {

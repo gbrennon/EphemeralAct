@@ -10,7 +10,7 @@ use super::{ActionInput, ActionRuns};
 /// # Examples
 ///
 /// ```
-/// use ephemeral_act::core::workflow::{ActionDefinition, ActionRuns};
+/// use ephact::core::workflow::{ActionDefinition, ActionRuns};
 ///
 /// let yaml = r#"
 /// name: My Action

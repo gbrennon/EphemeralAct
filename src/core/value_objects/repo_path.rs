@@ -20,7 +20,7 @@ impl RepoPath {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::RepoPath;
+    /// # use ephact::core::value_objects::RepoPath;
     /// # use std::env;
     /// # let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     /// let repo = RepoPath::new(dir).unwrap();

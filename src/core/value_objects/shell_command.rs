@@ -27,7 +27,7 @@ impl ShellCommand {
     ///
     /// ```
     /// # use std::collections::HashMap;
-    /// # use ephemeral_act::core::{value_objects::ShellCommand, workflow::Step};
+    /// # use ephact::core::{value_objects::ShellCommand, workflow::Step};
     /// let step: Step = serde_yaml::from_str("run: echo hi\n").unwrap();
     /// let command = ShellCommand::for_step(&step, &HashMap::new()).unwrap();
     /// assert_eq!(command.argv(), ["bash", "-c", "echo hi"]);

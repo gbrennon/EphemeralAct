@@ -11,7 +11,7 @@ use serde_json::Value;
 /// # Example
 ///
 /// ```rust
-/// use ephemeral_act::core::expression::context::EvalContext;
+/// use ephact::core::expression::context::EvalContext;
 ///
 /// let ctx = EvalContext::new();
 /// assert!(ctx.github.is_object());

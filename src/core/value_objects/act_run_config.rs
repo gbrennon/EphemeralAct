@@ -20,7 +20,7 @@ impl ActRunConfig {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::ActRunConfig;
+    /// # use ephact::core::ActRunConfig;
     /// let config = ActRunConfig::new();
     /// assert!(config.workflow().is_none());
     /// ```

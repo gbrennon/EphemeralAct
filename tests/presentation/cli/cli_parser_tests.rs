@@ -1,11 +1,11 @@
 use clap::Parser;
-use ephemeral_act::presentation::cli::{CliParser, parse_run_test_args, run_handler::RunHandler};
+use ephact::presentation::cli::{CliParser, parse_run_test_args, run_handler::RunHandler};
 
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
 
-    use ephemeral_act::core::dtos::RunSummary;
+    use ephact::core::dtos::RunSummary;
 
     use super::*;
     use crate::common::fakes::stub_run_act_port::StubRunActPort;
@@ -39,7 +39,7 @@ mod tests {
 
     #[test]
     fn no_args_displays_help() {
-        let result = CliParser::try_parse_from(["ephemeral-act"]);
+        let result = CliParser::try_parse_from(["ephact"]);
         let err = match result {
             Ok(_) => panic!("expected missing-command error"),
             Err(e) => e,

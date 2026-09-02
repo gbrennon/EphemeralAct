@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ephemeral_act::core::ports::outbound::{
+use ephact::core::ports::outbound::{
     ContainerError, ContainerPort, ExecResult, FileEntry, RunnerContext,
 };
 

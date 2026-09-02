@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use ephemeral_act::core::ports::outbound::ImageMapperPort;
+use ephact::core::ports::outbound::ImageMapperPort;
 
 pub struct FakeImageMapper;
 

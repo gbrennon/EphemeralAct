@@ -1,4 +1,4 @@
-use ephemeral_act::{
+use ephact::{
     core::ports::outbound::workflow_file_parser::WorkflowFileParserPort,
     infrastructure::workflows::FilesystemWorkflowFileParser,
 };

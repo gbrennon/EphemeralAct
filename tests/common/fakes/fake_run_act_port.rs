@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::time::Duration;
 
-use ephemeral_act::core::{
+use ephact::core::{
     dtos::{RunActRequest, RunSummary},
     ports::inbound::run_act_port::RunActPort,
 };

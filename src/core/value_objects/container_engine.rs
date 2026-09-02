@@ -14,7 +14,7 @@ impl ContainerEngine {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::ContainerEngine;
+    /// # use ephact::core::value_objects::ContainerEngine;
     /// assert_eq!(ContainerEngine::Podman.as_str(), "podman");
     /// assert_eq!(ContainerEngine::Docker.as_str(), "docker");
     /// ```
@@ -37,7 +37,7 @@ impl FromStr for ContainerEngine {
     ///
     /// ```
     /// # use std::str::FromStr;
-    /// # use ephemeral_act::core::value_objects::ContainerEngine;
+    /// # use ephact::core::value_objects::ContainerEngine;
     /// assert!(ContainerEngine::from_str("podman").is_ok());
     /// assert!(ContainerEngine::from_str("docker").is_ok());
     /// assert!(ContainerEngine::from_str("lxc").is_err());

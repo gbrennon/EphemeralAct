@@ -13,7 +13,7 @@ impl RepositoryName {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::RepositoryName;
+    /// # use ephact::core::value_objects::RepositoryName;
     /// let name = RepositoryName::new("my-repo".into()).unwrap();
     /// assert_eq!(name.as_str(), "my-repo");
     /// ```
@@ -32,7 +32,7 @@ impl RepositoryName {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::{RepoPath, RepositoryName};
+    /// # use ephact::core::value_objects::{RepoPath, RepositoryName};
     /// # use std::env;
     /// # let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     /// let repo_path = RepoPath::new(dir).unwrap();

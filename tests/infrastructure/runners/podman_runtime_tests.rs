@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ephemeral_act::{
+use ephact::{
     core::ports::outbound::{ContainerConfig, ContainerRuntimePort, FileEntry},
     infrastructure::runners::PodmanRuntime,
 };
