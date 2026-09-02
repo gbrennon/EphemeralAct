@@ -20,7 +20,8 @@ pub use self::{
     },
     errors::core_error::CoreError,
     value_objects::{
-        ActEvent, ActExtraArg, ActInput, ActJob, ActRunConfig, ActWorkflow, CleanupPolicy,
-        ContainerEngine, GitDirKind, RepoPath, RepositoryName, Secret,
+        ActEvent, ActInput, ActJob, ActRunConfig, ActWorkflow, ActionReference, CleanupPolicy,
+        ContainerEngine, GitDirKind, RemoteActionReference, RepoPath, RepositoryName, Secret,
+        ShellCommand,
     },
 };

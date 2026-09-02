@@ -1,3 +1,5 @@
+pub mod fake_action_fetcher;
+pub mod fake_container_handle;
 pub mod fake_event_publisher;
 pub mod fake_image_mapper;
 pub mod fake_list_actions_port;
@@ -5,4 +7,9 @@ pub mod fake_list_workflows_port;
 pub mod fake_run_act_port;
 pub mod fake_runtime;
 pub mod fake_workflow_file_parser;
+pub mod shared_fake_runtime;
+pub mod spy_action_handler;
+pub mod spy_cleanup_handler;
+pub mod stub_container;
+pub mod stub_failing_action_fetcher;
 pub mod stub_run_act_port;

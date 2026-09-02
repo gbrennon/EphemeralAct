@@ -51,11 +51,11 @@ lint-fix +files='':
 
 # Format source files (optionally specify files)
 fmt *files:
-	cargo +nightly fmt {{ files }}
+	cargo fmt {{ files }}
 
 # Check formatting without modifying files
 fmt-check:
-	cargo +nightly fmt --check
+	cargo fmt --check
 
 # Install required dev tools
 tools:
