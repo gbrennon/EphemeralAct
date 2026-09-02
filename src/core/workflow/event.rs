@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use super::EventConfig;
+use super::{EventConfig, OnVisitor};
 
 /// The event(s) that trigger a workflow.
 ///
@@ -87,42 +87,6 @@ impl<'de> Deserialize<'de> for On {
     where
         D: serde::Deserializer<'de>,
     {
-        use serde::de;
-
-        struct OnVisitor;
-
-        impl<'de> de::Visitor<'de> for OnVisitor {
-            type Value = On;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("a string, sequence of strings, or mapping of event configs")
-            }
-
-            fn visit_str<E: de::Error>(self, value: &str) -> Result<On, E> {
-                Ok(On::Single(value.to_owned()))
-            }
-
-            fn visit_string<E: de::Error>(self, value: String) -> Result<On, E> {
-                Ok(On::Single(value))
-            }
-
-            fn visit_seq<A: de::SeqAccess<'de>>(self, mut seq: A) -> Result<On, A::Error> {
-                let mut events = Vec::new();
-                while let Some(event) = seq.next_element::<String>()? {
-                    events.push(event);
-                }
-                Ok(On::Multiple(events))
-            }
-
-            fn visit_map<M: de::MapAccess<'de>>(self, mut map: M) -> Result<On, M::Error> {
-                let mut events = HashMap::new();
-                while let Some((key, value)) = map.next_entry::<String, Option<EventConfig>>()? {
-                    events.insert(key, value);
-                }
-                Ok(On::WithTypes(events))
-            }
-        }
-
         deserializer.deserialize_any(OnVisitor)
     }
 }

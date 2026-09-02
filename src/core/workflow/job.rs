@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use super::{Concurrency, ContainerConfig, Permissions, Step, Strategy};
+use super::{Concurrency, ContainerConfig, JobNeedsVisitor, Permissions, Step, Strategy};
 
 /// A job in a GitHub Actions workflow.
 ///
@@ -37,7 +37,7 @@ pub struct Job {
     pub steps: Vec<Step>,
 
     /// Jobs that must complete successfully before this job runs.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "JobNeedsVisitor::deserialize")]
     pub needs: Vec<String>,
 
     /// An expression that determines whether the job runs.
