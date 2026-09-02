@@ -1,6 +1,6 @@
 use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
-use ephemeral_act::core::{
+use ephact::core::{
     errors::ActionError, ports::outbound::ActionFetcherPort, value_objects::RemoteActionReference,
 };
 

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use ephemeral_act::core::ports::outbound::{
+use ephact::core::ports::outbound::{
     ContainerError, ContainerPort, ExecResult, FileEntry, RunnerContext,
 };
 

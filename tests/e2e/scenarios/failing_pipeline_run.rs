@@ -1,7 +1,7 @@
 use crate::{
     fakes::{failing_runtime::FailingRuntime, mirrored_action_fetcher::MirroredActionFetcher},
     support::{
-        container_activity::ContainerActivity, ephemeral_act_application::EphemeralActApplication,
+        container_activity::ContainerActivity, ephact_application::EphactApplication,
         workflow_repository::WorkflowRepository,
     },
 };
@@ -47,7 +47,7 @@ impl FailingPipelineRun {
             .with_workflow("release.yml", RELEASE_WORKFLOW)
             .with_action(".forgejo/actions/release", RELEASE_ACTION);
         let activity = ContainerActivity::new();
-        let application = EphemeralActApplication::compose(
+        let application = EphactApplication::compose(
             FailingRuntime::recording(activity.clone()),
             MirroredActionFetcher::mirroring(repository.path()),
         );
@@ -55,7 +55,7 @@ impl FailingPipelineRun {
         let outcome = application
             .cli
             .run([
-                "ephemeral_act",
+                "ephact",
                 "run",
                 &repository.path_argument(),
                 "--workflow",

@@ -1,4 +1,4 @@
-use ephemeral_act::presentation::cli::{RunArgs, parse_run_test_args};
+use ephact::presentation::cli::{RunArgs, parse_run_test_args};
 
 #[cfg(test)]
 mod tests {

@@ -20,7 +20,7 @@ impl ActRunConfig {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::ActRunConfig;
+    /// # use ephact::core::ActRunConfig;
     /// let config = ActRunConfig::new();
     /// assert!(config.workflow().is_none());
     /// ```
@@ -45,7 +45,7 @@ impl Default for ActRunConfig {
     }
 }
 
-/// Builder API — fluent setters that consume and return `Self`.
+/// Builder API - fluent setters that consume and return `Self`.
 impl ActRunConfig {
     /// Sets the workflow file to run.
     pub fn with_workflow(mut self, workflow: ActWorkflow) -> Self {

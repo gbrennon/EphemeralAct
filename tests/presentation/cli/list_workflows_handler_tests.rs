@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ephemeral_act::presentation::cli::{ListWorkflowsHandler, parse_list_workflows_test_args};
+    use ephact::presentation::cli::{ListWorkflowsHandler, parse_list_workflows_test_args};
 
     use crate::common::fakes::fake_list_workflows_port::FakeListWorkflowsPort;
 

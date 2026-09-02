@@ -1,6 +1,6 @@
 use std::{path::Path, process::Command};
 
-use ephemeral_act::{
+use ephact::{
     core::{ports::outbound::ActionFetcherPort, value_objects::RemoteActionReference},
     infrastructure::GitActionFetcher,
 };

@@ -9,7 +9,7 @@ use crate::core::{
 /// Application service that reacts to workflow completion by cleaning up
 /// containers created during the run.
 ///
-/// Implements [`ContainerCleanupPort`] — stops and removes containers
+/// Implements [`ContainerCleanupPort`] - stops and removes containers
 /// but does NOT delete cached images.
 pub struct ContainerCleanupService<R: ContainerRuntimePort> {
     runtime: R,

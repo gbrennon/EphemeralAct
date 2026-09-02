@@ -172,7 +172,7 @@ impl<'a> Functions<'a> {
         serde_json::from_str(s).map_err(|e| EvalError::JsonError(format!("fromJson: {e}")))
     }
 
-    /// Always returns `true` — stub for job status check.
+    /// Always returns `true` - stub for job status check.
     ///
     /// In a full implementation this would consult the workflow context
     /// to determine whether all previous steps succeeded.
@@ -180,17 +180,17 @@ impl<'a> Functions<'a> {
         Ok(Value::Bool(true))
     }
 
-    /// Always returns `true` — stub for unconditional execution check.
+    /// Always returns `true` - stub for unconditional execution check.
     pub fn always(&self) -> Result<Value, EvalError> {
         Ok(Value::Bool(true))
     }
 
-    /// Always returns `false` — stub for cancellation check.
+    /// Always returns `false` - stub for cancellation check.
     pub fn cancelled(&self) -> Result<Value, EvalError> {
         Ok(Value::Bool(false))
     }
 
-    /// Always returns `false` — stub for failure check.
+    /// Always returns `false` - stub for failure check.
     pub fn failure(&self) -> Result<Value, EvalError> {
         Ok(Value::Bool(false))
     }

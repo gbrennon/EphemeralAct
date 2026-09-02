@@ -17,8 +17,8 @@ impl EphemeralRepository {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::{CleanupPolicy, RepoPath, RepositoryName};
-    /// # use ephemeral_act::core::{EphemeralRepository, Repository};
+    /// # use ephact::core::value_objects::{CleanupPolicy, RepoPath, RepositoryName};
+    /// # use ephact::core::{EphemeralRepository, Repository};
     /// # use std::env;
     /// # let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     /// let source = Repository::new(

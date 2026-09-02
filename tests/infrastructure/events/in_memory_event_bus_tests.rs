@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ephemeral_act::{
+    use ephact::{
         core::{
             events::{
                 ActRunCompletedPayload, ActionExecutionRequestedPayload, DomainEvent, EventOutcome,

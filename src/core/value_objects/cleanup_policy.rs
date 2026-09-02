@@ -10,7 +10,7 @@ impl CleanupPolicy {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::CleanupPolicy;
+    /// # use ephact::core::value_objects::CleanupPolicy;
     /// assert!(CleanupPolicy::CleanupOnExit.should_cleanup());
     /// assert!(!CleanupPolicy::Preserve.should_cleanup());
     /// ```

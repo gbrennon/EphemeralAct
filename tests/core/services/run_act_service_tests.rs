@@ -2,7 +2,7 @@
 mod tests {
     use std::{path::Path, rc::Rc};
 
-    use ephemeral_act::core::{
+    use ephact::core::{
         ActRunConfig, ActWorkflow, RepoPath, Repository, RepositoryName,
         dtos::{RunActRequest, StepType},
         events::DomainEvent,

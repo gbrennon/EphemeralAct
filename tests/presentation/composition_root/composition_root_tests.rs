@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ephemeral_act::presentation::composition_root::CompositionRoot;
+    use ephact::presentation::composition_root::CompositionRoot;
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,

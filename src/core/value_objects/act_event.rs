@@ -7,7 +7,7 @@ impl ActEvent {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::ActEvent;
+    /// # use ephact::core::value_objects::ActEvent;
     /// let event = ActEvent::new("push".into());
     /// assert_eq!(event.as_str(), "push");
     /// ```
