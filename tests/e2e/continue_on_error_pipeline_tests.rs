@@ -12,12 +12,10 @@ mod tests {
 
         fn a_tolerated_failure_does_not_stop_the_following_step() {
             let run = ContinueOnErrorPipelineRun::execute();
-            assert!(
-                run.activity.ran_before(
-                    ContinueOnErrorPipelineRun::DEPENDENCY_SCRIPT,
-                    ContinueOnErrorPipelineRun::LICENSE_SCRIPT
-                )
-            );
+            assert!(run.activity.ran_before(
+                ContinueOnErrorPipelineRun::DEPENDENCY_SCRIPT,
+                ContinueOnErrorPipelineRun::LICENSE_SCRIPT
+            ));
         }
     }
 

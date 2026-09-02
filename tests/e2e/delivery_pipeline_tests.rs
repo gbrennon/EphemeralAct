@@ -1,7 +1,8 @@
 #[cfg(test)]
 mod tests {
     use crate::{
-        fakes::fixed_image_mapper::RUNNER_IMAGE, scenarios::delivery_pipeline_run::DeliveryPipelineRun,
+        fakes::fixed_image_mapper::RUNNER_IMAGE,
+        scenarios::delivery_pipeline_run::DeliveryPipelineRun,
     };
 
     struct DeliveryPipelineTests;
@@ -19,19 +20,22 @@ mod tests {
 
         fn jobs_run_in_the_order_their_dependencies_require() {
             let run = DeliveryPipelineRun::execute();
-            assert!(
-                run.activity
-                    .ran_before(DeliveryPipelineRun::CONTEXT_SCRIPT, DeliveryPipelineRun::PACKAGE_SCRIPT)
-            );
-            assert!(
-                run.activity
-                    .ran_before(DeliveryPipelineRun::PACKAGE_SCRIPT, DeliveryPipelineRun::PUBLISH_SCRIPT)
-            );
+            assert!(run.activity.ran_before(
+                DeliveryPipelineRun::CONTEXT_SCRIPT,
+                DeliveryPipelineRun::PACKAGE_SCRIPT
+            ));
+            assert!(run.activity.ran_before(
+                DeliveryPipelineRun::PACKAGE_SCRIPT,
+                DeliveryPipelineRun::PUBLISH_SCRIPT
+            ));
         }
 
         fn workflow_and_job_environments_are_resolved_in_scripts() {
             let run = DeliveryPipelineRun::execute();
-            assert!(run.activity.ran_script(DeliveryPipelineRun::ENVIRONMENT_SCRIPT));
+            assert!(
+                run.activity
+                    .ran_script(DeliveryPipelineRun::ENVIRONMENT_SCRIPT)
+            );
         }
 
         fn the_github_and_runner_contexts_are_resolved_in_scripts() {
@@ -51,7 +55,10 @@ mod tests {
 
         fn an_action_nested_in_a_composite_action_receives_inputs_and_secrets() {
             let run = DeliveryPipelineRun::execute();
-            assert!(run.activity.ran_script(DeliveryPipelineRun::CHECKSUM_SCRIPT));
+            assert!(
+                run.activity
+                    .ran_script(DeliveryPipelineRun::CHECKSUM_SCRIPT)
+            );
         }
 
         fn checking_out_the_repository_fetches_nothing() {
