@@ -32,7 +32,7 @@ The flags are deliberately opt‑in to keep the tool safe by default.
 **Example – Real container, real fetcher, but still no network:**
 
 ```bash
-ephemeral_act run \
+ephact run \
   --repo /path/to/myrepo \
   --workflow .github/workflows/ci.yml \
   --event push \
@@ -48,7 +48,7 @@ EphemeralAct does **not** interact with a real Git repository to determine the e
 
 ### Simulating a `push` event
 ```bash
-ephemeral_act run \
+ephact run \
   --repo /path/to/myrepo \
   --workflow .github/workflows/push.yml \
   --event push \
@@ -57,7 +57,7 @@ ephemeral_act run \
 
 ### Simulating a `pull_request` event
 ```bash
-ephemeral_act run \
+ephact run \
   --repo /path/to/myrepo \
   --workflow .github/workflows/pr.yml \
   --event pull_request \
@@ -67,7 +67,7 @@ You can also add `--secret GITHUB_TOKEN=...` if the workflow needs it.
 
 ### Simulating a `release` event (e.g. tag push)
 ```bash
-ephemeral_act run \
+ephact run \
   --repo /path/to/myrepo \
   --workflow .github/workflows/release.yml \
   --event release \
@@ -76,7 +76,7 @@ ephemeral_act run \
 
 ### Simulating a `workflow_dispatch` (manual trigger) with inputs
 ```bash
-ephemeral_act run \
+ephact run \
   --repo /path/to/myrepo \
   --workflow .github/workflows/dispatch.yml \
   --event workflow_dispatch \
@@ -98,7 +98,7 @@ If you want to test against a specific commit or tag without affecting your work
    ```
 2. Run EphemeralAct pointing at that worktree:
    ```bash
-   ephemeral_act run --repo $(pwd) --workflow .github/workflows/ci.yml --event push --ref <desired-commit>
+   ephact run --repo $(pwd) --workflow .github/workflows/ci.yml --event push --ref <desired-commit>
    ```
 
 ## Ensuring No Real‑World Modifications
@@ -117,7 +117,7 @@ git checkout feature/add-login
 git pull origin feature/add-login   # update if needed
 
 # 2. Run the workflow as a pull_request event with the merge ref
-ephemeral_act run \
+ephact run \
   --repo $(pwd) \
   --workflow .github/workflows/merge.yml \
   --event pull_request \
