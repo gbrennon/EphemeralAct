@@ -4,9 +4,7 @@ use clap::Args;
 
 use crate::core::{
     ActRunConfig, Repository,
-    value_objects::{
-        ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret,
-    },
+    value_objects::{ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret},
 };
 
 /// CLI arguments for the `run` subcommand.
@@ -36,13 +34,10 @@ pub struct RunArgs {
     #[arg(long = "input", value_name = "KEY=VALUE")]
     inputs: Vec<String>,
 
-    /// Secrets to inject into the workflow (repeatable).
-    #[arg(long = "secret")]
+    /// Secrets in `KEY=VALUE` format, or `KEY` alone to read the value from
+    /// the environment (repeatable).
+    #[arg(long = "secret", value_name = "KEY[=VALUE]")]
     secrets: Vec<String>,
-
-    /// Extra arguments forwarded directly to `act` (repeatable).
-    #[arg(long = "extra-arg")]
-    extra_args: Vec<String>,
 
     /// Run every workflow found in the repository instead of a single one.
     #[arg(long = "all-workflows")]
@@ -84,10 +79,8 @@ impl RunArgs {
             config = config.add_input(ActInput::new(k, v));
         }
         for secret_str in &self.secrets {
-            config = config.add_secret(Secret::new(secret_str.clone()));
-        }
-        for arg_str in &self.extra_args {
-            config = config.add_extra_arg(ActExtraArg::new(arg_str.clone()));
+            let (name, value) = Self::parse_secret(secret_str)?;
+            config = config.add_secret(Secret::new(name, value));
         }
 
         Ok((config, repository))
@@ -100,5 +93,20 @@ impl RunArgs {
         s.split_once('=')
             .map(|(k, v)| (k.to_string(), v.to_string()))
             .ok_or_else(|| format!("expected KEY=VALUE, got '{}'", s))
+    }
+
+    /// Splits a secret argument into its name and value.
+    ///
+    /// `KEY=VALUE` supplies the value inline; a bare `KEY` reads it from the
+    /// environment variable of the same name.
+    pub fn parse_secret(s: &str) -> Result<(String, String), String> {
+        match s.split_once('=') {
+            Some((name, value)) => Ok((name.to_string(), value.to_string())),
+            None => std::env::var(s)
+                .map(|value| (s.to_string(), value))
+                .map_err(|_| {
+                    format!("secret '{s}' has no value and no environment variable is set")
+                }),
+        }
     }
 }

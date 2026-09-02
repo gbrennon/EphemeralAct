@@ -60,10 +60,25 @@ mod tests {
     }
 
     #[test]
-    fn to_domain_with_extra_args() {
-        let args = parse_run_test_args(&["--extra-arg", "verbose", "--extra-arg", "dryrun"]);
+    fn to_domain_keeps_secret_name_and_value() {
+        let args = parse_run_test_args(&["--secret", "TOKEN=abc123"]);
         let (config, _repo) = args.to_domain().unwrap();
-        assert_eq!(config.extra_args().len(), 2);
+        assert_eq!(config.secrets()[0].name(), "TOKEN");
+        assert_eq!(config.secrets()[0].value(), "abc123");
+    }
+
+    #[test]
+    fn parse_secret_reads_value_from_environment_when_omitted() {
+        unsafe { std::env::set_var("EPHEMERAL_ACT_TEST_SECRET", "from-env") };
+        let (name, value) = RunArgs::parse_secret("EPHEMERAL_ACT_TEST_SECRET").unwrap();
+        assert_eq!(name, "EPHEMERAL_ACT_TEST_SECRET");
+        assert_eq!(value, "from-env");
+    }
+
+    #[test]
+    fn parse_secret_errors_when_no_value_is_available() {
+        let err = RunArgs::parse_secret("EPHEMERAL_ACT_ABSENT_SECRET").unwrap_err();
+        assert!(err.contains("no value"), "{err}");
     }
 
     #[test]
