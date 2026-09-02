@@ -1,4 +1,4 @@
-use crate::core::value_objects::{ActEvent, ActExtraArg, ActInput, ActJob, ActWorkflow, Secret};
+use crate::core::value_objects::{ActEvent, ActInput, ActJob, ActWorkflow, Secret};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActRunConfig {
@@ -7,7 +7,6 @@ pub struct ActRunConfig {
     event: Option<ActEvent>,
     inputs: Vec<ActInput>,
     secrets: Vec<Secret>,
-    extra_args: Vec<ActExtraArg>,
     all_workflows: bool,
 }
 
@@ -29,7 +28,6 @@ impl ActRunConfig {
             event: None,
             inputs: Vec::new(),
             secrets: Vec::new(),
-            extra_args: Vec::new(),
             all_workflows: false,
         }
     }
@@ -43,39 +41,33 @@ impl Default for ActRunConfig {
 
 /// Builder API — fluent setters that consume and return `Self`.
 impl ActRunConfig {
-    /// Sets the workflow file to run (`-w`).
+    /// Sets the workflow file to run.
     pub fn with_workflow(mut self, workflow: ActWorkflow) -> Self {
         self.workflow = Some(workflow);
         self
     }
 
-    /// Sets the specific job to run within the workflow (`-j`).
+    /// Sets the specific job to run within the workflow.
     pub fn with_job(mut self, job: ActJob) -> Self {
         self.job = Some(job);
         self
     }
 
-    /// Sets the GitHub event to simulate (`-e`).
+    /// Sets the event to simulate.
     pub fn with_event(mut self, event: ActEvent) -> Self {
         self.event = Some(event);
         self
     }
 
-    /// Adds an input variable (`-i KEY=VALUE`).
+    /// Adds an input variable.
     pub fn add_input(mut self, input: ActInput) -> Self {
         self.inputs.push(input);
         self
     }
 
-    /// Adds a secret (`-s KEY=VALUE`).
+    /// Adds a secret available to `${{ secrets.* }}` expressions.
     pub fn add_secret(mut self, secret: Secret) -> Self {
         self.secrets.push(secret);
-        self
-    }
-
-    /// Adds an extra argument passed directly to `act`.
-    pub fn add_extra_arg(mut self, arg: ActExtraArg) -> Self {
-        self.extra_args.push(arg);
         self
     }
 
@@ -113,21 +105,11 @@ impl ActRunConfig {
         &self.secrets
     }
 
-    /// Returns all extra arguments.
-    pub fn extra_args(&self) -> &[ActExtraArg] {
-        &self.extra_args
-    }
-
     /// Returns whether to run all workflows.
     pub fn all_workflows(&self) -> bool {
         self.all_workflows
     }
 }
-
-/// Validate a fully-built [`ActRunConfig`] before it is passed to the act
-/// runner.  No checks are implemented yet — the block exists as a home for
-/// future invariants (e.g. required fields, conflicting flags).
-impl ActRunConfig {}
 
 #[cfg(test)]
 mod tests {
@@ -141,8 +123,8 @@ mod tests {
         assert!(config.event().is_none());
         assert!(config.inputs().is_empty());
         assert!(config.secrets().is_empty());
-        assert!(config.extra_args().is_empty());
     }
+
     #[test]
     fn builder_adds_workflow_job_and_event() {
         let config = ActRunConfig::new()
@@ -159,21 +141,21 @@ mod tests {
     }
 
     #[test]
-    fn builder_adds_inputs_and_extra_args() {
-        let config = ActRunConfig::new()
-            .add_input(ActInput::new("environment".into(), "staging".into()))
-            .add_extra_arg(ActExtraArg::new("--verbose".into()));
+    fn builder_adds_inputs() {
+        let config =
+            ActRunConfig::new().add_input(ActInput::new("environment".into(), "staging".into()));
 
         assert_eq!(config.inputs()[0].key(), "environment");
         assert_eq!(config.inputs()[0].value(), "staging");
-        assert_eq!(config.extra_args()[0].as_str(), "--verbose");
     }
 
     #[test]
-    fn add_secret_adds_to_secrets_list() {
-        let config = ActRunConfig::new().add_secret(Secret::new("KEY".into()));
+    fn add_secret_keeps_name_and_value() {
+        let config = ActRunConfig::new().add_secret(Secret::new("KEY".into(), "value".into()));
+
         assert_eq!(config.secrets().len(), 1);
-        assert_eq!(config.secrets()[0].as_str(), "KEY");
+        assert_eq!(config.secrets()[0].name(), "KEY");
+        assert_eq!(config.secrets()[0].value(), "value");
     }
 
     #[test]
