@@ -8,6 +8,9 @@ pub struct ActRunConfig {
     inputs: Vec<ActInput>,
     secrets: Vec<Secret>,
     all_workflows: bool,
+    allow_real_container: bool,
+    allow_real_fetcher: bool,
+    allow_network: bool,
 }
 
 /// Constructors for [`ActRunConfig`].
@@ -29,6 +32,9 @@ impl ActRunConfig {
             inputs: Vec::new(),
             secrets: Vec::new(),
             all_workflows: false,
+            allow_real_container: false,
+            allow_real_fetcher: false,
+            allow_network: false,
         }
     }
 }
@@ -76,6 +82,24 @@ impl ActRunConfig {
         self.all_workflows = all_workflows;
         self
     }
+
+    /// Opt into the real container runtime adapter.
+    pub fn with_allow_real_container(mut self, allow_real_container: bool) -> Self {
+        self.allow_real_container = allow_real_container;
+        self
+    }
+
+    /// Opt into the real action fetcher that contacts the forge.
+    pub fn with_allow_real_fetcher(mut self, allow_real_fetcher: bool) -> Self {
+        self.allow_real_fetcher = allow_real_fetcher;
+        self
+    }
+
+    /// Allow containers to make outbound network requests.
+    pub fn with_allow_network(mut self, allow_network: bool) -> Self {
+        self.allow_network = allow_network;
+        self
+    }
 }
 
 /// Read-only access to each field of [`ActRunConfig`].
@@ -108,6 +132,21 @@ impl ActRunConfig {
     /// Returns whether to run all workflows.
     pub fn all_workflows(&self) -> bool {
         self.all_workflows
+    }
+
+    /// Returns whether the real container runtime was opted into.
+    pub fn allow_real_container(&self) -> bool {
+        self.allow_real_container
+    }
+
+    /// Returns whether the real action fetcher was opted into.
+    pub fn allow_real_fetcher(&self) -> bool {
+        self.allow_real_fetcher
+    }
+
+    /// Returns whether containers may make outbound network requests.
+    pub fn allow_network(&self) -> bool {
+        self.allow_network
     }
 }
 
@@ -168,6 +207,37 @@ mod tests {
     #[test]
     fn new_config_disables_all_workflows() {
         assert!(!ActRunConfig::new().all_workflows());
+    }
+
+    #[test]
+    fn new_config_disables_every_allow_flag() {
+        let config = ActRunConfig::new();
+        assert!(!config.allow_real_container());
+        assert!(!config.allow_real_fetcher());
+        assert!(!config.allow_network());
+    }
+
+    #[test]
+    fn with_allow_real_container_opts_into_the_real_runtime() {
+        assert!(
+            ActRunConfig::new()
+                .with_allow_real_container(true)
+                .allow_real_container()
+        );
+    }
+
+    #[test]
+    fn with_allow_real_fetcher_opts_into_the_real_fetcher() {
+        assert!(
+            ActRunConfig::new()
+                .with_allow_real_fetcher(true)
+                .allow_real_fetcher()
+        );
+    }
+
+    #[test]
+    fn with_allow_network_permits_outbound_requests() {
+        assert!(ActRunConfig::new().with_allow_network(true).allow_network());
     }
 
     #[test]

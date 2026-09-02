@@ -47,6 +47,20 @@ pub struct RunArgs {
     /// it up.
     #[arg(long)]
     preserve: bool,
+
+    /// Use the real Docker or Podman adapter instead of the default runtime
+    /// selection.
+    #[arg(long = "allow-real-container")]
+    allow_real_container: bool,
+
+    /// Use the real action fetcher that contacts the forge instead of a local
+    /// mirror.
+    #[arg(long = "allow-real-fetcher")]
+    allow_real_fetcher: bool,
+
+    /// Allow containers to make outbound network requests.
+    #[arg(long = "allow-network")]
+    allow_network: bool,
 }
 
 impl RunArgs {
@@ -74,6 +88,9 @@ impl RunArgs {
             config = config.with_event(ActEvent::new(event.clone()));
         }
         config = config.with_all_workflows(self.all_workflows);
+        config = config.with_allow_real_container(self.allow_real_container);
+        config = config.with_allow_real_fetcher(self.allow_real_fetcher);
+        config = config.with_allow_network(self.allow_network);
         for input_str in &self.inputs {
             let (k, v) = Self::parse_key_value(input_str)?;
             config = config.add_input(ActInput::new(k, v));
