@@ -1,6 +1,6 @@
 use ephemeral_act::{
     core::ports::outbound::workflow_file_parser::WorkflowFileParserPort,
-    infrastructure::workflow_file_parser::FilesystemWorkflowFileParser,
+    infrastructure::workflows::FilesystemWorkflowFileParser,
 };
 
 #[cfg(test)]

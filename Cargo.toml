@@ -32,3 +32,7 @@ path = "tests/infrastructure/mod.rs"
 [[test]]
 name = "presentation"
 path = "tests/presentation/mod.rs"
+
+[[test]]
+name = "e2e"
+path = "tests/e2e/mod.rs"
