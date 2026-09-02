@@ -1,3 +1,4 @@
+pub mod action_fetcher;
 pub mod container_config;
 pub mod container_runtime;
 pub mod event_publisher;
@@ -8,6 +9,7 @@ pub mod image_mapper;
 pub mod runner_context;
 pub mod workflow_file_parser;
 
+pub use action_fetcher::ActionFetcherPort;
 pub use container_config::ContainerConfig;
 pub use container_runtime::{ContainerPort, ContainerRuntimePort};
 pub use event_publisher::EventPublisherPort;

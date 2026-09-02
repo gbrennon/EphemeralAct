@@ -1,15 +1,21 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, collections::HashMap};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use ephemeral_act::core::ports::outbound::{
-    ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, ExecResult, FileEntry,
-    HostInfo, RunnerContext,
+    ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, ExecResult, HostInfo,
 };
 
+use super::fake_container_handle::FakeContainerHandle;
+
+/// Container runtime that hands out containers replaying queued exec results
+/// and recording every command and file copy they receive.
 pub struct FakeRuntime {
     pub pulled_images: RefCell<Vec<String>>,
     pub created_containers: RefCell<Vec<ContainerConfig>>,
-    pub exec_results: RefCell<Vec<ExecResult>>,
+    pub exec_results: Rc<RefCell<Vec<ExecResult>>>,
+    pub executed_commands: Rc<RefCell<Vec<Vec<String>>>>,
+    pub exec_environments: Rc<RefCell<Vec<HashMap<String, String>>>>,
+    pub copied_paths: Rc<RefCell<Vec<String>>>,
     pub removed_containers: RefCell<Vec<String>>,
     pub stopped_containers: RefCell<Vec<String>>,
 }
@@ -19,10 +25,23 @@ impl FakeRuntime {
         Self {
             pulled_images: RefCell::new(vec![]),
             created_containers: RefCell::new(vec![]),
-            exec_results: RefCell::new(vec![]),
+            exec_results: Rc::new(RefCell::new(vec![])),
+            executed_commands: Rc::new(RefCell::new(vec![])),
+            exec_environments: Rc::new(RefCell::new(vec![])),
+            copied_paths: Rc::new(RefCell::new(vec![])),
             removed_containers: RefCell::new(vec![]),
             stopped_containers: RefCell::new(vec![]),
         }
+    }
+
+    /// Returns the scripts passed to `bash -c`, in execution order.
+    pub fn executed_scripts(&self) -> Vec<String> {
+        self.executed_commands
+            .borrow()
+            .iter()
+            .filter(|command| command.len() == 3 && command[1] == "-c")
+            .map(|command| command[2].clone())
+            .collect()
     }
 }
 
@@ -37,9 +56,12 @@ impl ContainerRuntimePort for FakeRuntime {
         config: &ContainerConfig,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
         self.created_containers.borrow_mut().push(config.clone());
-        Ok(Box::new(FakeContainerHandle {
-            exec_results: self.exec_results.clone(),
-        }))
+        Ok(Box::new(FakeContainerHandle::new(
+            self.exec_results.clone(),
+            self.executed_commands.clone(),
+            self.exec_environments.clone(),
+            self.copied_paths.clone(),
+        )))
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
@@ -58,49 +80,5 @@ impl ContainerRuntimePort for FakeRuntime {
             arch: "amd64".into(),
             engine_version: "1.0".into(),
         })
-    }
-}
-
-struct FakeContainerHandle {
-    exec_results: RefCell<Vec<ExecResult>>,
-}
-
-impl ContainerPort for FakeContainerHandle {
-    fn exec(
-        &self,
-        cmd: &[String],
-        _workdir: Option<&str>,
-        _env: &HashMap<String, String>,
-    ) -> Result<ExecResult, ContainerError> {
-        if cmd.first().map(String::as_str) == Some("cat") {
-            return Err(ContainerError::ExecutionFailed(
-                "fake".into(),
-                "No such file or directory".into(),
-            ));
-        }
-        let mut results = self.exec_results.borrow_mut();
-        if results.is_empty() {
-            Ok(ExecResult {
-                exit_code: 0,
-                stdout: String::new(),
-                stderr: String::new(),
-            })
-        } else {
-            Ok(results.remove(0))
-        }
-    }
-
-    fn copy_to(&self, _path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
-        Ok(())
-    }
-    fn copy_from(&self, _path: &str) -> Result<Vec<FileEntry>, ContainerError> {
-        Ok(vec![])
-    }
-    fn remove(&self) -> Result<(), ContainerError> {
-        Ok(())
-    }
-
-    fn get_runner_context(&self) -> Result<RunnerContext, ContainerError> {
-        Ok(RunnerContext::default())
     }
 }

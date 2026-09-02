@@ -1,0 +1,1 @@
+mod platform_image_mapper_tests;

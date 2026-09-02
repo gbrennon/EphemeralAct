@@ -1,29 +1,17 @@
 use std::sync::Arc;
 
 use crate::{
-    core::{
-        ports::inbound::{
-            list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-            run_act_port::RunActPort,
-        },
-        services::{
-            container_cleanup_service::ContainerCleanupService,
-            list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
-            run_act_service::RunActService,
-        },
+    core::services::{
+        container_cleanup_service::ContainerCleanupService,
+        execute_action_service::ExecuteActionService, list_actions_service::ListActionsService,
+        list_workflows_service::ListWorkflowsService, run_act_service::RunActService,
     },
     infrastructure::{
-        PlatformImageMapper, in_memory_event_bus::InMemoryEventBus,
-        runners::ContainerRuntimeAdapter, workflow_file_parser::FilesystemWorkflowFileParser,
+        actions::GitActionFetcher, di::app_container::AppContainer, events::InMemoryEventBus,
+        images::PlatformImageMapper, runners::ContainerRuntimeAdapter,
+        workflows::FilesystemWorkflowFileParser,
     },
 };
-
-/// Holds all three application ports for the presentation layer.
-pub struct AppContainer {
-    pub run_act_port: Box<dyn RunActPort>,
-    pub list_workflows_port: Box<dyn ListWorkflowsPort>,
-    pub list_actions_port: Box<dyn ListActionsPort>,
-}
 
 /// Dependency-injection container that constructs and wires all application
 /// dependencies. Returns a fully-wired [`AppContainer`] ready for the
@@ -39,7 +27,10 @@ impl Container {
         );
         let image_mapper = PlatformImageMapper;
         let cleanup_service = ContainerCleanupService::new(runtime.clone());
-        let event_bus = InMemoryEventBus::new(Box::new(cleanup_service));
+        let execute_action_service =
+            ExecuteActionService::new(GitActionFetcher::with_default_cache_root());
+        let event_bus =
+            InMemoryEventBus::new(Box::new(cleanup_service), Box::new(execute_action_service));
 
         let parser = FilesystemWorkflowFileParser;
         let list_workflows_service = ListWorkflowsService::new(parser);
