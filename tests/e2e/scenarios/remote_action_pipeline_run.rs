@@ -3,7 +3,7 @@ use crate::{
         mirrored_action_fetcher::MirroredActionFetcher, succeeding_runtime::SucceedingRuntime,
     },
     support::{
-        container_activity::ContainerActivity, ephemeral_act_application::EphemeralActApplication,
+        container_activity::ContainerActivity, ephact_application::EphactApplication,
         remote_action_mirror::RemoteActionMirror, workflow_repository::WorkflowRepository,
     },
 };
@@ -58,7 +58,7 @@ impl RemoteActionPipelineRun {
             .with_file(Self::ENTRY_POINT_FILE, SETUP_NODE_ENTRY_POINT);
         let activity = ContainerActivity::new();
         let fetcher = MirroredActionFetcher::mirroring(mirror.path());
-        let application = EphemeralActApplication::compose(
+        let application = EphactApplication::compose(
             SucceedingRuntime::recording(activity.clone()),
             fetcher.clone(),
         );
@@ -66,7 +66,7 @@ impl RemoteActionPipelineRun {
         let outcome = application
             .cli
             .run([
-                "ephemeral_act",
+                "ephact",
                 "run",
                 &repository.path_argument(),
                 "--workflow",

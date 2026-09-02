@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ephemeral_act::presentation::cli::{ListActionsHandler, parse_list_actions_test_args};
+    use ephact::presentation::cli::{ListActionsHandler, parse_list_actions_test_args};
 
     use crate::common::fakes::fake_list_actions_port::FakeListActionsPort;
 

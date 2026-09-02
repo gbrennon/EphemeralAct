@@ -15,7 +15,7 @@ impl Secret {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::Secret;
+    /// # use ephact::core::value_objects::Secret;
     /// let secret = Secret::new("CRATES_IO_TOKEN".into(), "my-token".into());
     /// assert_eq!(secret.name(), "CRATES_IO_TOKEN");
     /// assert_eq!(secret.value(), "my-token");
@@ -31,7 +31,7 @@ impl Secret {
 
     /// Returns the raw secret value.
     ///
-    /// Use with caution — this exposes the unredacted secret.
+    /// Use with caution - this exposes the unredacted secret.
     pub fn value(&self) -> &str {
         &self.value
     }

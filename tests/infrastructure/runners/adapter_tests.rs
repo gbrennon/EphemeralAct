@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use ephemeral_act::{
+use ephact::{
     core::ports::outbound::{ContainerConfig, ContainerRuntimePort},
     infrastructure::{ContainerRuntimeAdapter, runners::PodmanRuntime},
 };

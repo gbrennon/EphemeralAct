@@ -1,4 +1,4 @@
-use ephemeral_act::{
+use ephact::{
     core::{
         ports::outbound::{ActionFetcherPort, ContainerRuntimePort},
         services::{
@@ -16,9 +16,9 @@ use crate::fakes::fixed_image_mapper::FixedImageMapper;
 /// Composes the application exactly as the production container does, with the
 /// container runtime and the action fetcher replaced by test doubles so a
 /// scenario never starts a container nor reaches a forge.
-pub struct EphemeralActApplication;
+pub struct EphactApplication;
 
-impl EphemeralActApplication {
+impl EphactApplication {
     pub fn compose<R, F>(runtime: R, fetcher: F) -> Application
     where
         R: ContainerRuntimePort + Clone + 'static,

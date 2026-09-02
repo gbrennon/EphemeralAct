@@ -1,7 +1,7 @@
 use crate::{
     fakes::{failing_runtime::FailingRuntime, mirrored_action_fetcher::MirroredActionFetcher},
     support::{
-        container_activity::ContainerActivity, ephemeral_act_application::EphemeralActApplication,
+        container_activity::ContainerActivity, ephact_application::EphactApplication,
         workflow_repository::WorkflowRepository,
     },
 };
@@ -35,7 +35,7 @@ impl ContinueOnErrorPipelineRun {
         let repository =
             WorkflowRepository::named("audit-pipeline").with_workflow("audit.yml", AUDIT_WORKFLOW);
         let activity = ContainerActivity::new();
-        let application = EphemeralActApplication::compose(
+        let application = EphactApplication::compose(
             FailingRuntime::recording(activity.clone()),
             MirroredActionFetcher::mirroring(repository.path()),
         );
@@ -43,7 +43,7 @@ impl ContinueOnErrorPipelineRun {
         let outcome = application
             .cli
             .run([
-                "ephemeral_act",
+                "ephact",
                 "run",
                 &repository.path_argument(),
                 "--workflow",

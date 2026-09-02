@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use ephemeral_act::core::{
+use ephact::core::{
     dtos::{ListWorkflowsRequest, ListWorkflowsResponse},
     ports::inbound::list_workflows_port::ListWorkflowsPort,
 };

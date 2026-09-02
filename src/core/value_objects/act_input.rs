@@ -10,7 +10,7 @@ impl ActInput {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::ActInput;
+    /// # use ephact::core::value_objects::ActInput;
     /// let input = ActInput::new("environment".into(), "staging".into());
     /// assert_eq!(input.key(), "environment");
     /// assert_eq!(input.value(), "staging");

@@ -12,7 +12,7 @@ use super::{Concurrency, ContainerConfig, JobNeedsVisitor, Permissions, Step, St
 /// # Examples
 ///
 /// ```
-/// use ephemeral_act::core::workflow::Job;
+/// use ephact::core::workflow::Job;
 ///
 /// let yaml = r#"
 /// runs-on: ubuntu-latest

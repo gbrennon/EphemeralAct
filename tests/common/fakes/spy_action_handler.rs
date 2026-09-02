@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, rc::Rc};
 
-use ephemeral_act::core::{
+use ephact::core::{
     dtos::{ExecuteActionRequest, ExecuteActionResponse},
     errors::StepError,
     ports::inbound::ExecuteActionPort,

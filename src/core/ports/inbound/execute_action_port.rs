@@ -5,8 +5,8 @@ use crate::core::{
 
 /// Inbound port for executing a single action referenced by a workflow step.
 ///
-/// Implementations resolve the `uses:` reference — a path inside the
-/// repository, or a repository on any forge that has to be fetched first — and
+/// Implementations resolve the `uses:` reference - a path inside the
+/// repository, or a repository on any forge that has to be fetched first - and
 /// run the resulting action definition inside the container supplied with the
 /// request.
 ///

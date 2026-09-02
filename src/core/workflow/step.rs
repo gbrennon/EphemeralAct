@@ -12,7 +12,7 @@ use crate::core::dtos::StepType;
 /// # Examples
 ///
 /// ```
-/// use ephemeral_act::core::workflow::Step;
+/// use ephact::core::workflow::Step;
 ///
 /// // A run step
 /// let yaml = "run: echo hello\nshell: bash\n";

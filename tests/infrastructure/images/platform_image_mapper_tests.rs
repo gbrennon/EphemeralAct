@@ -1,4 +1,4 @@
-use ephemeral_act::{core::ports::outbound::ImageMapperPort, infrastructure::PlatformImageMapper};
+use ephact::{core::ports::outbound::ImageMapperPort, infrastructure::PlatformImageMapper};
 
 #[cfg(test)]
 mod tests {

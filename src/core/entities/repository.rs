@@ -12,8 +12,8 @@ impl Repository {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::{RepoPath, RepositoryName};
-    /// # use ephemeral_act::core::Repository;
+    /// # use ephact::core::value_objects::{RepoPath, RepositoryName};
+    /// # use ephact::core::Repository;
     /// # use std::env;
     /// # let dir = env::var("CARGO_MANIFEST_DIR").unwrap();
     /// let path = RepoPath::new(dir).unwrap();

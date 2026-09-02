@@ -8,7 +8,7 @@ const DEFAULT_SHELL: &str = "bash";
 /// The invocation a `run:` step turns into: an argument vector, the directory
 /// it runs in, and the environment it sees.
 ///
-/// The step is expected to be interpolated already — building a command never
+/// The step is expected to be interpolated already - building a command never
 /// evaluates `${{ }}` expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShellCommand {
@@ -27,7 +27,7 @@ impl ShellCommand {
     ///
     /// ```
     /// # use std::collections::HashMap;
-    /// # use ephemeral_act::core::{value_objects::ShellCommand, workflow::Step};
+    /// # use ephact::core::{value_objects::ShellCommand, workflow::Step};
     /// let step: Step = serde_yaml::from_str("run: echo hi\n").unwrap();
     /// let command = ShellCommand::for_step(&step, &HashMap::new()).unwrap();
     /// assert_eq!(command.argv(), ["bash", "-c", "echo hi"]);

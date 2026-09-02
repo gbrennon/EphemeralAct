@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ephemeral_act::presentation::cli::Cli;
+    use ephact::presentation::cli::Cli;
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
@@ -23,14 +23,14 @@ mod tests {
     #[test]
     fn run_no_args_displays_help() {
         let cli = make_cli();
-        let result = cli.run(["ephemeral-act"]);
+        let result = cli.run(["ephact"]);
         assert!(result.is_ok());
     }
 
     #[test]
     fn run_run_subcommand_succeeds() {
         let cli = make_cli();
-        let result = cli.run(["ephemeral-act", "run"]);
+        let result = cli.run(["ephact", "run"]);
         assert!(result.is_ok());
     }
 
@@ -41,7 +41,7 @@ mod tests {
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
         );
-        let result = cli.run(["ephemeral-act", "run"]);
+        let result = cli.run(["ephact", "run"]);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("workflow failed"));
     }
@@ -49,14 +49,14 @@ mod tests {
     #[test]
     fn run_invalid_subcommand_returns_error() {
         let cli = make_cli();
-        let result = cli.run(["ephemeral-act", "nonexistent"]);
+        let result = cli.run(["ephact", "nonexistent"]);
         assert!(result.is_err());
     }
 
     #[test]
     fn run_invalid_flag_returns_error() {
         let cli = make_cli();
-        let result = cli.run(["ephemeral-act", "--nonexistent-flag"]);
+        let result = cli.run(["ephact", "--nonexistent-flag"]);
         assert!(result.is_err());
     }
 }

@@ -16,7 +16,7 @@ use super::{EventConfig, OnVisitor};
 /// # Examples
 ///
 /// ```
-/// use ephemeral_act::core::workflow::On;
+/// use ephact::core::workflow::On;
 ///
 /// // Scalar form
 /// let on: On = serde_yaml::from_str("push").unwrap();

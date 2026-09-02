@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, rc::Rc};
 
-use ephemeral_act::core::{
+use ephact::core::{
     events::{DomainEvent, EventOutcome},
     ports::{inbound::ExecuteActionPort, outbound::EventPublisherPort},
 };

@@ -20,7 +20,7 @@ jobs:
       - uses: ./.forgejo/actions/install-dependencies
       - uses: ./.forgejo/actions/cache-rust-deps
         with:
-          cache-key-prefix: ephemeral-act-release
+          cache-key-prefix: ephact-release
           rustc-version: stable
           include-sysroot: "false"
       - name: Build release binary
@@ -29,10 +29,10 @@ jobs:
       - name: Create artifact
         run: |
           mkdir -p artifacts
-          cp target/release/ephemeral_act artifacts/ephemeral-act
-          chmod +x artifacts/ephemeral-act
-          tar -czf artifacts/ephemeral-act.tar.gz -C artifacts ephemeral-act
+          cp target/release/ephact artifacts/ephact
+          chmod +x artifacts/ephact
+          tar -czf artifacts/ephact.tar.gz -C artifacts ephact
       - name: Upload artifact
         run: |
           echo "Artifact created:"
-          ls -la artifacts/ephemeral-act.tar.gz || echo "No artifact found"
+          ls -la artifacts/ephact.tar.gz || echo "No artifact found"

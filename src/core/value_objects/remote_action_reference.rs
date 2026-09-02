@@ -26,7 +26,7 @@ impl RemoteActionReference {
     /// # Examples
     ///
     /// ```
-    /// # use ephemeral_act::core::value_objects::RemoteActionReference;
+    /// # use ephact::core::value_objects::RemoteActionReference;
     /// let reference = RemoteActionReference::new(
     ///     "https".into(),
     ///     "data.forgejo.org".into(),

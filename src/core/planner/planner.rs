@@ -19,8 +19,8 @@ impl Planner {
     /// # Examples
     ///
     /// ```
-    /// use ephemeral_act::core::planner::Planner;
-    /// use ephemeral_act::core::workflow::Workflow;
+    /// use ephact::core::planner::Planner;
+    /// use ephact::core::workflow::Workflow;
     ///
     /// let yaml = r#"
     /// on: push

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, path::PathBuf};
 
-use ephemeral_act::core::{
+use ephact::core::{
     errors::ActionError, ports::outbound::ActionFetcherPort, value_objects::RemoteActionReference,
 };
 

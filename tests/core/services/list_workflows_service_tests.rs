@@ -1,6 +1,6 @@
 use std::fs;
 
-use ephemeral_act::core::{
+use ephact::core::{
     dtos::ListWorkflowsRequest, services::list_workflows_service::ListWorkflowsService,
 };
 

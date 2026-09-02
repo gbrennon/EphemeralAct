@@ -13,7 +13,7 @@ use super::{Concurrency, Defaults, Job, On, Permissions};
 /// # Examples
 ///
 /// ```
-/// use ephemeral_act::core::workflow::Workflow;
+/// use ephact::core::workflow::Workflow;
 ///
 /// let yaml = r#"
 /// name: CI

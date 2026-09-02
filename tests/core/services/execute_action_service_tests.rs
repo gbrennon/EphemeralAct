@@ -2,7 +2,7 @@
 mod tests {
     use std::{collections::HashMap, path::Path, sync::Arc};
 
-    use ephemeral_act::core::{
+    use ephact::core::{
         dtos::ExecuteActionRequest,
         expression::EvalContext,
         ports::{

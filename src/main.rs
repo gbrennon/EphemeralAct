@@ -4,7 +4,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 
-use ephemeral_act::{infrastructure::Container, presentation::composition_root::CompositionRoot};
+use ephact::{infrastructure::Container, presentation::composition_root::CompositionRoot};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let real_stderr = unsafe { libc::dup(libc::STDERR_FILENO) };

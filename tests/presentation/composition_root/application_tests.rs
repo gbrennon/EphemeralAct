@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use ephemeral_act::presentation::composition_root::{Application, CompositionRoot};
+    use ephact::presentation::composition_root::{Application, CompositionRoot};
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
@@ -19,7 +19,7 @@ mod tests {
     fn composed_application_runs_help_through_cli_field() {
         let app = compose_application();
 
-        let result = app.cli.run(["ephemeral-act"]);
+        let result = app.cli.run(["ephact"]);
 
         assert!(result.is_ok());
     }
@@ -28,7 +28,7 @@ mod tests {
     fn composed_application_dispatches_list_actions_through_injected_fakes() {
         let app = compose_application();
 
-        let result = app.cli.run(["ephemeral-act", "list-actions"]);
+        let result = app.cli.run(["ephact", "list-actions"]);
 
         assert!(result.is_ok());
     }
