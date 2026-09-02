@@ -16,9 +16,9 @@ pub enum Expr {
     Variable(String),
     /// Property access: `foo.bar`
     PropertyAccess(Box<Expr>, String),
-    /// Index access: `foo[bar]` — string key or numeric index.
+    /// Index access: `foo[bar]` - string key or numeric index.
     IndexAccess(Box<Expr>, Box<Expr>),
-    /// Array dereference: `foo.*` — flattens array of objects.
+    /// Array dereference: `foo.*` - flattens array of objects.
     ArrayDeref(Box<Expr>),
     /// Logical NOT: `!expr`
     Not(Box<Expr>),

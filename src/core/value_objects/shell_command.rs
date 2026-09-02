@@ -8,7 +8,7 @@ const DEFAULT_SHELL: &str = "bash";
 /// The invocation a `run:` step turns into: an argument vector, the directory
 /// it runs in, and the environment it sees.
 ///
-/// The step is expected to be interpolated already — building a command never
+/// The step is expected to be interpolated already - building a command never
 /// evaluates `${{ }}` expressions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShellCommand {

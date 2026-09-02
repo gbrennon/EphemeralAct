@@ -69,7 +69,7 @@ impl<F: ActionFetcherPort> ExecuteActionService<F> {
             }
             ActionReference::Remote(remote) if remote.repo() == CHECKOUT_REPO => {
                 return Ok(ExecuteActionResponse::note(format!(
-                    "[skipped] {} — the repository is already mounted at {CONTAINER_WORKSPACE}\n",
+                    "[skipped] {} - the repository is already mounted at {CONTAINER_WORKSPACE}\n",
                     request.action_ref
                 )));
             }

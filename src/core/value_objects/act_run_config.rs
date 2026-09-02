@@ -45,7 +45,7 @@ impl Default for ActRunConfig {
     }
 }
 
-/// Builder API — fluent setters that consume and return `Self`.
+/// Builder API - fluent setters that consume and return `Self`.
 impl ActRunConfig {
     /// Sets the workflow file to run.
     pub fn with_workflow(mut self, workflow: ActWorkflow) -> Self {

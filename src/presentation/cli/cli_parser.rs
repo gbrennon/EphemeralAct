@@ -27,7 +27,7 @@ pub struct CliParser {
 
 /// Parses CLI arguments for the `run` subcommand from a string slice.
 ///
-/// Intended for use in tests — avoids depending on `std::env::args()`.
+/// Intended for use in tests - avoids depending on `std::env::args()`.
 pub fn parse_run_test_args(args: &[&str]) -> super::run_args::RunArgs {
     let mut full: Vec<&str> = vec!["ephact", "run"];
     full.extend_from_slice(args);

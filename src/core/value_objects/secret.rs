@@ -31,7 +31,7 @@ impl Secret {
 
     /// Returns the raw secret value.
     ///
-    /// Use with caution — this exposes the unredacted secret.
+    /// Use with caution - this exposes the unredacted secret.
     pub fn value(&self) -> &str {
         &self.value
     }

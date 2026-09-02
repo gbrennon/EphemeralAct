@@ -16,37 +16,37 @@ pub enum Token {
     Bool(bool),
     /// The `null` literal.
     Null,
-    /// `.` — property access operator.
+    /// `.` - property access operator.
     Dot,
-    /// `[` — index/open bracket.
+    /// `[` - index/open bracket.
     LBracket,
-    /// `]` — close bracket.
+    /// `]` - close bracket.
     RBracket,
-    /// `(` — open parenthesis.
+    /// `(` - open parenthesis.
     LParen,
-    /// `)` — close parenthesis.
+    /// `)` - close parenthesis.
     RParen,
-    /// `!` — logical NOT.
+    /// `!` - logical NOT.
     Not,
-    /// `==` — equality comparison.
+    /// `==` - equality comparison.
     Eq,
-    /// `!=` — inequality comparison.
+    /// `!=` - inequality comparison.
     Neq,
-    /// `<` — less-than comparison.
+    /// `<` - less-than comparison.
     Lt,
-    /// `<=` — less-than-or-equal comparison.
+    /// `<=` - less-than-or-equal comparison.
     Lte,
-    /// `>` — greater-than comparison.
+    /// `>` - greater-than comparison.
     Gt,
-    /// `>=` — greater-than-or-equal comparison.
+    /// `>=` - greater-than-or-equal comparison.
     Gte,
-    /// `&&` — logical AND.
+    /// `&&` - logical AND.
     And,
-    /// `||` — logical OR.
+    /// `||` - logical OR.
     Or,
-    /// `*` — array dereference / wildcard.
+    /// `*` - array dereference / wildcard.
     Star,
-    /// `,` — argument separator.
+    /// `,` - argument separator.
     Comma,
     /// End of input stream.
     Eof,

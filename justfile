@@ -1,4 +1,4 @@
-# EphemeralAct — task runner
+# EphemeralAct - task runner
 # Requires: cargo, cargo-llvm-cov, rustfmt, clippy
 
 # Default: show available recipes
