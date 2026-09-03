@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::application::{dtos::CreateJobContainerRequest, ports::outbound::ContainerPort};
 
-/// Outbound port for creating the container a job's steps run in.
+/// Inbound port for creating the container a job's steps run in.
 pub trait CreateJobContainerPort {
     /// Removes any stale container of the same job and creates a fresh one.
     fn execute(
