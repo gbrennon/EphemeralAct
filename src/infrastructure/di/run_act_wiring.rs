@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::application::{
     ports::outbound::{ContainerRuntimePort, EventPublisherPort, ImageMapperPort},
     services::{
-        build_job_environment_service::BuildJobEnvironmentService,
         build_run_context_service::BuildRunContextService,
         build_step_context_service::BuildStepContextService,
         create_job_container_service::CreateJobContainerService,
@@ -45,7 +44,7 @@ impl RunActWiring {
             Box::new(RunShellStepService::new()),
         ));
         let job_executor = Box::new(ExecuteJobService::new(
-            Box::new(BuildJobEnvironmentService::new()),
+            Box::new(crate::infrastructure::runners::GitHubJobEnvironmentAdapter::new()),
             Box::new(PrepareJobContainerService::new(
                 Box::new(PullJobImageService::new(runtime.clone(), image_mapper)),
                 Box::new(CreateJobContainerService::new(runtime)),

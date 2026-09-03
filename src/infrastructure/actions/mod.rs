@@ -1,3 +1,5 @@
 pub mod git_action_fetcher;
+pub mod github_action_input_environment_adapter;
 
 pub use git_action_fetcher::GitActionFetcher;
+pub use github_action_input_environment_adapter::GitHubActionInputEnvironmentAdapter;
