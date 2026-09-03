@@ -6,10 +6,12 @@ use ephact::application::{
     ports::outbound::read_step_exports_port::ReadStepExportsPort,
 };
 
+type QueuedStepExports = (Vec<String>, HashMap<String, String>);
+
 /// Hands out the next queued set of exports, or nothing once drained.
 #[derive(Clone, Default)]
 pub struct FakeReadStepExportsPort {
-    queued: Rc<RefCell<Vec<(Vec<String>, HashMap<String, String>)>>>,
+    queued: Rc<RefCell<Vec<QueuedStepExports>>>,
     calls: Rc<RefCell<usize>>,
 }
 
@@ -18,7 +20,7 @@ impl FakeReadStepExportsPort {
         Self::default()
     }
 
-    pub fn queueing(exports: Vec<(Vec<String>, HashMap<String, String>)>) -> Self {
+    pub fn queueing(exports: Vec<QueuedStepExports>) -> Self {
         Self {
             queued: Rc::new(RefCell::new(exports)),
             calls: Rc::new(RefCell::new(0)),

@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use ephact::{
     application::ports::outbound::{ContainerConfig, ContainerRuntimePort},
-    infrastructure::{ContainerRuntimeAdapter, runners::PodmanRuntime},
+    infrastructure::{
+        ContainerRuntimeAdapter,
+        runners::{DockerRuntime, PodmanRuntime},
+    },
 };
 
 #[cfg(test)]
@@ -13,6 +16,12 @@ mod tests {
         PodmanRuntime::new()
             .ok()
             .map(ContainerRuntimeAdapter::Podman)
+    }
+
+    fn try_docker_adapter() -> Option<ContainerRuntimeAdapter> {
+        DockerRuntime::new()
+            .ok()
+            .map(ContainerRuntimeAdapter::Docker)
     }
 
     macro_rules! adapter {
@@ -39,6 +48,10 @@ mod tests {
 
     #[test]
     fn detect_returns_docker_when_docker_host_is_set() {
+        if try_docker_adapter().is_none() {
+            eprintln!("SKIP: Docker runtime not available on this host");
+            return;
+        }
         let adapter = match ContainerRuntimeAdapter::detect() {
             Ok(a) => a,
             Err(e) => {
@@ -48,13 +61,19 @@ mod tests {
         };
         assert!(
             matches!(adapter, ContainerRuntimeAdapter::Docker(_)),
-            "Expected Docker variant since DOCKER_HOST is set"
+            "Expected Docker variant since Docker is available"
         );
     }
 
     #[test]
     fn map_error_is_noop_for_docker_variant() {
-        let adapter = adapter!();
+        let adapter = match try_docker_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: Docker runtime not available on this host");
+                return;
+            }
+        };
         let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
         assert!(result.is_err());
         let err_text = format!("{:?}", result.unwrap_err());
