@@ -1,6 +1,6 @@
 use super::application::Application;
 use crate::{
-    core::ports::inbound::{
+    application::ports::inbound::{
         list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
         run_act_port::RunActPort,
     },

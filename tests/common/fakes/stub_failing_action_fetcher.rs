@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 use std::path::PathBuf;
 
-use ephact::core::{
-    errors::ActionError, ports::outbound::ActionFetcherPort, value_objects::RemoteActionReference,
+use ephact::{
+    application::ports::outbound::ActionFetcherPort,
+    domain::{errors::ActionError, value_objects::RemoteActionReference},
 };
 
 /// Fails every fetch, standing in for an unreachable forge.

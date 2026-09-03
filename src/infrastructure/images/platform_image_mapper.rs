@@ -1,4 +1,4 @@
-use crate::core::ports::outbound::ImageMapperPort;
+use crate::application::ports::outbound::ImageMapperPort;
 
 /// Maps CI platform `runs-on` labels to container image names.
 ///
@@ -10,7 +10,7 @@ use crate::core::ports::outbound::ImageMapperPort;
 /// # Examples
 ///
 /// ```
-/// use ephact::core::ports::outbound::ImageMapperPort;
+/// use ephact::application::ports::outbound::ImageMapperPort;
 /// use ephact::infrastructure::PlatformImageMapper;
 ///
 /// let mapper = PlatformImageMapper;

@@ -3,7 +3,7 @@ use tokio::runtime::Runtime;
 
 use super::podman_container::PodmanContainer;
 use crate::{
-    core::ports::outbound::{
+    application::ports::outbound::{
         ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
     },
     infrastructure::bollard_wrapper::{

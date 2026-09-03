@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
-use ephact::core::{
-    dtos::ExecuteActionRequest, expression::EvalContext, ports::outbound::ContainerPort,
+use ephact::{
+    application::{dtos::ExecuteActionRequest, ports::outbound::ContainerPort},
+    domain::expression::EvalContext,
 };
 
 use crate::common::fakes::stub_container::StubContainer;

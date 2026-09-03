@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use ephact::core::ports::outbound::ImageMapperPort;
+use ephact::application::ports::outbound::ImageMapperPort;
 
 pub struct FakeImageMapper;
 

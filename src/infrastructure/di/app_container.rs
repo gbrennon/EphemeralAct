@@ -1,4 +1,4 @@
-use crate::core::ports::inbound::{
+use crate::application::ports::inbound::{
     list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
     run_act_port::RunActPort,
 };

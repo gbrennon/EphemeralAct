@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ephact::{
-    core::ports::outbound::{ContainerConfig, ContainerRuntimePort},
+    application::ports::outbound::{ContainerConfig, ContainerRuntimePort},
     infrastructure::{ContainerRuntimeAdapter, runners::PodmanRuntime},
 };
 

@@ -1,7 +1,8 @@
 use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
-use ephact::core::{
-    errors::ActionError, ports::outbound::ActionFetcherPort, value_objects::RemoteActionReference,
+use ephact::{
+    application::ports::outbound::ActionFetcherPort,
+    domain::{errors::ActionError, value_objects::RemoteActionReference},
 };
 
 /// Action fetcher that resolves every remote reference to one checkout already
