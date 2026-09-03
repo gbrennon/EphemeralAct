@@ -2,7 +2,7 @@ use std::{error::Error, fs::read_to_string};
 
 use crate::{
     application::{
-        dtos::LoadWorkflowRequest, ports::outbound::load_workflow_port::LoadWorkflowPort,
+        dtos::LoadWorkflowRequest, ports::inbound::load_workflow_port::LoadWorkflowPort,
     },
     domain::workflow::Workflow,
 };

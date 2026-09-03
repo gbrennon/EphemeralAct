@@ -8,13 +8,13 @@ use crate::{
             ResolveWorkflowFilesRequest, RunActRequest, RunSummary, WorkflowExecution,
         },
         ports::{
-            inbound::run_act_port::RunActPort,
-            outbound::{
-                EventPublisherPort, build_run_context_port::BuildRunContextPort,
+            inbound::{
+                build_run_context_port::BuildRunContextPort,
                 execute_workflow_port::ExecuteWorkflowPort,
                 merge_run_executions_port::MergeRunExecutionsPort,
-                resolve_workflow_files_port::ResolveWorkflowFilesPort,
+                resolve_workflow_files_port::ResolveWorkflowFilesPort, run_act_port::RunActPort,
             },
+            outbound::EventPublisherPort,
         },
     },
     domain::events::{ActRunCompletedPayload, DomainEvent},
@@ -57,10 +57,13 @@ impl RunActPort for RunActService {
         let started_at = Instant::now();
         let repo_path = repository.path().as_path();
 
-        let context = self.context_builder.execute(BuildRunContextRequest {
-            config: &config,
-            repository: &repository,
-        });
+        let context = self
+            .context_builder
+            .execute(BuildRunContextRequest {
+                config: &config,
+                repository: &repository,
+            })
+            .context;
 
         let workflow_files = self
             .workflow_files_resolver

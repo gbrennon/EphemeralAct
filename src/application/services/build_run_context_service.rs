@@ -2,8 +2,9 @@ use serde_json::{Map, Value};
 
 use crate::{
     application::{
-        constants::CONTAINER_WORKSPACE, dtos::BuildRunContextRequest,
-        ports::outbound::build_run_context_port::BuildRunContextPort,
+        constants::CONTAINER_WORKSPACE,
+        dtos::{BuildRunContextRequest, BuildRunContextResponse},
+        ports::inbound::build_run_context_port::BuildRunContextPort,
     },
     domain::expression::EvalContext,
 };
@@ -26,7 +27,7 @@ impl Default for BuildRunContextService {
 }
 
 impl BuildRunContextPort for BuildRunContextService {
-    fn execute(&self, request: BuildRunContextRequest<'_>) -> EvalContext {
+    fn execute(&self, request: BuildRunContextRequest<'_>) -> BuildRunContextResponse {
         let secrets: Map<String, Value> = request
             .config
             .secrets()
@@ -74,6 +75,6 @@ impl BuildRunContextPort for BuildRunContextService {
         context.inputs = Value::Object(inputs);
         context.github = Value::Object(github);
         context.runner = Value::Object(runner);
-        context
+        BuildRunContextResponse { context }
     }
 }

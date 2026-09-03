@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path};
 use crate::{
     application::{
         dtos::{CollectActionFilesRequest, CopyActionToContainerRequest},
-        ports::outbound::{
+        ports::inbound::{
             collect_action_files_port::CollectActionFilesPort,
             copy_action_to_container_port::CopyActionToContainerPort,
         },

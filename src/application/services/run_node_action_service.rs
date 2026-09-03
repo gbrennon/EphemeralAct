@@ -3,13 +3,15 @@ use crate::{
         constants::CONTAINER_WORKSPACE,
         dtos::{
             BuildActionInputEnvironmentRequest, CopyActionToContainerRequest,
-            ResolveNodeBinaryRequest, RunNodeActionRequest,
+            ResolveNodeBinaryRequest, RunNodeActionRequest, RunNodeActionResponse,
         },
-        ports::outbound::{
-            ExecResult, build_action_input_environment_port::BuildActionInputEnvironmentPort,
-            copy_action_to_container_port::CopyActionToContainerPort,
-            resolve_node_binary_port::ResolveNodeBinaryPort,
-            run_node_action_port::RunNodeActionPort,
+        ports::{
+            inbound::{
+                copy_action_to_container_port::CopyActionToContainerPort,
+                resolve_node_binary_port::ResolveNodeBinaryPort,
+                run_node_action_port::RunNodeActionPort,
+            },
+            outbound::build_action_input_environment_port::BuildActionInputEnvironmentPort,
         },
     },
     domain::{errors::StepError, value_objects::ShellCommand},
@@ -38,19 +40,22 @@ impl RunNodeActionService {
 }
 
 impl RunNodeActionPort for RunNodeActionService {
-    fn execute(&self, request: RunNodeActionRequest<'_>) -> Result<ExecResult, StepError> {
+    fn execute(
+        &self,
+        request: RunNodeActionRequest<'_>,
+    ) -> Result<RunNodeActionResponse, StepError> {
         let container_dir = self.action_copier.execute(CopyActionToContainerRequest {
             action_dir: request.action_dir,
             container: request.container,
         })?;
 
-        let action_env = self
-            .environment_builder
-            .execute(BuildActionInputEnvironmentRequest {
-                env: request.env,
-                inputs: request.inputs,
-                action_path: &container_dir,
-            });
+        let action_response =
+            self.environment_builder
+                .execute(BuildActionInputEnvironmentRequest {
+                    env: request.env,
+                    inputs: request.inputs,
+                    action_path: &container_dir,
+                });
 
         let binary = self.node_binary_resolver.execute(ResolveNodeBinaryRequest {
             container: request.container,
@@ -60,12 +65,17 @@ impl RunNodeActionPort for RunNodeActionService {
         let command = ShellCommand::new(
             vec![binary, format!("{container_dir}/{entry_point}")],
             Some(CONTAINER_WORKSPACE.into()),
-            action_env,
+            action_response.env,
         );
 
         request
             .container
             .exec(command.argv(), command.working_directory(), command.env())
+            .map(|result| RunNodeActionResponse {
+                exit_code: result.exit_code,
+                stdout: result.stdout,
+                stderr: result.stderr,
+            })
             .map_err(|error| StepError::new(format!("failed to run node action: {error:?}")))
     }
 }

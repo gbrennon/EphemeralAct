@@ -3,7 +3,7 @@ use std::{error::Error, sync::Arc};
 use crate::application::{
     dtos::PullJobImageRequest,
     ports::{
-        outbound::pull_job_image_port::PullJobImagePort,
+        inbound::pull_job_image_port::PullJobImagePort,
         outbound::{ContainerRuntimePort, ImageMapperPort},
     },
 };

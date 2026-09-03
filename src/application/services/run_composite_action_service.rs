@@ -5,7 +5,7 @@ use serde_json::Value;
 use crate::{
     application::{
         dtos::{ExecuteActionResponse, RunCompositeActionRequest, RunCompositeStepRequest},
-        ports::outbound::{
+        ports::inbound::{
             run_composite_action_port::RunCompositeActionPort,
             run_composite_step_port::RunCompositeStepPort,
         },

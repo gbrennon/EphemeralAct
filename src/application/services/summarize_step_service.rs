@@ -1,7 +1,7 @@
 use crate::{
     application::{
         dtos::{StepSummary, SummarizeStepRequest, SummarizedStep},
-        ports::outbound::summarize_step_port::SummarizeStepPort,
+        ports::inbound::summarize_step_port::SummarizeStepPort,
     },
     domain::workflow::Step,
 };

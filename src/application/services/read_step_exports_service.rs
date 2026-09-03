@@ -2,7 +2,7 @@ use crate::application::{
     dtos::{
         ReadStepEnvExportsRequest, ReadStepExportsRequest, ReadStepPathExportsRequest, StepExports,
     },
-    ports::outbound::{
+    ports::inbound::{
         read_step_env_exports_port::ReadStepEnvExportsPort,
         read_step_exports_port::ReadStepExportsPort,
         read_step_path_exports_port::ReadStepPathExportsPort,

@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 use crate::{
     application::{
         dtos::LoadActionDefinitionRequest,
-        ports::outbound::load_action_definition_port::LoadActionDefinitionPort,
+        ports::inbound::load_action_definition_port::LoadActionDefinitionPort,
     },
     domain::{errors::StepError, workflow::ActionDefinition},
 };

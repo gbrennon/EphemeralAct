@@ -5,7 +5,7 @@ use crate::{
             ExecuteActionResponse, FetchRemoteActionRequest, ResolveActionDirectoryRequest,
             ResolvedActionDirectory,
         },
-        ports::outbound::{
+        ports::inbound::{
             fetch_remote_action_port::FetchRemoteActionPort,
             resolve_action_directory_port::ResolveActionDirectoryPort,
         },

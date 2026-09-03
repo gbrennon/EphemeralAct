@@ -4,7 +4,7 @@ use crate::{
             ExecuteActionRequest, ExecuteActionResponse, ExecuteStepRequest, ExecutedStep,
             RunShellStepRequest,
         },
-        ports::outbound::{
+        ports::inbound::{
             execute_step_port::ExecuteStepPort,
             request_action_execution_port::RequestActionExecutionPort,
             run_shell_step_port::RunShellStepPort,

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::application::{
     dtos::ResolveActionInputsRequest,
-    ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
+    ports::inbound::resolve_action_inputs_port::ResolveActionInputsPort,
 };
 
 /// Service that resolves the inputs an action runs with, overlaying the step's

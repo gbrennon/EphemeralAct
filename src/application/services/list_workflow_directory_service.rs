@@ -2,7 +2,7 @@ use std::{error::Error, fs::read_dir};
 
 use crate::application::{
     dtos::{ListWorkflowDirectoryRequest, ListWorkflowDirectoryResponse},
-    ports::outbound::list_workflow_directory_port::ListWorkflowDirectoryPort,
+    ports::inbound::list_workflow_directory_port::ListWorkflowDirectoryPort,
 };
 
 /// Service that lists the workflow files held directly by one directory.

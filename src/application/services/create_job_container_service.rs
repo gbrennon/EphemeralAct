@@ -4,7 +4,7 @@ use crate::application::{
     constants::CONTAINER_WORKSPACE,
     dtos::CreateJobContainerRequest,
     ports::{
-        outbound::create_job_container_port::CreateJobContainerPort,
+        inbound::create_job_container_port::CreateJobContainerPort,
         outbound::{ContainerConfig, ContainerPort, ContainerRuntimePort, RunnerContext},
     },
 };

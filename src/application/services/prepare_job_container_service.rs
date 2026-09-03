@@ -5,7 +5,7 @@ use crate::application::{
         CreateJobContainerRequest, PrepareJobContainerRequest, PreparedJobContainer,
         PullJobImageRequest,
     },
-    ports::outbound::{
+    ports::inbound::{
         create_job_container_port::CreateJobContainerPort,
         prepare_job_container_port::PrepareJobContainerPort, pull_job_image_port::PullJobImagePort,
     },

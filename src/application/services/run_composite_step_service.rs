@@ -1,9 +1,12 @@
 use crate::{
     application::{
         dtos::{ExecuteActionRequest, RunCompositeStepRequest, RunShellStepRequest},
-        ports::outbound::{
-            ExecResult, run_composite_step_port::RunCompositeStepPort,
-            run_shell_step_port::RunShellStepPort,
+        ports::{
+            inbound::{
+                run_composite_step_port::RunCompositeStepPort,
+                run_shell_step_port::RunShellStepPort,
+            },
+            outbound::ExecResult,
         },
     },
     domain::errors::StepError,

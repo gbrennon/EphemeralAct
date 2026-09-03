@@ -1,7 +1,7 @@
 use crate::{
     application::{
         dtos::RunShellStepRequest,
-        ports::{outbound::ExecResult, outbound::run_shell_step_port::RunShellStepPort},
+        ports::{inbound::run_shell_step_port::RunShellStepPort, outbound::ExecResult},
     },
     domain::{errors::StepError, value_objects::ShellCommand},
 };

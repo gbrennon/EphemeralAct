@@ -2,7 +2,7 @@ use std::{error::Error, path::PathBuf};
 
 use crate::application::{
     constants::WORKFLOW_DIRECTORIES, dtos::ResolveNamedWorkflowFileRequest,
-    ports::outbound::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
+    ports::inbound::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
 };
 
 /// Service that resolves the file of a workflow the caller named.

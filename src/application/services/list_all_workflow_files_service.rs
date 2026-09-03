@@ -5,7 +5,7 @@ use crate::application::{
     dtos::{
         ListAllWorkflowFilesRequest, ListAllWorkflowFilesResponse, ListWorkflowDirectoryRequest,
     },
-    ports::outbound::{
+    ports::inbound::{
         list_all_workflow_files_port::ListAllWorkflowFilesPort,
         list_workflow_directory_port::ListWorkflowDirectoryPort,
     },

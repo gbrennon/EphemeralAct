@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::application::{
-    dtos::ResolveNodeBinaryRequest,
-    ports::outbound::resolve_node_binary_port::ResolveNodeBinaryPort,
+    dtos::ResolveNodeBinaryRequest, ports::inbound::resolve_node_binary_port::ResolveNodeBinaryPort,
 };
 
 /// Interpreter used for JavaScript actions when the container exposes no

@@ -5,8 +5,8 @@ use crate::{
             ResolveActionDirectoryRequest, ResolveActionInputsRequest, ResolvedActionDirectory,
             RunCompositeActionRequest, RunNodeActionRequest,
         },
-        ports::inbound::execute_action_port::ExecuteActionPort,
-        ports::outbound::{
+        ports::inbound::{
+            execute_action_port::ExecuteActionPort,
             execute_nested_action_port::ExecuteNestedActionPort,
             load_action_definition_port::LoadActionDefinitionPort,
             resolve_action_directory_port::ResolveActionDirectoryPort,

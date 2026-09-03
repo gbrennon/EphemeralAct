@@ -6,12 +6,14 @@ use crate::application::{
         JobExecution, JobSummary, PrefixStepPathRequest, PrepareJobContainerRequest,
         ReadStepExportsRequest, StepSummary, SummarizeStepRequest,
     },
-    ports::outbound::{
-        build_job_environment_port::BuildJobEnvironmentPort,
-        build_step_context_port::BuildStepContextPort, execute_job_port::ExecuteJobPort,
-        execute_step_port::ExecuteStepPort, prefix_step_path_port::PrefixStepPathPort,
-        prepare_job_container_port::PrepareJobContainerPort,
-        read_step_exports_port::ReadStepExportsPort, summarize_step_port::SummarizeStepPort,
+    ports::{
+        inbound::{
+            build_step_context_port::BuildStepContextPort, execute_job_port::ExecuteJobPort,
+            execute_step_port::ExecuteStepPort, prefix_step_path_port::PrefixStepPathPort,
+            prepare_job_container_port::PrepareJobContainerPort,
+            read_step_exports_port::ReadStepExportsPort, summarize_step_port::SummarizeStepPort,
+        },
+        outbound::build_job_environment_port::BuildJobEnvironmentPort,
     },
 };
 
@@ -57,7 +59,8 @@ impl ExecuteJobPort for ExecuteJobService {
             .execute(BuildJobEnvironmentRequest {
                 workflow: request.workflow,
                 job_env: &request.run.job.env,
-            });
+            })
+            .env;
 
         let prepared = self
             .container_preparer

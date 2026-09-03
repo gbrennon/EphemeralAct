@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::application::{
     constants::GITHUB_PATH_FILE, dtos::ReadStepPathExportsRequest,
-    ports::outbound::read_step_path_exports_port::ReadStepPathExportsPort,
+    ports::inbound::read_step_path_exports_port::ReadStepPathExportsPort,
 };
 
 /// Service that reads the directories a step exported through `GITHUB_PATH`.

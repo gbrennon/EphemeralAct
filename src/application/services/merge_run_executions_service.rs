@@ -2,7 +2,7 @@ use std::error::Error;
 
 use crate::application::{
     dtos::{MergeRunExecutionsRequest, WorkflowExecution},
-    ports::outbound::merge_run_executions_port::MergeRunExecutionsPort,
+    ports::inbound::merge_run_executions_port::MergeRunExecutionsPort,
 };
 
 /// Summary name used when every workflow in the repository is executed.

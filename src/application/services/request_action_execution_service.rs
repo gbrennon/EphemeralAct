@@ -4,8 +4,8 @@ use crate::{
     application::{
         dtos::{ExecuteActionRequest, ExecuteActionResponse},
         ports::{
+            inbound::request_action_execution_port::RequestActionExecutionPort,
             outbound::EventPublisherPort,
-            outbound::request_action_execution_port::RequestActionExecutionPort,
         },
     },
     domain::{

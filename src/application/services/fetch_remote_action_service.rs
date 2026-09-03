@@ -4,7 +4,7 @@ use crate::{
     application::{
         dtos::FetchRemoteActionRequest,
         ports::{
-            outbound::ActionFetcherPort, outbound::fetch_remote_action_port::FetchRemoteActionPort,
+            inbound::fetch_remote_action_port::FetchRemoteActionPort, outbound::ActionFetcherPort,
         },
     },
     domain::errors::ActionError,

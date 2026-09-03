@@ -3,7 +3,7 @@ use serde_json::Value;
 use crate::{
     application::{
         dtos::BuildStepContextRequest,
-        ports::outbound::build_step_context_port::BuildStepContextPort,
+        ports::inbound::build_step_context_port::BuildStepContextPort,
     },
     domain::expression::EvalContext,
 };

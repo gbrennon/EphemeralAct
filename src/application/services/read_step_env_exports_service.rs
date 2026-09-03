@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::application::{
     constants::GITHUB_ENV_FILE, dtos::ReadStepEnvExportsRequest,
-    ports::outbound::read_step_env_exports_port::ReadStepEnvExportsPort,
+    ports::inbound::read_step_env_exports_port::ReadStepEnvExportsPort,
 };
 
 /// Service that reads the environment variables a step exported through

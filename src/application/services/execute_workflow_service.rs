@@ -6,7 +6,7 @@ use crate::{
             ExecuteJobRequest, ExecuteWorkflowRequest, JobSummary, LoadWorkflowRequest,
             WorkflowExecution,
         },
-        ports::outbound::{
+        ports::inbound::{
             execute_job_port::ExecuteJobPort, execute_workflow_port::ExecuteWorkflowPort,
             load_workflow_port::LoadWorkflowPort,
         },

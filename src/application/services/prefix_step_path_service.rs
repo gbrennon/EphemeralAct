@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::application::{
-    dtos::PrefixStepPathRequest, ports::outbound::prefix_step_path_port::PrefixStepPathPort,
+    dtos::PrefixStepPathRequest, ports::inbound::prefix_step_path_port::PrefixStepPathPort,
 };
 
 /// Service that prefixes a step's `PATH` with the directories earlier steps

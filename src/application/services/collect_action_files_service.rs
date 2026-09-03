@@ -7,7 +7,7 @@ use std::{
 use crate::{
     application::{
         dtos::{CollectActionFilesRequest, CollectActionFilesResponse},
-        ports::{outbound::FileEntry, outbound::collect_action_files_port::CollectActionFilesPort},
+        ports::{inbound::collect_action_files_port::CollectActionFilesPort, outbound::FileEntry},
     },
     domain::errors::StepError,
 };

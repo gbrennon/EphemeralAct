@@ -3,7 +3,7 @@ use std::{error::Error, path::PathBuf};
 use crate::application::{
     constants::WORKFLOW_DIRECTORIES,
     dtos::{DetectWorkflowFileRequest, ListWorkflowDirectoryRequest},
-    ports::outbound::{
+    ports::inbound::{
         detect_workflow_file_port::DetectWorkflowFilePort,
         list_workflow_directory_port::ListWorkflowDirectoryPort,
     },

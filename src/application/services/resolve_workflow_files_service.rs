@@ -5,7 +5,7 @@ use crate::application::{
         DetectWorkflowFileRequest, ListAllWorkflowFilesRequest, ResolveNamedWorkflowFileRequest,
         ResolveWorkflowFilesRequest, ResolveWorkflowFilesResponse,
     },
-    ports::outbound::{
+    ports::inbound::{
         detect_workflow_file_port::DetectWorkflowFilePort,
         list_all_workflow_files_port::ListAllWorkflowFilesPort,
         resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
