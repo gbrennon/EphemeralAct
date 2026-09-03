@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::{docker_runtime::DockerRuntime, podman_runtime::PodmanRuntime};
 use crate::application::ports::outbound::{
     ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
@@ -85,27 +83,5 @@ impl ContainerRuntimePort for ContainerRuntimeAdapter {
             ContainerRuntimeAdapter::Docker(rt) => rt.get_host_info(),
             ContainerRuntimeAdapter::Podman(rt) => rt.get_host_info(),
         }
-    }
-}
-
-impl ContainerRuntimePort for Arc<ContainerRuntimeAdapter> {
-    fn pull_image(&self, image: &str, platform: Option<&str>) -> Result<(), ContainerError> {
-        self.as_ref().pull_image(image, platform)
-    }
-    fn create_container(
-        &self,
-        config: &ContainerConfig,
-    ) -> Result<Box<dyn ContainerPort>, ContainerError> {
-        self.as_ref().create_container(config)
-    }
-    fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.as_ref().remove_container(name)
-    }
-
-    fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.as_ref().stop_container(name)
-    }
-    fn get_host_info(&self) -> Result<HostInfo, ContainerError> {
-        self.as_ref().get_host_info()
     }
 }
