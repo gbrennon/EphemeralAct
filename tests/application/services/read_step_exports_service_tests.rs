@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use ephact::application::{
-    dtos::ReadStepExportsRequest, ports::outbound::read_step_exports_port::ReadStepExportsPort,
+    dtos::ReadStepExportsRequest, ports::inbound::read_step_exports_port::ReadStepExportsPort,
     services::read_step_exports_service::ReadStepExportsService,
 };
 

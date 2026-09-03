@@ -4,7 +4,7 @@ use std::{cell::RefCell, path::PathBuf, rc::Rc};
 use ephact::{
     application::{
         dtos::FetchRemoteActionRequest,
-        ports::outbound::fetch_remote_action_port::FetchRemoteActionPort,
+        ports::inbound::fetch_remote_action_port::FetchRemoteActionPort,
     },
     domain::{errors::ActionError, value_objects::RemoteActionReference},
 };

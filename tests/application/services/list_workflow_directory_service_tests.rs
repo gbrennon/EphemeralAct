@@ -2,7 +2,7 @@ use std::fs;
 
 use ephact::application::{
     dtos::ListWorkflowDirectoryRequest,
-    ports::outbound::list_workflow_directory_port::ListWorkflowDirectoryPort,
+    ports::inbound::list_workflow_directory_port::ListWorkflowDirectoryPort,
     services::list_workflow_directory_service::ListWorkflowDirectoryService,
 };
 

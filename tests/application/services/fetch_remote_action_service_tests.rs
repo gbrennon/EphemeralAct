@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use ephact::{
     application::{
         dtos::FetchRemoteActionRequest,
-        ports::outbound::fetch_remote_action_port::FetchRemoteActionPort,
+        ports::inbound::fetch_remote_action_port::FetchRemoteActionPort,
         services::fetch_remote_action_service::FetchRemoteActionService,
     },
     domain::value_objects::RemoteActionReference,

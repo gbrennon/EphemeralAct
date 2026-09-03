@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use ephact::application::{
     dtos::{ResolveActionDirectoryRequest, ResolvedActionDirectory},
-    ports::outbound::resolve_action_directory_port::ResolveActionDirectoryPort,
+    ports::inbound::resolve_action_directory_port::ResolveActionDirectoryPort,
     services::resolve_action_directory_service::ResolveActionDirectoryService,
 };
 

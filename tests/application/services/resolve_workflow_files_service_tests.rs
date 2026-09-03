@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use ephact::{
     application::{
         dtos::ResolveWorkflowFilesRequest,
-        ports::outbound::resolve_workflow_files_port::ResolveWorkflowFilesPort,
+        ports::inbound::resolve_workflow_files_port::ResolveWorkflowFilesPort,
         services::resolve_workflow_files_service::ResolveWorkflowFilesService,
     },
     domain::{ActRunConfig, ActWorkflow},

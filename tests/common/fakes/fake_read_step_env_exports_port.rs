@@ -3,7 +3,7 @@ use std::{cell::Cell, collections::HashMap, rc::Rc};
 
 use ephact::application::{
     dtos::ReadStepEnvExportsRequest,
-    ports::outbound::read_step_env_exports_port::ReadStepEnvExportsPort,
+    ports::inbound::read_step_env_exports_port::ReadStepEnvExportsPort,
 };
 
 /// Returns prepared environment exports, recording that it was consulted.

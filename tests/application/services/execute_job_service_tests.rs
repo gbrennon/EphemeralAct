@@ -3,9 +3,8 @@ use std::{collections::HashMap, path::Path};
 use ephact::{
     application::{
         dtos::ExecuteJobRequest,
-        ports::outbound::execute_job_port::ExecuteJobPort,
+        ports::inbound::execute_job_port::ExecuteJobPort,
         services::{
-            build_job_environment_service::BuildJobEnvironmentService,
             build_step_context_service::BuildStepContextService,
             execute_job_service::ExecuteJobService,
             prefix_step_path_service::PrefixStepPathService,
@@ -13,6 +12,7 @@ use ephact::{
         },
     },
     domain::{expression::EvalContext, planner::Planner, workflow::Workflow},
+    infrastructure::runners::GitHubJobEnvironmentAdapter,
 };
 
 use crate::common::fakes::{
@@ -31,7 +31,7 @@ fn service(
     exports: FakeReadStepExportsPort,
 ) -> ExecuteJobService {
     ExecuteJobService::new(
-        Box::new(BuildJobEnvironmentService::new()),
+        Box::new(GitHubJobEnvironmentAdapter::new()),
         Box::new(preparer),
         Box::new(PrefixStepPathService::new()),
         Box::new(BuildStepContextService::new()),

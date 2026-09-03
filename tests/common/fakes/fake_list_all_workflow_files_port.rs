@@ -3,7 +3,7 @@ use std::{cell::RefCell, path::PathBuf};
 
 use ephact::application::{
     dtos::{ListAllWorkflowFilesRequest, ListAllWorkflowFilesResponse},
-    ports::outbound::list_all_workflow_files_port::ListAllWorkflowFilesPort,
+    ports::inbound::list_all_workflow_files_port::ListAllWorkflowFilesPort,
 };
 
 /// Returns a prepared list of workflow files, or a prepared failure.

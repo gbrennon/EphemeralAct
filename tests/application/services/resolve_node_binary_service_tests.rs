@@ -1,6 +1,6 @@
 use ephact::application::{
     dtos::ResolveNodeBinaryRequest,
-    ports::outbound::resolve_node_binary_port::ResolveNodeBinaryPort,
+    ports::inbound::resolve_node_binary_port::ResolveNodeBinaryPort,
     services::resolve_node_binary_service::ResolveNodeBinaryService,
 };
 

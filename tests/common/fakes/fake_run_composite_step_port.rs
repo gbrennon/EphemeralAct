@@ -4,7 +4,7 @@ use std::{cell::RefCell, rc::Rc};
 use ephact::{
     application::{
         dtos::RunCompositeStepRequest,
-        ports::{outbound::ExecResult, outbound::run_composite_step_port::RunCompositeStepPort},
+        ports::{inbound::run_composite_step_port::RunCompositeStepPort, outbound::ExecResult},
     },
     domain::{errors::StepError, workflow::Step},
 };

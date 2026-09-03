@@ -4,7 +4,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 use ephact::{
     application::{
         dtos::{ExecuteActionResponse, ExecuteStepRequest, ExecutedStep},
-        ports::outbound::execute_step_port::ExecuteStepPort,
+        ports::inbound::execute_step_port::ExecuteStepPort,
     },
     domain::{errors::StepError, expression::EvalContext, workflow::Step},
 };

@@ -2,7 +2,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use ephact::application::{
-    dtos::BuildActionInputEnvironmentRequest,
+    dtos::{BuildActionInputEnvironmentRequest, BuildActionInputEnvironmentResponse},
     ports::outbound::build_action_input_environment_port::BuildActionInputEnvironmentPort,
 };
 
@@ -27,10 +27,15 @@ impl FakeBuildActionInputEnvironmentPort {
 }
 
 impl BuildActionInputEnvironmentPort for FakeBuildActionInputEnvironmentPort {
-    fn execute(&self, request: BuildActionInputEnvironmentRequest<'_>) -> HashMap<String, String> {
+    fn execute(
+        &self,
+        request: BuildActionInputEnvironmentRequest<'_>,
+    ) -> BuildActionInputEnvironmentResponse {
         self.action_paths
             .borrow_mut()
             .push(request.action_path.to_string());
-        self.env.clone()
+        BuildActionInputEnvironmentResponse {
+            env: self.env.clone(),
+        }
     }
 }

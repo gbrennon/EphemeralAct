@@ -1,7 +1,7 @@
 use ephact::{
     application::{
         dtos::ResolveActionInputsRequest,
-        ports::outbound::resolve_action_inputs_port::ResolveActionInputsPort,
+        ports::inbound::resolve_action_inputs_port::ResolveActionInputsPort,
         services::resolve_action_inputs_service::ResolveActionInputsService,
     },
     domain::workflow::{ActionDefinition, Step},

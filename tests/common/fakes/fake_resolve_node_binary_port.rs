@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 use ephact::application::{
-    dtos::ResolveNodeBinaryRequest,
-    ports::outbound::resolve_node_binary_port::ResolveNodeBinaryPort,
+    dtos::ResolveNodeBinaryRequest, ports::inbound::resolve_node_binary_port::ResolveNodeBinaryPort,
 };
 
 /// Reports a prepared node interpreter.

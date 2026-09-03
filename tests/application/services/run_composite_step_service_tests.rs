@@ -7,7 +7,7 @@ use std::{
 use ephact::{
     application::{
         dtos::{ExecuteActionRequest, ExecuteActionResponse, RunCompositeStepRequest},
-        ports::outbound::run_composite_step_port::RunCompositeStepPort,
+        ports::inbound::run_composite_step_port::RunCompositeStepPort,
         services::{
             run_composite_step_service::RunCompositeStepService,
             run_shell_step_service::RunShellStepService,

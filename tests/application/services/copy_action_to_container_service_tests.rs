@@ -3,7 +3,7 @@ use std::path::Path;
 use ephact::application::{
     dtos::CopyActionToContainerRequest,
     ports::{
-        outbound::FileEntry, outbound::copy_action_to_container_port::CopyActionToContainerPort,
+        inbound::copy_action_to_container_port::CopyActionToContainerPort, outbound::FileEntry,
     },
     services::copy_action_to_container_service::CopyActionToContainerService,
 };

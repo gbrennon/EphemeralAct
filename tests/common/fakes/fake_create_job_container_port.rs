@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use ephact::application::{
     dtos::CreateJobContainerRequest,
-    ports::{outbound::ContainerPort, outbound::create_job_container_port::CreateJobContainerPort},
+    ports::{inbound::create_job_container_port::CreateJobContainerPort, outbound::ContainerPort},
 };
 
 use super::stub_container::StubContainer;

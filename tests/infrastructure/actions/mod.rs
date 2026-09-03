@@ -1,1 +1,2 @@
 mod git_action_fetcher_tests;
+mod github_action_input_environment_adapter_tests;

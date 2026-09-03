@@ -4,7 +4,7 @@ use ephact::{
     application::{
         dtos::RunShellStepRequest,
         ports::{
-            outbound::run_shell_step_port::RunShellStepPort,
+            inbound::run_shell_step_port::RunShellStepPort,
             outbound::{
                 ContainerConfig, ContainerPort, ContainerRuntimePort, ExecResult, RunnerContext,
             },

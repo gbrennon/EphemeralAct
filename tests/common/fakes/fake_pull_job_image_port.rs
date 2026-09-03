@@ -2,7 +2,7 @@
 use std::cell::RefCell;
 
 use ephact::application::{
-    dtos::PullJobImageRequest, ports::outbound::pull_job_image_port::PullJobImagePort,
+    dtos::PullJobImageRequest, ports::inbound::pull_job_image_port::PullJobImagePort,
 };
 
 /// Returns a prepared image, recording the runner labels it was asked about.

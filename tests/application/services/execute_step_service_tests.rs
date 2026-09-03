@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::Path, sync::Arc};
 use ephact::{
     application::{
         dtos::{ExecuteActionResponse, ExecuteStepRequest},
-        ports::{outbound::ExecResult, outbound::execute_step_port::ExecuteStepPort},
+        ports::{inbound::execute_step_port::ExecuteStepPort, outbound::ExecResult},
         services::execute_step_service::ExecuteStepService,
     },
     domain::{errors::StepError, expression::EvalContext, workflow::Step},

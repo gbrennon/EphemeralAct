@@ -3,7 +3,7 @@ use std::fs;
 use ephact::{
     application::{
         dtos::LoadActionDefinitionRequest,
-        ports::outbound::load_action_definition_port::LoadActionDefinitionPort,
+        ports::inbound::load_action_definition_port::LoadActionDefinitionPort,
         services::load_action_definition_service::LoadActionDefinitionService,
     },
     domain::workflow::ActionRuns,

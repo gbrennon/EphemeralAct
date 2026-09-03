@@ -4,7 +4,7 @@ use std::{cell::RefCell, rc::Rc};
 use ephact::{
     application::{
         dtos::{ExecuteActionRequest, ExecuteActionResponse},
-        ports::outbound::request_action_execution_port::RequestActionExecutionPort,
+        ports::inbound::request_action_execution_port::RequestActionExecutionPort,
     },
     domain::errors::StepError,
 };

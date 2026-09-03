@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path};
 
 use ephact::application::{
-    dtos::RunNodeActionRequest, ports::outbound::run_node_action_port::RunNodeActionPort,
+    dtos::RunNodeActionRequest, ports::inbound::run_node_action_port::RunNodeActionPort,
     services::run_node_action_service::RunNodeActionService,
 };
 

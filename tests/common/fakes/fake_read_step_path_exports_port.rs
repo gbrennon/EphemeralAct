@@ -3,7 +3,7 @@ use std::{cell::Cell, rc::Rc};
 
 use ephact::application::{
     dtos::ReadStepPathExportsRequest,
-    ports::outbound::read_step_path_exports_port::ReadStepPathExportsPort,
+    ports::inbound::read_step_path_exports_port::ReadStepPathExportsPort,
 };
 
 /// Returns prepared path additions, recording that it was consulted.

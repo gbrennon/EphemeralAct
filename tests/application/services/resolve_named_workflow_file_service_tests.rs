@@ -2,7 +2,7 @@ use std::{fs, path::Path};
 
 use ephact::application::{
     dtos::ResolveNamedWorkflowFileRequest,
-    ports::outbound::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
+    ports::inbound::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
     services::resolve_named_workflow_file_service::ResolveNamedWorkflowFileService,
 };
 

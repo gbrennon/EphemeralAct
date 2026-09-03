@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use ephact::application::{
     dtos::{ExecuteJobRequest, JobExecution, JobSummary},
-    ports::outbound::execute_job_port::ExecuteJobPort,
+    ports::inbound::execute_job_port::ExecuteJobPort,
 };
 
 /// Reports every job as run, recording the job ids in execution order and

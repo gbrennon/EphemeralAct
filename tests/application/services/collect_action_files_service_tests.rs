@@ -2,7 +2,7 @@ use std::{fs, os::unix::fs::PermissionsExt};
 
 use ephact::application::{
     dtos::CollectActionFilesRequest,
-    ports::outbound::collect_action_files_port::CollectActionFilesPort,
+    ports::inbound::collect_action_files_port::CollectActionFilesPort,
     services::collect_action_files_service::CollectActionFilesService,
 };
 

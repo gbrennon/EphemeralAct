@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use ephact::application::{
-    dtos::PullJobImageRequest, ports::outbound::pull_job_image_port::PullJobImagePort,
+    dtos::PullJobImageRequest, ports::inbound::pull_job_image_port::PullJobImagePort,
     services::pull_job_image_service::PullJobImageService,
 };
 

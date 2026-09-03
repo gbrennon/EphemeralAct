@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf, rc::Rc, sync::Arc};
 use ephact::{
     application::{
         dtos::ExecuteActionRequest,
-        ports::outbound::request_action_execution_port::RequestActionExecutionPort,
+        ports::inbound::request_action_execution_port::RequestActionExecutionPort,
         services::request_action_execution_service::RequestActionExecutionService,
     },
     domain::{events::DomainEvent, expression::EvalContext},

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use ephact::{
     application::{
         dtos::BuildStepContextRequest,
-        ports::outbound::build_step_context_port::BuildStepContextPort,
+        ports::inbound::build_step_context_port::BuildStepContextPort,
         services::build_step_context_service::BuildStepContextService,
     },
     domain::expression::EvalContext,

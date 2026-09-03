@@ -2,7 +2,7 @@ use std::path::Path;
 
 use ephact::{
     application::{
-        dtos::BuildRunContextRequest, ports::outbound::build_run_context_port::BuildRunContextPort,
+        dtos::BuildRunContextRequest, ports::inbound::build_run_context_port::BuildRunContextPort,
         services::build_run_context_service::BuildRunContextService,
     },
     domain::{
@@ -22,10 +22,12 @@ fn context(config: ActRunConfig) -> ephact::domain::expression::EvalContext {
     let tmp = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(tmp.path().join(".git")).unwrap();
     let repo = repository(tmp.path());
-    BuildRunContextService::new().execute(BuildRunContextRequest {
-        config: &config,
-        repository: &repo,
-    })
+    BuildRunContextService::new()
+        .execute(BuildRunContextRequest {
+            config: &config,
+            repository: &repo,
+        })
+        .context
 }
 
 #[test]

@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use ephact::application::{
     dtos::{ReadStepExportsRequest, StepExports},
-    ports::outbound::read_step_exports_port::ReadStepExportsPort,
+    ports::inbound::read_step_exports_port::ReadStepExportsPort,
 };
 
 type QueuedStepExports = (Vec<String>, HashMap<String, String>);

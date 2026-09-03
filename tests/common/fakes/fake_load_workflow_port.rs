@@ -3,7 +3,7 @@ use std::{cell::RefCell, path::PathBuf, rc::Rc};
 
 use ephact::{
     application::{
-        dtos::LoadWorkflowRequest, ports::outbound::load_workflow_port::LoadWorkflowPort,
+        dtos::LoadWorkflowRequest, ports::inbound::load_workflow_port::LoadWorkflowPort,
     },
     domain::workflow::Workflow,
 };

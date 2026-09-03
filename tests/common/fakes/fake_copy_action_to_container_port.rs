@@ -4,7 +4,7 @@ use std::{cell::RefCell, path::PathBuf, rc::Rc};
 use ephact::{
     application::{
         dtos::CopyActionToContainerRequest,
-        ports::outbound::copy_action_to_container_port::CopyActionToContainerPort,
+        ports::inbound::copy_action_to_container_port::CopyActionToContainerPort,
     },
     domain::errors::StepError,
 };

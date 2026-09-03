@@ -1,6 +1,6 @@
 use ephact::application::{
     dtos::ReadStepPathExportsRequest,
-    ports::outbound::read_step_path_exports_port::ReadStepPathExportsPort,
+    ports::inbound::read_step_path_exports_port::ReadStepPathExportsPort,
     services::read_step_path_exports_service::ReadStepPathExportsService,
 };
 

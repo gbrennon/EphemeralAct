@@ -1,7 +1,7 @@
 use std::fs;
 
 use ephact::application::{
-    dtos::LoadWorkflowRequest, ports::outbound::load_workflow_port::LoadWorkflowPort,
+    dtos::LoadWorkflowRequest, ports::inbound::load_workflow_port::LoadWorkflowPort,
     services::load_workflow_service::LoadWorkflowService,
 };
 

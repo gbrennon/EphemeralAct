@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use ephact::application::{
-    dtos::PrefixStepPathRequest, ports::outbound::prefix_step_path_port::PrefixStepPathPort,
+    dtos::PrefixStepPathRequest, ports::inbound::prefix_step_path_port::PrefixStepPathPort,
     services::prefix_step_path_service::PrefixStepPathService,
 };
 

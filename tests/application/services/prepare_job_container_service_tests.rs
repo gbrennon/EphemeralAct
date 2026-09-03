@@ -2,7 +2,7 @@ use std::path::Path;
 
 use ephact::application::{
     dtos::PrepareJobContainerRequest,
-    ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
+    ports::inbound::prepare_job_container_port::PrepareJobContainerPort,
     services::prepare_job_container_service::PrepareJobContainerService,
 };
 

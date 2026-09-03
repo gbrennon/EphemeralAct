@@ -2,7 +2,7 @@ use std::path::Path;
 
 use ephact::{
     application::{
-        dtos::ExecuteWorkflowRequest, ports::outbound::execute_workflow_port::ExecuteWorkflowPort,
+        dtos::ExecuteWorkflowRequest, ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
         services::execute_workflow_service::ExecuteWorkflowService,
     },
     domain::expression::EvalContext,

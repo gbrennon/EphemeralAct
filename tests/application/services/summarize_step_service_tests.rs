@@ -3,7 +3,7 @@ use std::time::Duration;
 use ephact::{
     application::{
         dtos::{ExecuteActionResponse, ExecutedStep, SummarizeStepRequest},
-        ports::outbound::summarize_step_port::SummarizeStepPort,
+        ports::inbound::summarize_step_port::SummarizeStepPort,
         services::summarize_step_service::SummarizeStepService,
     },
     domain::{errors::StepError, workflow::Step},

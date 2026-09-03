@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use ephact::application::{
     dtos::{JobSummary, MergeRunExecutionsRequest, StepSummary, StepType, WorkflowExecution},
-    ports::outbound::merge_run_executions_port::MergeRunExecutionsPort,
+    ports::inbound::merge_run_executions_port::MergeRunExecutionsPort,
     services::merge_run_executions_service::MergeRunExecutionsService,
 };
 

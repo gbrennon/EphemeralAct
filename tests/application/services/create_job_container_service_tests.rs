@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use ephact::application::{
     dtos::CreateJobContainerRequest,
-    ports::outbound::create_job_container_port::CreateJobContainerPort,
+    ports::inbound::create_job_container_port::CreateJobContainerPort,
     services::create_job_container_service::CreateJobContainerService,
 };
 

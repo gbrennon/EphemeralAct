@@ -3,7 +3,7 @@ use std::{cell::RefCell, path::PathBuf};
 
 use ephact::application::{
     dtos::ResolveNamedWorkflowFileRequest,
-    ports::outbound::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
+    ports::inbound::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort,
 };
 
 /// Resolves every name to a prepared path, recording the names it was asked for.

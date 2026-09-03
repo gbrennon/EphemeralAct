@@ -3,7 +3,7 @@ use std::{cell::Cell, path::PathBuf};
 
 use ephact::application::{
     dtos::DetectWorkflowFileRequest,
-    ports::outbound::detect_workflow_file_port::DetectWorkflowFilePort,
+    ports::inbound::detect_workflow_file_port::DetectWorkflowFilePort,
 };
 
 /// Detects a prepared workflow file, recording whether it was consulted.
