@@ -11,9 +11,9 @@ mod tests {
                     ContainerConfig, ContainerPort, ContainerRuntimePort, ExecResult, RunnerContext,
                 },
             },
-            services::execute_action_service::ExecuteActionService,
         },
         domain::{expression::EvalContext, workflow::Step},
+        infrastructure::ActionExecutionWiring,
     };
     use serde_json::Value;
 
@@ -84,7 +84,9 @@ mod tests {
         );
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "hi\n");
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
 
         let response = service
             .execute(request(
@@ -109,7 +111,9 @@ mod tests {
             "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\nruns:\n  using: composite\n  steps:\n    - run: deploy ${{ inputs.mode }}\n      shell: bash\n",
         );
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
 
         service
             .execute(request(
@@ -135,7 +139,9 @@ mod tests {
             "name: Deploy\ninputs:\n  mode:\n    description: target\n    default: production\nruns:\n  using: composite\n  steps:\n    - run: deploy ${{ inputs.mode }}\n      shell: bash\n",
         );
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
 
         service
             .execute(request(
@@ -161,7 +167,9 @@ mod tests {
             "name: Publish\nruns:\n  using: composite\n  steps:\n    - run: publish --token ${{ secrets.TOKEN }}\n      shell: bash\n",
         );
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
         let mut context = EvalContext::new();
         let mut secrets = serde_json::Map::new();
         secrets.insert("TOKEN".into(), Value::String("abc123".into()));
@@ -192,7 +200,9 @@ mod tests {
         );
         let runtime = FakeRuntime::new();
         push_result(&runtime, 2, "boom\n");
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
 
         let response = service
             .execute(request(
@@ -218,7 +228,7 @@ mod tests {
         );
         let runtime = FakeRuntime::new();
         let fetcher = FakeActionFetcher::returning(mirror.path().into());
-        let service = ExecuteActionService::new(fetcher);
+        let service = ActionExecutionWiring::build(Box::new(fetcher));
 
         let response = service
             .execute(request(
@@ -248,7 +258,9 @@ mod tests {
         std::fs::create_dir_all(mirror.path().join("dist")).unwrap();
         std::fs::write(mirror.path().join("dist/index.js"), "console.log('cached')").unwrap();
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(mirror.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            mirror.path().into(),
+        )));
 
         let response = service
             .execute(request(
@@ -298,7 +310,9 @@ mod tests {
         push_result(&runtime, 0, "");
         push_result(&runtime, 0, "/opt/acttoolcache/node/24/bin/node\n");
         push_result(&runtime, 0, "cached\n");
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(mirror.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            mirror.path().into(),
+        )));
 
         let response = service
             .execute(request(
@@ -327,7 +341,9 @@ mod tests {
     fn execute_skips_checkout_because_the_workspace_is_mounted() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
 
         let response = service
             .execute(request(
@@ -348,7 +364,7 @@ mod tests {
     fn execute_reports_a_failed_fetch() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(StubFailingActionFetcher);
+        let service = ActionExecutionWiring::build(Box::new(StubFailingActionFetcher));
 
         let error = service
             .execute(request(
@@ -371,7 +387,9 @@ mod tests {
     fn execute_reports_container_actions_as_unsupported() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
 
         let error = service
             .execute(request(
@@ -394,7 +412,9 @@ mod tests {
     fn execute_reports_a_missing_action_definition() {
         let repo = tempfile::tempdir().unwrap();
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
 
         let error = service
             .execute(request(
@@ -425,7 +445,9 @@ mod tests {
             "name: Inner\nruns:\n  using: composite\n  steps:\n    - run: inner-step\n      shell: bash\n",
         );
         let runtime = FakeRuntime::new();
-        let service = ExecuteActionService::new(FakeActionFetcher::returning(repo.path().into()));
+        let service = ActionExecutionWiring::build(Box::new(FakeActionFetcher::returning(
+            repo.path().into(),
+        )));
 
         let response = service
             .execute(request(

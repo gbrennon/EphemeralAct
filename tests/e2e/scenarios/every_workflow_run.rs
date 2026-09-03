@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     fakes::{
         mirrored_action_fetcher::MirroredActionFetcher, succeeding_runtime::SucceedingRuntime,
@@ -51,8 +53,8 @@ impl EveryWorkflowRun {
             .with_workflow("test.yml", TEST_WORKFLOW);
         let activity = ContainerActivity::new();
         let application = EphactApplication::compose(
-            SucceedingRuntime::recording(activity.clone()),
-            MirroredActionFetcher::mirroring(repository.path()),
+            Arc::new(SucceedingRuntime::recording(activity.clone())),
+            Box::new(MirroredActionFetcher::mirroring(repository.path())),
         );
 
         let outcome = application

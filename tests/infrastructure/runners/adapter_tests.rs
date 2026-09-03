@@ -217,55 +217,6 @@ mod tests {
     }
 
     #[test]
-    fn arc_pull_image_delegates() {
-        let adapter = Arc::new(adapter!());
-        let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn arc_get_host_info_delegates() {
-        let adapter = Arc::new(adapter!());
-        let info = adapter.get_host_info().unwrap();
-        assert!(!info.os.is_empty());
-        assert!(!info.arch.is_empty());
-    }
-
-    #[test]
-    fn arc_stop_container_delegates() {
-        let adapter = Arc::new(adapter!());
-        let _ = adapter.stop_container("nonexistent-container-xyz-123");
-    }
-
-    #[test]
-    fn arc_remove_container_delegates() {
-        let adapter = Arc::new(adapter!());
-        let _ = adapter.remove_container("nonexistent-container-xyz-123");
-    }
-
-    #[test]
-    fn arc_create_container_delegates() {
-        use std::collections::HashMap;
-
-        let adapter = Arc::new(adapter!());
-        let config = ContainerConfig {
-            image: "alpine:latest".into(),
-            platform: None,
-            env: HashMap::new(),
-            binds: vec![],
-            workdir: None,
-            cmd: Some(vec!["sleep".into(), "infinity".into()]),
-            entrypoint: None,
-            network: None,
-            name: Some("ephemeral-act-test-arc-create".into()),
-            runner_context: Default::default(),
-        };
-        let _ = adapter.remove_container("ephemeral-act-test-arc-create");
-        let container = adapter.create_container(&config).unwrap();
-        container.remove().unwrap();
-    }
-
-    #[test]
     fn podman_variant_map_error_on_stop_container() {
         let adapter = match try_podman_adapter() {
             Some(a) => a,

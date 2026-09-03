@@ -1,27 +1,24 @@
 #[cfg(test)]
 mod tests {
-    use std::{path::Path, rc::Rc};
+    use std::{path::Path, rc::Rc, sync::Arc};
 
     use ephact::{
         application::{
             dtos::{RunActRequest, StepType},
             ports::{inbound::run_act_port::RunActPort, outbound::ExecResult},
-            services::{
-                execute_action_service::ExecuteActionService,
-                run_act_service::{ALL_WORKFLOWS_SUMMARY_NAME, RunActService},
-            },
+            services::run_act_service::ALL_WORKFLOWS_SUMMARY_NAME,
         },
         domain::{
             ActRunConfig, ActWorkflow, RepoPath, Repository, RepositoryName,
             events::DomainEvent,
             value_objects::{ActEvent, ActInput, Secret},
         },
+        infrastructure::{ActionExecutionWiring, RunActWiring},
     };
 
     use crate::common::fakes::{
         fake_action_fetcher::FakeActionFetcher, fake_event_publisher::FakeEventPublisher,
         fake_image_mapper::FakeImageMapper, fake_runtime::FakeRuntime,
-        shared_fake_runtime::SharedFakeRuntime,
     };
 
     fn make_repo(path: &Path) -> Repository {
@@ -60,9 +57,9 @@ mod tests {
 
     /// Publisher wired to the action executor, mirroring the production bus.
     fn publisher_with_action_executor(mirror_dir: &Path) -> FakeEventPublisher {
-        FakeEventPublisher::with_action_handler(Rc::new(ExecuteActionService::new(
+        FakeEventPublisher::with_action_handler(Rc::new(ActionExecutionWiring::build(Box::new(
             FakeActionFetcher::returning(mirror_dir.to_path_buf()),
-        )))
+        ))))
     }
 
     #[test]
@@ -77,7 +74,11 @@ mod tests {
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "hi\n", "");
         let publisher = FakeEventPublisher::new();
-        let service = RunActService::new(runtime, FakeImageMapper, publisher.clone());
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher.clone()),
+        );
 
         let result = service
             .execute(RunActRequest::new(ActRunConfig::new(), repo))
@@ -101,7 +102,11 @@ mod tests {
         let repo = make_repo(tmp.path());
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "hi\n", "");
-        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
+        );
         let config =
             ActRunConfig::new().with_workflow(ActWorkflow::new(".forgejo/workflows/ci.yml".into()));
 
@@ -113,10 +118,10 @@ mod tests {
     #[test]
     fn execute_errors_on_nonexistent_workflow() {
         let repo = make_repo(Path::new(env!("CARGO_MANIFEST_DIR")));
-        let service = RunActService::new(
-            FakeRuntime::new(),
-            FakeImageMapper,
-            FakeEventPublisher::new(),
+        let service = RunActWiring::build(
+            Arc::new(FakeRuntime::new()),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
         );
         let config = ActRunConfig::new().with_workflow(ActWorkflow::new("nonexistent.yml".into()));
 
@@ -131,10 +136,10 @@ mod tests {
     fn execute_errors_when_no_workflow_found() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = make_repo(tmp.path());
-        let service = RunActService::new(
-            FakeRuntime::new(),
-            FakeImageMapper,
-            FakeEventPublisher::new(),
+        let service = RunActWiring::build(
+            Arc::new(FakeRuntime::new()),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
         );
 
         let err = service
@@ -155,7 +160,11 @@ mod tests {
         let repo = make_repo(tmp.path());
         let runtime = FakeRuntime::new();
         push_result(&runtime, 1, "", "fail");
-        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
+        );
 
         let result = service
             .execute(RunActRequest::new(ActRunConfig::new(), repo))
@@ -175,7 +184,11 @@ mod tests {
         let repo = make_repo(tmp.path());
         let runtime = FakeRuntime::new();
         push_result(&runtime, 1, "", "fail");
-        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
+        );
 
         let result = service
             .execute(RunActRequest::new(ActRunConfig::new(), repo))
@@ -196,7 +209,11 @@ mod tests {
         let repo = make_repo(tmp.path());
         let runtime = FakeRuntime::new();
         push_result(&runtime, 1, "", "fail");
-        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
+        );
 
         let result = service
             .execute(RunActRequest::new(ActRunConfig::new(), repo))
@@ -216,9 +233,12 @@ mod tests {
             "name: Publish\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: cargo publish --token ${{ secrets.CRATES_IO_STAGING_TOKEN }}\n",
         );
         let repo = make_repo(tmp.path());
-        let runtime = SharedFakeRuntime::new();
-        let service =
-            RunActService::new(runtime.clone(), FakeImageMapper, FakeEventPublisher::new());
+        let runtime = Arc::new(FakeRuntime::new());
+        let service = RunActWiring::build(
+            runtime.clone(),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
+        );
         let config = ActRunConfig::new().add_secret(Secret::new(
             "CRATES_IO_STAGING_TOKEN".into(),
             "test-staging-token".into(),
@@ -241,9 +261,12 @@ mod tests {
             "name: Publish\non: workflow_dispatch\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - run: deploy ${{ inputs.mode }} ${{ github.event_name }}\n",
         );
         let repo = make_repo(tmp.path());
-        let runtime = SharedFakeRuntime::new();
-        let service =
-            RunActService::new(runtime.clone(), FakeImageMapper, FakeEventPublisher::new());
+        let runtime = Arc::new(FakeRuntime::new());
+        let service = RunActWiring::build(
+            runtime.clone(),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
+        );
         let config = ActRunConfig::new()
             .add_input(ActInput::new("mode".into(), "staging".into()))
             .with_event(ActEvent::new("pull_request".into()));
@@ -273,7 +296,11 @@ mod tests {
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "hi", "");
         let publisher = publisher_with_action_executor(tmp.path());
-        let service = RunActService::new(runtime, FakeImageMapper, publisher.clone());
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher.clone()),
+        );
 
         let result = service
             .execute(RunActRequest::new(ActRunConfig::new(), repo))
@@ -307,11 +334,11 @@ mod tests {
             "name: Publish\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: ./.forgejo/actions/publish\n",
         );
         let repo = make_repo(tmp.path());
-        let runtime = SharedFakeRuntime::new();
-        let service = RunActService::new(
+        let runtime = Arc::new(FakeRuntime::new());
+        let service = RunActWiring::build(
             runtime.clone(),
-            FakeImageMapper,
-            publisher_with_action_executor(tmp.path()),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher_with_action_executor(tmp.path())),
         );
         let config = ActRunConfig::new().add_secret(Secret::new(
             "CRATES_IO_STAGING_TOKEN".into(),
@@ -344,10 +371,10 @@ mod tests {
         let repo = make_repo(tmp.path());
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "cached\n", "");
-        let service = RunActService::new(
-            runtime,
-            FakeImageMapper,
-            publisher_with_action_executor(mirror.path()),
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher_with_action_executor(mirror.path())),
         );
 
         let result = service
@@ -369,10 +396,10 @@ mod tests {
             "name: Cache\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: https://data.forgejo.org/actions/cache@v4\n",
         );
         let repo = make_repo(tmp.path());
-        let service = RunActService::new(
-            FakeRuntime::new(),
-            FakeImageMapper,
-            FakeEventPublisher::new(),
+        let service = RunActWiring::build(
+            Arc::new(FakeRuntime::new()),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
         );
 
         let result = service
@@ -405,10 +432,10 @@ mod tests {
         let repo = make_repo(tmp.path());
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "partial-output\n", "");
-        let service = RunActService::new(
-            runtime,
-            FakeImageMapper,
-            publisher_with_action_executor(tmp.path()),
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher_with_action_executor(tmp.path())),
         );
 
         let result = service
@@ -430,10 +457,10 @@ mod tests {
             "name: Action\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: docker://node:20\n",
         );
         let repo = make_repo(tmp.path());
-        let service = RunActService::new(
-            FakeRuntime::new(),
-            FakeImageMapper,
-            publisher_with_action_executor(tmp.path()),
+        let service = RunActWiring::build(
+            Arc::new(FakeRuntime::new()),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher_with_action_executor(tmp.path())),
         );
 
         let result = service
@@ -459,10 +486,10 @@ mod tests {
             "name: Ci\non: push\njobs:\n  job:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n",
         );
         let repo = make_repo(tmp.path());
-        let service = RunActService::new(
-            FakeRuntime::new(),
-            FakeImageMapper,
-            publisher_with_action_executor(tmp.path()),
+        let service = RunActWiring::build(
+            Arc::new(FakeRuntime::new()),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher_with_action_executor(tmp.path())),
         );
 
         let result = service
@@ -496,7 +523,11 @@ mod tests {
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "hi\n", "");
         push_result(&runtime, 0, "hi\n", "");
-        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
+        );
         let config = ActRunConfig::new().with_all_workflows(true);
 
         let result = service.execute(RunActRequest::new(config, repo)).unwrap();
@@ -520,10 +551,10 @@ mod tests {
     fn execute_all_workflows_errors_when_repository_has_no_workflow_files() {
         let tmp = tempfile::tempdir().unwrap();
         let repo = make_repo(tmp.path());
-        let service = RunActService::new(
-            FakeRuntime::new(),
-            FakeImageMapper,
-            FakeEventPublisher::new(),
+        let service = RunActWiring::build(
+            Arc::new(FakeRuntime::new()),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
         );
         let config = ActRunConfig::new().with_all_workflows(true);
 
@@ -552,7 +583,11 @@ mod tests {
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "", "");
         push_result(&runtime, 1, "", "boom");
-        let service = RunActService::new(runtime, FakeImageMapper, FakeEventPublisher::new());
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(FakeEventPublisher::new()),
+        );
         let config = ActRunConfig::new().with_all_workflows(true);
 
         let result = service.execute(RunActRequest::new(config, repo)).unwrap();
@@ -584,10 +619,10 @@ mod tests {
         let repo = make_repo(tmp.path());
         let runtime = FakeRuntime::new();
         push_result(&runtime, 0, "partial-output\n", "");
-        let service = RunActService::new(
-            runtime,
-            FakeImageMapper,
-            publisher_with_action_executor(tmp.path()),
+        let service = RunActWiring::build(
+            Arc::new(runtime),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher_with_action_executor(tmp.path())),
         );
         let config = ActRunConfig::new().with_all_workflows(true);
 
@@ -615,7 +650,11 @@ mod tests {
         );
         let repo = make_repo(tmp.path());
         let publisher = FakeEventPublisher::new();
-        let service = RunActService::new(FakeRuntime::new(), FakeImageMapper, publisher.clone());
+        let service = RunActWiring::build(
+            Arc::new(FakeRuntime::new()),
+            Box::new(FakeImageMapper),
+            Arc::new(publisher.clone()),
+        );
         let config = ActRunConfig::new().with_all_workflows(true);
 
         service.execute(RunActRequest::new(config, repo)).unwrap();
