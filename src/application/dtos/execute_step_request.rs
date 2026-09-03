@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// Request DTO for the
-/// [`ExecuteStepPort`](crate::application::ports::outbound::execute_step_port::ExecuteStepPort)
+/// [`ExecuteStepPort`](crate::application::ports::inbound::execute_step_port::ExecuteStepPort)
 /// inbound port.
 pub struct ExecuteStepRequest<'a> {
     /// Step to execute, before its expressions are resolved.

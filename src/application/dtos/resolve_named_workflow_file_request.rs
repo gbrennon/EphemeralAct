@@ -1,7 +1,7 @@
 use std::path::Path;
 
 /// Request DTO for the
-/// [`ResolveNamedWorkflowFilePort`](crate::application::ports::outbound::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort)
+/// [`ResolveNamedWorkflowFilePort`](crate::application::ports::inbound::resolve_named_workflow_file_port::ResolveNamedWorkflowFilePort)
 /// inbound port.
 pub struct ResolveNamedWorkflowFileRequest<'a> {
     /// Workflow the run was asked to execute, as named on the command line.

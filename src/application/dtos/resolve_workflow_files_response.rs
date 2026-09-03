@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 /// Response DTO for the
-/// [`ResolveWorkflowFilesPort`](crate::application::ports::outbound::resolve_workflow_files_port::ResolveWorkflowFilesPort)
+/// [`ResolveWorkflowFilesPort`](crate::application::ports::inbound::resolve_workflow_files_port::ResolveWorkflowFilesPort)
 /// inbound port.
 #[derive(Debug)]
 pub struct ResolveWorkflowFilesResponse {

@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::domain::{expression::EvalContext, planner::Run, workflow::Workflow};
 
 /// Request DTO for the
-/// [`ExecuteJobPort`](crate::application::ports::outbound::execute_job_port::ExecuteJobPort)
+/// [`ExecuteJobPort`](crate::application::ports::inbound::execute_job_port::ExecuteJobPort)
 /// inbound port.
 pub struct ExecuteJobRequest<'a> {
     /// Planned job to run.

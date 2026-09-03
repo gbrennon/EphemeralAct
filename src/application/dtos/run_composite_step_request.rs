@@ -3,13 +3,13 @@ use std::path::Path;
 use crate::{
     application::{
         dtos::ExecuteActionRequest,
-        ports::outbound::execute_nested_action_port::ExecuteNestedActionPort,
+        ports::inbound::execute_nested_action_port::ExecuteNestedActionPort,
     },
     domain::{expression::EvalContext, workflow::Step},
 };
 
 /// Request DTO for the
-/// [`RunCompositeStepPort`](crate::application::ports::outbound::run_composite_step_port::RunCompositeStepPort)
+/// [`RunCompositeStepPort`](crate::application::ports::inbound::run_composite_step_port::RunCompositeStepPort)
 /// inbound port.
 pub struct RunCompositeStepRequest<'a> {
     /// Step of the composite action, already interpolated.

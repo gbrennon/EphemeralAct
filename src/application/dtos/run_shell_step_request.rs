@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::{application::ports::outbound::ContainerPort, domain::workflow::Step};
 
 /// Request DTO for the
-/// [`RunShellStepPort`](crate::application::ports::outbound::run_shell_step_port::RunShellStepPort)
+/// [`RunShellStepPort`](crate::application::ports::inbound::run_shell_step_port::RunShellStepPort)
 /// inbound port.
 pub struct RunShellStepRequest<'a> {
     /// Step whose `run:` script is executed.

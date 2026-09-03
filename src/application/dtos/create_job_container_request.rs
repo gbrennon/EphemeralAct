@@ -1,7 +1,7 @@
 use std::path::Path;
 
 /// Request DTO for the
-/// [`CreateJobContainerPort`](crate::application::ports::outbound::create_job_container_port::CreateJobContainerPort)
+/// [`CreateJobContainerPort`](crate::application::ports::inbound::create_job_container_port::CreateJobContainerPort)
 /// inbound port.
 pub struct CreateJobContainerRequest<'a> {
     /// Image the container is created from.

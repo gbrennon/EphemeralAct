@@ -3,13 +3,13 @@ use std::{collections::HashMap, path::Path};
 use crate::{
     application::{
         dtos::ExecuteActionRequest,
-        ports::outbound::execute_nested_action_port::ExecuteNestedActionPort,
+        ports::inbound::execute_nested_action_port::ExecuteNestedActionPort,
     },
     domain::workflow::Step,
 };
 
 /// Request DTO for the
-/// [`RunCompositeActionPort`](crate::application::ports::outbound::run_composite_action_port::RunCompositeActionPort)
+/// [`RunCompositeActionPort`](crate::application::ports::inbound::run_composite_action_port::RunCompositeActionPort)
 /// inbound port.
 pub struct RunCompositeActionRequest<'a> {
     /// Steps the composite action declared.

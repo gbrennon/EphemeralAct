@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::domain::expression::EvalContext;
 
 /// Request DTO for the
-/// [`ExecuteWorkflowPort`](crate::application::ports::outbound::execute_workflow_port::ExecuteWorkflowPort)
+/// [`ExecuteWorkflowPort`](crate::application::ports::inbound::execute_workflow_port::ExecuteWorkflowPort)
 /// inbound port.
 pub struct ExecuteWorkflowRequest<'a> {
     /// Workflow file whose jobs are executed.
