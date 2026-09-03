@@ -13,7 +13,14 @@ pub enum ActionRuns {
         steps: Vec<Step>,
     },
 
-    /// Node action: runs a JavaScript file (not yet executed).
+    /// Node action: runs a JavaScript file (node12 variant).
+    #[serde(rename = "node12")]
+    Node12 {
+        /// Entry point script.
+        main: String,
+    },
+
+    /// Node action: runs a JavaScript file (node16 variant).
     #[serde(rename = "node16")]
     Node16 {
         /// Entry point script.

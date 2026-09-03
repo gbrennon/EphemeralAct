@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ephact::application::{
     dtos::ContainerCleanupRequest, ports::inbound::container_cleanup_port::ContainerCleanupPort,
     services::container_cleanup_service::ContainerCleanupService,
@@ -11,7 +13,7 @@ use crate::common::fakes::{
 #[test]
 fn execute_stops_and_removes_each_requested_container() {
     let runtime = SpyContainerRuntime::new();
-    let service = ContainerCleanupService::new(runtime.clone());
+    let service = ContainerCleanupService::new(Arc::new(runtime.clone()));
     let request = ContainerCleanupRequest::new(vec!["app1".into(), "app2".into()]);
 
     service.execute(request);
@@ -23,7 +25,7 @@ fn execute_stops_and_removes_each_requested_container() {
 #[test]
 fn execute_with_empty_request_does_not_stop_or_remove_containers() {
     let runtime = SpyContainerRuntime::new();
-    let service = ContainerCleanupService::new(runtime.clone());
+    let service = ContainerCleanupService::new(Arc::new(runtime.clone()));
     let request = ContainerCleanupRequest::default();
 
     service.execute(request);
@@ -35,7 +37,7 @@ fn execute_with_empty_request_does_not_stop_or_remove_containers() {
 #[test]
 fn execute_continues_when_runtime_fails_to_stop_or_remove() {
     let runtime = StubFailingContainerRuntime;
-    let service = ContainerCleanupService::new(runtime);
+    let service = ContainerCleanupService::new(Arc::new(runtime));
     let request = ContainerCleanupRequest::new(vec!["app1".into(), "app2".into()]);
 
     service.execute(request);

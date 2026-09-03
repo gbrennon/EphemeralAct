@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     fakes::{
         mirrored_action_fetcher::MirroredActionFetcher, succeeding_runtime::SucceedingRuntime,
@@ -95,8 +97,8 @@ impl DeliveryPipelineRun {
         let activity = ContainerActivity::new();
         let fetcher = MirroredActionFetcher::mirroring(repository.path());
         let application = EphactApplication::compose(
-            SucceedingRuntime::recording(activity.clone()),
-            fetcher.clone(),
+            Arc::new(SucceedingRuntime::recording(activity.clone())),
+            Box::new(fetcher.clone()),
         );
 
         let outcome = application
