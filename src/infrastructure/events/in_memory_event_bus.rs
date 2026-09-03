@@ -1,12 +1,15 @@
-use crate::core::{
-    dtos::ContainerCleanupRequest,
-    events::{DomainEvent, EventOutcome},
-    ports::{
-        inbound::{
-            container_cleanup_port::ContainerCleanupPort, execute_action_port::ExecuteActionPort,
+use crate::{
+    application::{
+        dtos::ContainerCleanupRequest,
+        ports::{
+            inbound::{
+                container_cleanup_port::ContainerCleanupPort,
+                execute_action_port::ExecuteActionPort,
+            },
+            outbound::event_publisher::EventPublisherPort,
         },
-        outbound::event_publisher::EventPublisherPort,
     },
+    domain::events::{DomainEvent, EventOutcome},
 };
 
 /// In-memory event bus that dispatches domain events to registered handlers.

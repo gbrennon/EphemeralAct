@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::core::dtos::ListActionsRequest;
+use crate::application::dtos::ListActionsRequest;
 
 /// CLI arguments for the `list-actions` subcommand.
 #[derive(Args)]

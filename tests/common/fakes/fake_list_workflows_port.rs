@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use ephact::core::{
+use ephact::application::{
     dtos::{ListWorkflowsRequest, ListWorkflowsResponse},
     ports::inbound::list_workflows_port::ListWorkflowsPort,
 };

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::core::{
+use crate::domain::{
     ActRunConfig, Repository,
     value_objects::{ActEvent, ActInput, ActJob, ActWorkflow, RepoPath, RepositoryName, Secret},
 };

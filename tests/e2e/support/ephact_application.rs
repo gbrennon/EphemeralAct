@@ -1,5 +1,5 @@
 use ephact::{
-    core::{
+    application::{
         ports::outbound::{ActionFetcherPort, ContainerRuntimePort},
         services::{
             container_cleanup_service::ContainerCleanupService,
@@ -31,8 +31,12 @@ impl EphactApplication {
 
         CompositionRoot::compose(
             Box::new(RunActService::new(runtime, FixedImageMapper, event_bus)),
-            Box::new(ListWorkflowsService::new(FilesystemWorkflowFileParser)),
-            Box::new(ListActionsService::new(FilesystemWorkflowFileParser)),
+            Box::new(ListWorkflowsService::new(Box::new(
+                FilesystemWorkflowFileParser,
+            ))),
+            Box::new(ListActionsService::new(Box::new(
+                FilesystemWorkflowFileParser,
+            ))),
         )
     }
 }

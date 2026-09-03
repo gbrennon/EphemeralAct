@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    core::services::{
+    application::services::{
         container_cleanup_service::ContainerCleanupService,
         execute_action_service::ExecuteActionService, list_actions_service::ListActionsService,
         list_workflows_service::ListWorkflowsService, run_act_service::RunActService,
@@ -32,9 +32,9 @@ impl Container {
         let event_bus =
             InMemoryEventBus::new(Box::new(cleanup_service), Box::new(execute_action_service));
 
-        let parser = FilesystemWorkflowFileParser;
-        let list_workflows_service = ListWorkflowsService::new(parser);
-        let list_actions_service = ListActionsService::new(parser);
+        let list_workflows_service =
+            ListWorkflowsService::new(Box::new(FilesystemWorkflowFileParser));
+        let list_actions_service = ListActionsService::new(Box::new(FilesystemWorkflowFileParser));
         let run_act_service = RunActService::new(runtime, image_mapper, event_bus);
 
         AppContainer {

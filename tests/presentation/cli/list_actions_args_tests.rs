@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use ephact::{core::dtos::ListActionsRequest, presentation::cli::parse_list_actions_test_args};
+use ephact::{
+    application::dtos::ListActionsRequest, presentation::cli::parse_list_actions_test_args,
+};
 
 #[cfg(test)]
 mod tests {

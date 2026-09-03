@@ -1,10 +1,12 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, rc::Rc};
 
-use ephact::core::{
-    dtos::{ExecuteActionRequest, ExecuteActionResponse},
-    errors::StepError,
-    ports::inbound::ExecuteActionPort,
+use ephact::{
+    application::{
+        dtos::{ExecuteActionRequest, ExecuteActionResponse},
+        ports::inbound::ExecuteActionPort,
+    },
+    domain::errors::StepError,
 };
 
 /// Action handler that records the references it is asked to run and always

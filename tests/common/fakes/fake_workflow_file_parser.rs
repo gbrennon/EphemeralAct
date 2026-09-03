@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use ephact::core::ports::outbound::workflow_file_parser::WorkflowFileParserPort;
+use ephact::application::ports::outbound::workflow_file_parser::WorkflowFileParserPort;
 
 /// Fake implementation of `WorkflowFileParserPort` for testing.
 ///

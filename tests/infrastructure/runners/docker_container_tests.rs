@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use ephact::{
-    core::ports::outbound::{ContainerConfig, ContainerRuntimePort, FileEntry},
+    application::ports::outbound::{ContainerConfig, ContainerRuntimePort, FileEntry},
     infrastructure::runners::DockerRuntime,
 };
 

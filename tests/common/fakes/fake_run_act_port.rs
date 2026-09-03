@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::time::Duration;
 
-use ephact::core::{
+use ephact::application::{
     dtos::{RunActRequest, RunSummary},
     ports::inbound::run_act_port::RunActPort,
 };

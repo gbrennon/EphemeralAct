@@ -5,7 +5,7 @@ use ephact::presentation::cli::{CliParser, parse_run_test_args, run_handler::Run
 mod tests {
     use std::time::Duration;
 
-    use ephact::core::dtos::RunSummary;
+    use ephact::application::dtos::RunSummary;
 
     use super::*;
     use crate::common::fakes::stub_run_act_port::StubRunActPort;

@@ -1,9 +1,9 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, rc::Rc};
 
-use ephact::core::{
-    events::{DomainEvent, EventOutcome},
-    ports::{inbound::ExecuteActionPort, outbound::EventPublisherPort},
+use ephact::{
+    application::ports::{inbound::ExecuteActionPort, outbound::EventPublisherPort},
+    domain::events::{DomainEvent, EventOutcome},
 };
 
 /// Records every published event and, when an action handler is registered,

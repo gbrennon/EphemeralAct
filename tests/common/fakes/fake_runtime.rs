@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use ephact::core::ports::outbound::{
+use ephact::application::ports::outbound::{
     ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, ExecResult, HostInfo,
 };
 

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::core::dtos::ListWorkflowsRequest;
+use crate::application::dtos::ListWorkflowsRequest;
 
 /// CLI arguments for the `list-workflows` subcommand.
 #[derive(Args)]
