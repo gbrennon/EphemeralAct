@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::application::{
     dtos::ContainerCleanupRequest,
     ports::{
@@ -11,17 +13,17 @@ use crate::application::{
 ///
 /// Implements [`ContainerCleanupPort`] - stops and removes containers
 /// but does NOT delete cached images.
-pub struct ContainerCleanupService<R: ContainerRuntimePort> {
-    runtime: R,
+pub struct ContainerCleanupService {
+    runtime: Arc<dyn ContainerRuntimePort>,
 }
 
-impl<R: ContainerRuntimePort> ContainerCleanupService<R> {
-    pub fn new(runtime: R) -> Self {
+impl ContainerCleanupService {
+    pub fn new(runtime: Arc<dyn ContainerRuntimePort>) -> Self {
         Self { runtime }
     }
 }
 
-impl<R: ContainerRuntimePort> ContainerCleanupPort for ContainerCleanupService<R> {
+impl ContainerCleanupPort for ContainerCleanupService {
     fn execute(&self, request: ContainerCleanupRequest) {
         for name in &request.container_names {
             let _ = self.runtime.stop_container(name);
