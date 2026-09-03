@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, rc::Rc};
 
-use ephact::core::{
+use ephact::application::{
     dtos::ContainerCleanupRequest, ports::inbound::container_cleanup_port::ContainerCleanupPort,
 };
 

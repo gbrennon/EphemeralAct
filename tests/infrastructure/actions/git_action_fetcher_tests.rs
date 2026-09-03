@@ -1,7 +1,7 @@
 use std::{path::Path, process::Command};
 
 use ephact::{
-    core::{ports::outbound::ActionFetcherPort, value_objects::RemoteActionReference},
+    application::ports::outbound::ActionFetcherPort, domain::value_objects::RemoteActionReference,
     infrastructure::GitActionFetcher,
 };
 

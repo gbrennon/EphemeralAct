@@ -1,13 +1,16 @@
+use std::sync::Arc;
+
 use ephact::{
-    core::{
-        ports::outbound::{ActionFetcherPort, ContainerRuntimePort},
+    application::{
+        ports::outbound::{ActionFetcherPort, ContainerRuntimePort, EventPublisherPort},
         services::{
             container_cleanup_service::ContainerCleanupService,
-            execute_action_service::ExecuteActionService, list_actions_service::ListActionsService,
-            list_workflows_service::ListWorkflowsService, run_act_service::RunActService,
+            list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
         },
     },
-    infrastructure::{FilesystemWorkflowFileParser, InMemoryEventBus},
+    infrastructure::{
+        ActionExecutionWiring, FilesystemWorkflowFileParser, InMemoryEventBus, RunActWiring,
+    },
     presentation::composition_root::{Application, CompositionRoot},
 };
 
@@ -19,20 +22,27 @@ use crate::fakes::fixed_image_mapper::FixedImageMapper;
 pub struct EphactApplication;
 
 impl EphactApplication {
-    pub fn compose<R, F>(runtime: R, fetcher: F) -> Application
-    where
-        R: ContainerRuntimePort + Clone + 'static,
-        F: ActionFetcherPort + 'static,
-    {
-        let event_bus = InMemoryEventBus::new(
+    pub fn compose(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        fetcher: Box<dyn ActionFetcherPort>,
+    ) -> Application {
+        let event_bus: Arc<dyn EventPublisherPort> = Arc::new(InMemoryEventBus::new(
             Box::new(ContainerCleanupService::new(runtime.clone())),
-            Box::new(ExecuteActionService::new(fetcher)),
-        );
+            Box::new(ActionExecutionWiring::build(fetcher)),
+        ));
 
         CompositionRoot::compose(
-            Box::new(RunActService::new(runtime, FixedImageMapper, event_bus)),
-            Box::new(ListWorkflowsService::new(FilesystemWorkflowFileParser)),
-            Box::new(ListActionsService::new(FilesystemWorkflowFileParser)),
+            Box::new(RunActWiring::build(
+                runtime,
+                Box::new(FixedImageMapper),
+                event_bus,
+            )),
+            Box::new(ListWorkflowsService::new(Box::new(
+                FilesystemWorkflowFileParser,
+            ))),
+            Box::new(ListActionsService::new(Box::new(
+                FilesystemWorkflowFileParser,
+            ))),
         )
     }
 }

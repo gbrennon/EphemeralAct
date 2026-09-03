@@ -1,4 +1,4 @@
-use ephact::{core::ports::outbound::ImageMapperPort, infrastructure::PlatformImageMapper};
+use ephact::{application::ports::outbound::ImageMapperPort, infrastructure::PlatformImageMapper};
 
 #[cfg(test)]
 mod tests {

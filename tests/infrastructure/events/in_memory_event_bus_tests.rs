@@ -1,11 +1,9 @@
 #[cfg(test)]
 mod tests {
     use ephact::{
-        core::{
-            events::{
-                ActRunCompletedPayload, ActionExecutionRequestedPayload, DomainEvent, EventOutcome,
-            },
-            ports::outbound::event_publisher::EventPublisherPort,
+        application::ports::outbound::event_publisher::EventPublisherPort,
+        domain::events::{
+            ActRunCompletedPayload, ActionExecutionRequestedPayload, DomainEvent, EventOutcome,
         },
         infrastructure::InMemoryEventBus,
     };

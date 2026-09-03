@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     fakes::{failing_runtime::FailingRuntime, mirrored_action_fetcher::MirroredActionFetcher},
     support::{
@@ -48,8 +50,8 @@ impl FailingPipelineRun {
             .with_action(".forgejo/actions/release", RELEASE_ACTION);
         let activity = ContainerActivity::new();
         let application = EphactApplication::compose(
-            FailingRuntime::recording(activity.clone()),
-            MirroredActionFetcher::mirroring(repository.path()),
+            Arc::new(FailingRuntime::recording(activity.clone())),
+            Box::new(MirroredActionFetcher::mirroring(repository.path())),
         );
 
         let outcome = application

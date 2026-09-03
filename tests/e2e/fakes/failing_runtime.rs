@@ -1,4 +1,4 @@
-use ephact::core::ports::outbound::{
+use ephact::application::ports::outbound::{
     ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
 };
 

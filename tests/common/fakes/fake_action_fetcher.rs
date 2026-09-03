@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 use std::{cell::RefCell, path::PathBuf};
 
-use ephact::core::{
-    errors::ActionError, ports::outbound::ActionFetcherPort, value_objects::RemoteActionReference,
+use ephact::{
+    application::ports::outbound::ActionFetcherPort,
+    domain::{errors::ActionError, value_objects::RemoteActionReference},
 };
 
 /// Resolves every remote reference to one prepared directory on disk, standing

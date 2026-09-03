@@ -5,8 +5,9 @@ use std::{
     process::Command,
 };
 
-use crate::core::{
-    errors::ActionError, ports::outbound::ActionFetcherPort, value_objects::RemoteActionReference,
+use crate::{
+    application::ports::outbound::ActionFetcherPort,
+    domain::{errors::ActionError, value_objects::RemoteActionReference},
 };
 
 /// Directory name, under the cache root, that holds fetched action trees.

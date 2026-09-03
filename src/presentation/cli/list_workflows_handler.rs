@@ -1,5 +1,5 @@
 use super::list_workflows_args::ListWorkflowsArgs;
-use crate::core::{
+use crate::application::{
     dtos::ListWorkflowsResponse, ports::inbound::list_workflows_port::ListWorkflowsPort,
 };
 

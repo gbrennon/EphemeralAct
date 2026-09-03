@@ -6,7 +6,7 @@ use super::{
     cli_parser::CliParser, command::Command, list_actions_handler::ListActionsHandler,
     list_workflows_handler::ListWorkflowsHandler, run_handler::RunHandler,
 };
-use crate::core::ports::inbound::{
+use crate::application::ports::inbound::{
     list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
     run_act_port::RunActPort,
 };

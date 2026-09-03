@@ -7,7 +7,7 @@ pub mod runners;
 pub mod workflows;
 
 pub use actions::GitActionFetcher;
-pub use di::{AppContainer, Container};
+pub use di::{ActionExecutionWiring, AppContainer, Container, RunActWiring};
 pub use events::InMemoryEventBus;
 pub use images::PlatformImageMapper;
 pub use runners::ContainerRuntimeAdapter;

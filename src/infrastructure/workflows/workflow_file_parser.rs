@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::core::ports::outbound::workflow_file_parser::WorkflowFileParserPort;
+use crate::application::ports::outbound::workflow_file_parser::WorkflowFileParserPort;
 
 /// Infrastructure implementation that parses CI workflow YAML files from the
 /// local filesystem.

@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use ephact::core::{
+use ephact::application::{
     dtos::{ListActionsRequest, ListActionsResponse},
     ports::inbound::list_actions_port::ListActionsPort,
 };

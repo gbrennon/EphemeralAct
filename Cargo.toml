@@ -22,8 +22,8 @@ bytes = "1"
 tempfile = "3"
 
 [[test]]
-name = "core"
-path = "tests/core/mod.rs"
+name = "application"
+path = "tests/application/mod.rs"
 
 [[test]]
 name = "infrastructure"

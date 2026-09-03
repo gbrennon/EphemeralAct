@@ -3,7 +3,7 @@ use tokio::runtime::Runtime;
 
 use super::docker_container::DockerContainer;
 use crate::{
-    core::ports::outbound::{
+    application::ports::outbound::{
         ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
     },
     infrastructure::bollard_wrapper::{

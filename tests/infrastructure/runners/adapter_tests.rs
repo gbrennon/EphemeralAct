@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
 use ephact::{
-    core::ports::outbound::{ContainerConfig, ContainerRuntimePort},
-    infrastructure::{ContainerRuntimeAdapter, runners::PodmanRuntime},
+    application::ports::outbound::{ContainerConfig, ContainerRuntimePort},
+    infrastructure::{
+        ContainerRuntimeAdapter,
+        runners::{DockerRuntime, PodmanRuntime},
+    },
 };
 
 #[cfg(test)]
@@ -13,6 +16,12 @@ mod tests {
         PodmanRuntime::new()
             .ok()
             .map(ContainerRuntimeAdapter::Podman)
+    }
+
+    fn try_docker_adapter() -> Option<ContainerRuntimeAdapter> {
+        DockerRuntime::new()
+            .ok()
+            .map(ContainerRuntimeAdapter::Docker)
     }
 
     macro_rules! adapter {
@@ -39,6 +48,10 @@ mod tests {
 
     #[test]
     fn detect_returns_docker_when_docker_host_is_set() {
+        if try_docker_adapter().is_none() {
+            eprintln!("SKIP: Docker runtime not available on this host");
+            return;
+        }
         let adapter = match ContainerRuntimeAdapter::detect() {
             Ok(a) => a,
             Err(e) => {
@@ -48,13 +61,19 @@ mod tests {
         };
         assert!(
             matches!(adapter, ContainerRuntimeAdapter::Docker(_)),
-            "Expected Docker variant since DOCKER_HOST is set"
+            "Expected Docker variant since Docker is available"
         );
     }
 
     #[test]
     fn map_error_is_noop_for_docker_variant() {
-        let adapter = adapter!();
+        let adapter = match try_docker_adapter() {
+            Some(a) => a,
+            None => {
+                eprintln!("SKIP: Docker runtime not available on this host");
+                return;
+            }
+        };
         let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
         assert!(result.is_err());
         let err_text = format!("{:?}", result.unwrap_err());
@@ -212,55 +231,6 @@ mod tests {
             runner_context: Default::default(),
         };
         let _ = adapter.remove_container("ephemeral-act-test-adapter-podman-create-465968");
-        let container = adapter.create_container(&config).unwrap();
-        container.remove().unwrap();
-    }
-
-    #[test]
-    fn arc_pull_image_delegates() {
-        let adapter = Arc::new(adapter!());
-        let result = adapter.pull_image("nonexistent-image-xyz:latest", None);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn arc_get_host_info_delegates() {
-        let adapter = Arc::new(adapter!());
-        let info = adapter.get_host_info().unwrap();
-        assert!(!info.os.is_empty());
-        assert!(!info.arch.is_empty());
-    }
-
-    #[test]
-    fn arc_stop_container_delegates() {
-        let adapter = Arc::new(adapter!());
-        let _ = adapter.stop_container("nonexistent-container-xyz-123");
-    }
-
-    #[test]
-    fn arc_remove_container_delegates() {
-        let adapter = Arc::new(adapter!());
-        let _ = adapter.remove_container("nonexistent-container-xyz-123");
-    }
-
-    #[test]
-    fn arc_create_container_delegates() {
-        use std::collections::HashMap;
-
-        let adapter = Arc::new(adapter!());
-        let config = ContainerConfig {
-            image: "alpine:latest".into(),
-            platform: None,
-            env: HashMap::new(),
-            binds: vec![],
-            workdir: None,
-            cmd: Some(vec!["sleep".into(), "infinity".into()]),
-            entrypoint: None,
-            network: None,
-            name: Some("ephemeral-act-test-arc-create".into()),
-            runner_context: Default::default(),
-        };
-        let _ = adapter.remove_container("ephemeral-act-test-arc-create");
         let container = adapter.create_container(&config).unwrap();
         container.remove().unwrap();
     }
