@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 
-use crate::application::dtos::StepType;
+use crate::domain::workflow::StepType;
 
 /// A step in a GitHub Actions job.
 ///
