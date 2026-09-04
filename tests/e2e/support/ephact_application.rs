@@ -1,48 +1,33 @@
 use std::sync::Arc;
 
 use ephact::{
-    application::{
-        ports::outbound::{ActionFetcherPort, ContainerRuntimePort, EventPublisherPort},
-        services::{
-            container_cleanup_service::ContainerCleanupService,
-            list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
-        },
-    },
-    infrastructure::{
-        ActionExecutionWiring, FilesystemWorkflowFileParser, InMemoryEventBus, RunActWiring,
-    },
+    application::ports::outbound::WorkflowSourcePort,
+    infrastructure::{actions::ActionFetcherPort, containers::ContainerRuntimePort, di::Container},
     presentation::composition_root::{Application, CompositionRoot},
 };
 
 use crate::fakes::fixed_image_mapper::FixedImageMapper;
 
-/// Composes the application exactly as the production container does, with the
-/// container runtime and the action fetcher replaced by test doubles so a
-/// scenario never starts a container nor reaches a forge.
 pub struct EphactApplication;
 
 impl EphactApplication {
     pub fn compose(
         runtime: Arc<dyn ContainerRuntimePort>,
         fetcher: Box<dyn ActionFetcherPort>,
+        workflow_source: Arc<dyn WorkflowSourcePort>,
     ) -> Application {
-        let event_bus: Arc<dyn EventPublisherPort> = Arc::new(InMemoryEventBus::new(
-            Box::new(ContainerCleanupService::new(runtime.clone())),
-            Box::new(ActionExecutionWiring::build(fetcher)),
-        ));
+        let container = Container::with_collaborators(
+            runtime,
+            Box::new(FixedImageMapper),
+            fetcher,
+            workflow_source,
+        );
 
         CompositionRoot::compose(
-            Box::new(RunActWiring::build(
-                runtime,
-                Box::new(FixedImageMapper),
-                event_bus,
-            )),
-            Box::new(ListWorkflowsService::new(Box::new(
-                FilesystemWorkflowFileParser,
-            ))),
-            Box::new(ListActionsService::new(Box::new(
-                FilesystemWorkflowFileParser,
-            ))),
+            container.run_workflow_port,
+            container.run_all_workflows_port,
+            container.list_workflows_port,
+            container.list_actions_port,
         )
     }
 }

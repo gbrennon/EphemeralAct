@@ -3,11 +3,15 @@ mod tests {
     use std::time::Duration;
 
     use ephact::{
-        application::dtos::{JobSummary, RunSummary, StepSummary, StepType},
+        application::dtos::{JobSummary, RunSummary, StepSummary},
+        domain::workflow::StepType,
         presentation::cli::{parse_run_test_args, run_handler::RunHandler},
     };
 
-    use crate::common::fakes::stub_run_act_port::StubRunActPort;
+    use crate::common::fakes::{
+        stub_run_all_workflows_port::StubRunAllWorkflowsPort,
+        stub_run_workflow_port::StubRunWorkflowPort,
+    };
 
     fn step(name: &str, stdout: &str, stderr: &str) -> StepSummary {
         StepSummary {
@@ -38,29 +42,38 @@ mod tests {
     #[test]
     fn handle_success() {
         let args = parse_run_test_args(&[]);
-        let port = StubRunActPort {
+        let wf_port = StubRunWorkflowPort {
             result: Ok(summary(true, vec![])),
         };
-        assert!(RunHandler::handle(args, &port).is_ok());
+        let all_wf_port = StubRunAllWorkflowsPort {
+            result: Ok(summary(true, vec![])),
+        };
+        assert!(RunHandler::handle(args, &wf_port, &all_wf_port).is_ok());
     }
 
     #[test]
     fn handle_propagates_workflow_failure() {
         let args = parse_run_test_args(&[]);
-        let port = StubRunActPort {
+        let wf_port = StubRunWorkflowPort {
             result: Ok(summary(false, vec![])),
         };
-        let err = RunHandler::handle(args, &port).unwrap_err();
+        let all_wf_port = StubRunAllWorkflowsPort {
+            result: Ok(summary(false, vec![])),
+        };
+        let err = RunHandler::handle(args, &wf_port, &all_wf_port).unwrap_err();
         assert!(err.to_string().contains("workflow failed"));
     }
 
     #[test]
     fn handle_propagates_port_error() {
         let args = parse_run_test_args(&[]);
-        let port = StubRunActPort {
+        let wf_port = StubRunWorkflowPort {
             result: Err("port failure".into()),
         };
-        let err = RunHandler::handle(args, &port).unwrap_err();
+        let all_wf_port = StubRunAllWorkflowsPort {
+            result: Err("port failure".into()),
+        };
+        let err = RunHandler::handle(args, &wf_port, &all_wf_port).unwrap_err();
         assert!(err.to_string().contains("port failure"));
     }
 

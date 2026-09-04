@@ -1,18 +1,18 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
-use ephact::{
-    application::{
-        dtos::{ExecuteActionResponse, ExecuteStepRequest},
-        ports::{inbound::execute_step_port::ExecuteStepPort, outbound::ExecResult},
-        services::execute_step_service::ExecuteStepService,
-    },
-    domain::{errors::StepError, expression::EvalContext, workflow::Step},
-};
+use ephact::application::dtos::ExecResult;
+use ephact::application::dtos::ExecuteActionResponse;
+use ephact::application::dtos::ExecuteStepRequest;
+use ephact::application::ports::inbound::execute_step_port::ExecuteStepPort;
+use ephact::application::services::execute_step_service::ExecuteStepService;
+use ephact::domain::errors::StepError;
+use ephact::domain::expression::EvalContext;
+use ephact::domain::workflow::Step;
 use serde_json::Value;
 
 use crate::common::fakes::{
-    fake_request_action_execution_port::FakeRequestActionExecutionPort,
-    fake_run_shell_step_port::FakeRunShellStepPort, stub_container::StubContainer,
+    fake_command_bus::FakeCommandBus, fake_run_shell_step_port::FakeRunShellStepPort,
+    stub_container::StubContainer,
 };
 
 fn step_from(yaml: &str) -> Step {
@@ -22,7 +22,7 @@ fn step_from(yaml: &str) -> Step {
 fn shell_result(stdout: &str) -> ExecResult {
     ExecResult {
         exit_code: 0,
-        stdout: stdout.into(),
+        stdout: stdout.to_string(),
         stderr: String::new(),
     }
 }
@@ -30,9 +30,13 @@ fn shell_result(stdout: &str) -> ExecResult {
 fn action_response() -> ExecuteActionResponse {
     ExecuteActionResponse {
         exit_code: 0,
-        stdout: "action\n".into(),
+        stdout: "action\n".to_string(),
         stderr: String::new(),
     }
+}
+
+fn service(shell: FakeRunShellStepPort, command_bus: FakeCommandBus) -> ExecuteStepService {
+    ExecuteStepService::new(Box::new(shell), Arc::new(command_bus))
 }
 
 #[test]
@@ -42,10 +46,7 @@ fn execute_runs_a_run_step_through_the_shell_runner() {
         stdout: "out".into(),
         stderr: "err".into(),
     });
-    let service = ExecuteStepService::new(
-        Box::new(FakeRequestActionExecutionPort::returning(action_response())),
-        Box::new(shell.clone()),
-    );
+    let service = service(shell.clone(), FakeCommandBus::new());
     let step = step_from("run: echo hi\n");
 
     let executed = service
@@ -65,11 +66,11 @@ fn execute_runs_a_run_step_through_the_shell_runner() {
 }
 
 #[test]
-fn execute_hands_a_uses_step_to_the_action_requester() {
-    let requester = FakeRequestActionExecutionPort::returning(action_response());
-    let service = ExecuteStepService::new(
-        Box::new(requester.clone()),
-        Box::new(FakeRunShellStepPort::returning(shell_result(""))),
+fn execute_publishes_an_action_command_for_a_uses_step() {
+    let command_bus = FakeCommandBus::new().with_action_result(action_response());
+    let service = service(
+        FakeRunShellStepPort::returning(shell_result("")),
+        command_bus.clone(),
     );
     let step = step_from("uses: ./actions/greet\n");
     let mut env = HashMap::new();
@@ -86,20 +87,39 @@ fn execute_hands_a_uses_step_to_the_action_requester() {
         .unwrap();
 
     assert_eq!(executed.response.stdout, "action\n");
-    let requests = requester.requests();
-    assert_eq!(requests.len(), 1);
-    assert_eq!(requests[0].action_ref, "./actions/greet");
-    assert_eq!(requests[0].repo_path, Path::new("/repo"));
-    assert_eq!(requests[0].env, env);
+    let dispatched = command_bus.dispatched_actions.lock();
+    assert_eq!(dispatched.len(), 1);
+    assert_eq!(dispatched[0].action_ref, "./actions/greet");
+    assert_eq!(dispatched[0].repo_path, Path::new("/repo"));
+    assert_eq!(dispatched[0].env, env);
+}
+
+#[test]
+fn execute_does_not_publish_an_action_command_for_a_run_step() {
+    let command_bus = FakeCommandBus::new();
+    let service = service(
+        FakeRunShellStepPort::returning(shell_result("")),
+        command_bus.clone(),
+    );
+    let step = step_from("run: echo hi\n");
+
+    service
+        .execute(ExecuteStepRequest {
+            step: &step,
+            context: &EvalContext::new(),
+            container: Arc::new(StubContainer),
+            repo_path: Path::new("/repo"),
+            env: &HashMap::new(),
+        })
+        .unwrap();
+
+    assert!(command_bus.dispatched_actions.lock().is_empty());
 }
 
 #[test]
 fn execute_resolves_expressions_before_running_the_step() {
     let shell = FakeRunShellStepPort::returning(shell_result(""));
-    let service = ExecuteStepService::new(
-        Box::new(FakeRequestActionExecutionPort::returning(action_response())),
-        Box::new(shell.clone()),
-    );
+    let service = service(shell.clone(), FakeCommandBus::new());
     let step = step_from("run: deploy ${{ inputs.mode }}\n");
     let mut context = EvalContext::new();
     let mut inputs = serde_json::Map::new();
@@ -121,9 +141,9 @@ fn execute_resolves_expressions_before_running_the_step() {
 
 #[test]
 fn execute_reports_an_interpolation_failure() {
-    let service = ExecuteStepService::new(
-        Box::new(FakeRequestActionExecutionPort::returning(action_response())),
-        Box::new(FakeRunShellStepPort::returning(shell_result(""))),
+    let service = service(
+        FakeRunShellStepPort::returning(shell_result("")),
+        FakeCommandBus::new(),
     );
     let step = step_from("run: deploy ${{ }}\n");
 
@@ -146,13 +166,13 @@ fn execute_reports_an_interpolation_failure() {
 
 #[test]
 fn execute_propagates_a_collaborator_error_unchanged() {
-    let service = ExecuteStepService::new(
-        Box::new(FakeRequestActionExecutionPort::returning(action_response())),
-        Box::new(FakeRunShellStepPort::failing(StepError {
+    let service = service(
+        FakeRunShellStepPort::failing(StepError {
             message: "boom".into(),
             stdout: "partial".into(),
             stderr: "bad".into(),
-        })),
+        }),
+        FakeCommandBus::new(),
     );
     let step = step_from("run: echo hi\n");
 

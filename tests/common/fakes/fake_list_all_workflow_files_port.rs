@@ -1,29 +1,28 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, path::PathBuf};
+use ephact::infrastructure::workflows::list_all_workflow_files_port::ListAllWorkflowFilesPort;
+use parking_lot::Mutex;
+use std::path::PathBuf;
 
-use ephact::application::{
-    dtos::{ListAllWorkflowFilesRequest, ListAllWorkflowFilesResponse},
-    ports::inbound::list_all_workflow_files_port::ListAllWorkflowFilesPort,
-};
+use ephact::application::dtos::{ListAllWorkflowFilesRequest, ListAllWorkflowFilesResponse};
 
 /// Returns a prepared list of workflow files, or a prepared failure.
 pub struct FakeListAllWorkflowFilesPort {
     result: Result<Vec<PathBuf>, String>,
-    pub calls: RefCell<Vec<PathBuf>>,
+    pub calls: Mutex<Vec<PathBuf>>,
 }
 
 impl FakeListAllWorkflowFilesPort {
     pub fn returning(files: Vec<PathBuf>) -> Self {
         Self {
             result: Ok(files),
-            calls: RefCell::new(Vec::new()),
+            calls: Mutex::new(Vec::new()),
         }
     }
 
     pub fn failing(message: &str) -> Self {
         Self {
             result: Err(message.to_string()),
-            calls: RefCell::new(Vec::new()),
+            calls: Mutex::new(Vec::new()),
         }
     }
 }
@@ -33,9 +32,7 @@ impl ListAllWorkflowFilesPort for FakeListAllWorkflowFilesPort {
         &self,
         request: ListAllWorkflowFilesRequest<'_>,
     ) -> Result<ListAllWorkflowFilesResponse, Box<dyn std::error::Error>> {
-        self.calls
-            .borrow_mut()
-            .push(request.repo_path.to_path_buf());
+        self.calls.lock().push(request.repo_path.to_path_buf());
         match &self.result {
             Ok(files) => Ok(ListAllWorkflowFilesResponse {
                 workflow_files: files.clone(),

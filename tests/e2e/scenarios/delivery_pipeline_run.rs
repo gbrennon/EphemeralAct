@@ -94,11 +94,28 @@ impl DeliveryPipelineRun {
             .with_workflow("pipeline.yml", PIPELINE_WORKFLOW)
             .with_action(".forgejo/actions/package", PACKAGE_ACTION)
             .with_action(".forgejo/actions/checksum", CHECKSUM_ACTION);
+
+        eprintln!("DEBUG: repository path = {}", repository.path().display());
+        eprintln!("DEBUG: path_argument = {}", repository.path_argument());
+        let workflow_path = repository.path().join(".forgejo/workflows/pipeline.yml");
+        eprintln!("DEBUG: workflow file exists = {}", workflow_path.exists());
+        if workflow_path.exists() {
+            eprintln!(
+                "DEBUG: workflow content = {}",
+                std::fs::read_to_string(&workflow_path).unwrap()
+            );
+        }
+
         let activity = ContainerActivity::new();
         let fetcher = MirroredActionFetcher::mirroring(repository.path());
+        let workflow_source = Arc::new(
+            crate::common::fakes::fake_workflow_source::FakeWorkflowSource::new()
+                .with_workflow_content(PIPELINE_WORKFLOW),
+        );
         let application = EphactApplication::compose(
             Arc::new(SucceedingRuntime::recording(activity.clone())),
             Box::new(fetcher.clone()),
+            workflow_source,
         );
 
         let outcome = application

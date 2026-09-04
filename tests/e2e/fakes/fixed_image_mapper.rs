@@ -1,4 +1,4 @@
-use ephact::application::ports::outbound::ImageMapperPort;
+use ephact::infrastructure::images::ImageMapperPort;
 
 /// Image every runner label maps to during an end-to-end scenario.
 pub const RUNNER_IMAGE: &str = "e2e-runner:latest";
@@ -14,5 +14,9 @@ impl ImageMapperPort for FixedImageMapper {
 
     fn fallback(&self) -> String {
         RUNNER_IMAGE.into()
+    }
+
+    fn clone_box(&self) -> Box<dyn ImageMapperPort> {
+        Box::new(Self)
     }
 }

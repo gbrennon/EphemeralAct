@@ -1,1 +1,8 @@
-mod workflow_file_parser_tests;
+mod detect_workflow_file_service_tests;
+mod filesystem_workflow_source_tests;
+mod list_all_workflow_files_service_tests;
+mod list_workflow_directory_service_tests;
+mod load_workflow_service_tests;
+mod merge_run_executions_service_tests;
+mod resolve_named_workflow_file_service_tests;
+mod resolve_workflow_files_service_tests;

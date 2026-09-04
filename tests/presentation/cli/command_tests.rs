@@ -4,12 +4,15 @@ mod tests {
 
     use crate::common::fakes::{
         fake_list_actions_port::FakeListActionsPort,
-        fake_list_workflows_port::FakeListWorkflowsPort, fake_run_act_port::FakeRunActPort,
+        fake_list_workflows_port::FakeListWorkflowsPort,
+        fake_run_all_workflows_port::FakeRunAllWorkflowsPort,
+        fake_run_workflow_port::FakeRunWorkflowPort,
     };
 
     fn make_cli() -> Cli {
         Cli::new(
-            Box::new(FakeRunActPort::new(true)),
+            Box::new(FakeRunWorkflowPort::new(true)),
+            Box::new(FakeRunAllWorkflowsPort::new(true)),
             Box::new(FakeListWorkflowsPort::new()),
             Box::new(FakeListActionsPort::new()),
         )

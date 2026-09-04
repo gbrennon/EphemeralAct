@@ -8,7 +8,10 @@ mod tests {
     use ephact::application::dtos::RunSummary;
 
     use super::*;
-    use crate::common::fakes::stub_run_act_port::StubRunActPort;
+    use crate::common::fakes::{
+        stub_run_all_workflows_port::StubRunAllWorkflowsPort,
+        stub_run_workflow_port::StubRunWorkflowPort,
+    };
 
     fn ok_summary() -> RunSummary {
         RunSummary {
@@ -21,20 +24,26 @@ mod tests {
 
     #[test]
     fn run_dispatches_success_without_exiting() {
-        let port = StubRunActPort {
+        let wf_port = StubRunWorkflowPort {
+            result: Ok(ok_summary()),
+        };
+        let all_wf_port = StubRunAllWorkflowsPort {
             result: Ok(ok_summary()),
         };
         let args = parse_run_test_args(&[]);
-        RunHandler::handle(args, &port).unwrap();
+        RunHandler::handle(args, &wf_port, &all_wf_port).unwrap();
     }
 
     #[test]
     fn run_dispatches_with_workflow_flag() {
-        let port = StubRunActPort {
+        let wf_port = StubRunWorkflowPort {
+            result: Ok(ok_summary()),
+        };
+        let all_wf_port = StubRunAllWorkflowsPort {
             result: Ok(ok_summary()),
         };
         let args = parse_run_test_args(&["--workflow", "ci.yml"]);
-        RunHandler::handle(args, &port).unwrap();
+        RunHandler::handle(args, &wf_port, &all_wf_port).unwrap();
     }
 
     #[test]

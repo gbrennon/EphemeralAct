@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use ephact::{
-    application::{
-        dtos::BuildActionInputEnvironmentRequest,
-        ports::outbound::build_action_input_environment_port::BuildActionInputEnvironmentPort,
+    application::dtos::BuildActionInputEnvironmentRequest,
+    infrastructure::actions::{
+        GitHubActionInputEnvironmentAdapter,
+        build_action_input_environment_port::BuildActionInputEnvironmentPort,
     },
-    infrastructure::actions::GitHubActionInputEnvironmentAdapter,
 };
 
 fn map(pairs: &[(&str, &str)]) -> HashMap<String, String> {

@@ -1,9 +1,11 @@
 #![allow(dead_code)]
 use std::collections::HashMap;
 
-use ephact::application::ports::outbound::{
-    ContainerError, ContainerPort, ExecResult, FileEntry, RunnerContext,
-};
+use ephact::application::dtos::ExecResult;
+use ephact::application::dtos::FileEntry;
+use ephact::application::dtos::RunnerContext;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 /// Container that fails every operation, for tests that need to see how a
 /// service surfaces a container failure.

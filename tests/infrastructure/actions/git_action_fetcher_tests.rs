@@ -1,8 +1,8 @@
 use std::{path::Path, process::Command};
 
 use ephact::{
-    application::ports::outbound::ActionFetcherPort, domain::value_objects::RemoteActionReference,
-    infrastructure::GitActionFetcher,
+    domain::value_objects::RemoteActionReference,
+    infrastructure::{GitActionFetcher, actions::ActionFetcherPort},
 };
 
 #[cfg(test)]

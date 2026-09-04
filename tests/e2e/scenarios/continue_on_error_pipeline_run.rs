@@ -37,9 +37,14 @@ impl ContinueOnErrorPipelineRun {
         let repository =
             WorkflowRepository::named("audit-pipeline").with_workflow("audit.yml", AUDIT_WORKFLOW);
         let activity = ContainerActivity::new();
+        let workflow_source = Arc::new(
+            crate::common::fakes::fake_workflow_source::FakeWorkflowSource::new()
+                .with_workflow_content(AUDIT_WORKFLOW),
+        );
         let application = EphactApplication::compose(
             Arc::new(FailingRuntime::recording(activity.clone())),
             Box::new(MirroredActionFetcher::mirroring(repository.path())),
+            workflow_source,
         );
 
         let outcome = application

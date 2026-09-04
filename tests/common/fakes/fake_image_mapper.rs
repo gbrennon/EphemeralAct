@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use ephact::application::ports::outbound::ImageMapperPort;
+use ephact::infrastructure::images::ImageMapperPort;
 
 pub struct FakeImageMapper;
 
@@ -9,5 +9,9 @@ impl ImageMapperPort for FakeImageMapper {
     }
     fn fallback(&self) -> String {
         "fake-image:latest".into()
+    }
+
+    fn clone_box(&self) -> Box<dyn ImageMapperPort> {
+        Box::new(Self)
     }
 }
