@@ -1,19 +1,17 @@
+use crate::application::ports::{
+    inbound::execute_action_port::ExecuteActionPort,
+    outbound::{
+        load_action_definition_port::LoadActionDefinitionPort,
+        resolve_action_directory_port::ResolveActionDirectoryPort,
+        resolve_action_inputs_port::ResolveActionInputsPort,
+        run_composite_action_port::RunCompositeActionPort, run_node_action_port::RunNodeActionPort,
+    },
+};
 use crate::{
-    application::{
-        dtos::{
-            ExecuteActionRequest, ExecuteActionResponse, LoadActionDefinitionRequest,
-            ResolveActionDirectoryRequest, ResolveActionInputsRequest, ResolvedActionDirectory,
-            RunCompositeActionRequest, RunNodeActionRequest,
-        },
-        ports::inbound::{
-            execute_action_port::ExecuteActionPort,
-            execute_nested_action_port::ExecuteNestedActionPort,
-            load_action_definition_port::LoadActionDefinitionPort,
-            resolve_action_directory_port::ResolveActionDirectoryPort,
-            resolve_action_inputs_port::ResolveActionInputsPort,
-            run_composite_action_port::RunCompositeActionPort,
-            run_node_action_port::RunNodeActionPort,
-        },
+    application::dtos::{
+        ExecuteActionRequest, ExecuteActionResponse, LoadActionDefinitionRequest,
+        ResolveActionDirectoryRequest, ResolveActionInputsRequest, ResolvedActionDirectory,
+        RunCompositeActionRequest, RunNodeActionRequest,
     },
     domain::{
         errors::{ActionError, StepError},
@@ -90,7 +88,6 @@ impl ExecuteActionService {
                     inputs: &inputs,
                     action_dir: &action_dir,
                     action_request: request,
-                    nested_executor: self,
                 })
             }
             ActionRuns::Node12 { main }
@@ -121,12 +118,6 @@ impl ExecuteActionService {
 }
 
 impl ExecuteActionPort for ExecuteActionService {
-    fn execute(&self, request: ExecuteActionRequest) -> Result<ExecuteActionResponse, StepError> {
-        self.run_action(&request)
-    }
-}
-
-impl ExecuteNestedActionPort for ExecuteActionService {
     fn execute(&self, request: ExecuteActionRequest) -> Result<ExecuteActionResponse, StepError> {
         self.run_action(&request)
     }

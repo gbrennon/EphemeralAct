@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use crate::application::ports::outbound::ContainerPort;
+use crate::application::ports::outbound::container_port::ContainerPort;
 
 /// Request DTO for the
 /// [`CopyActionToContainerPort`](crate::application::ports::inbound::copy_action_to_container_port::CopyActionToContainerPort)

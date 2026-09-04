@@ -1,4 +1,4 @@
-use crate::application::ports::outbound::FileEntry;
+use crate::application::dtos::FileEntry;
 
 /// Response DTO for the
 /// [`CollectActionFilesPort`](crate::application::ports::inbound::collect_action_files_port::CollectActionFilesPort)

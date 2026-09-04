@@ -13,7 +13,7 @@ use crate::{
 /// The response reports the action's exit status and output; a [`StepError`] is
 /// returned only when the action could not be run at all, and it carries any
 /// output produced before the failure.
-pub trait ExecuteActionPort {
+pub trait ExecuteActionPort: Send + Sync {
     /// Resolves and runs the requested action.
     ///
     /// # Errors

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 /// Request DTO for the
-/// [`BuildActionInputEnvironmentPort`](crate::application::ports::outbound::build_action_input_environment_port::BuildActionInputEnvironmentPort)
+/// `BuildActionInputEnvironmentPort`
 /// inbound port.
 pub struct BuildActionInputEnvironmentRequest<'a> {
     /// Environment the action runs with.

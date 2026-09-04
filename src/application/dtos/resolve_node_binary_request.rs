@@ -1,4 +1,4 @@
-use crate::application::ports::outbound::ContainerPort;
+use crate::application::ports::outbound::container_port::ContainerPort;
 
 /// Request DTO for the
 /// [`ResolveNodeBinaryPort`](crate::application::ports::inbound::resolve_node_binary_port::ResolveNodeBinaryPort)

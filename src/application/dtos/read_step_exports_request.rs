@@ -1,4 +1,4 @@
-use crate::application::ports::outbound::ContainerPort;
+use crate::application::ports::outbound::container_port::ContainerPort;
 
 /// Request DTO for the
 /// [`ReadStepExportsPort`](crate::application::ports::inbound::read_step_exports_port::ReadStepExportsPort)

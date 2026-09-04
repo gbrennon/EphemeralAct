@@ -1,7 +1,7 @@
 use crate::application::dtos::{ExecuteJobRequest, JobExecution};
 
 /// Inbound port for running one planned job.
-pub trait ExecuteJobPort {
+pub trait ExecuteJobPort: Send + Sync {
     /// Runs every step of the job inside a fresh container.
     fn execute(
         &self,
