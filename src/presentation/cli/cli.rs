@@ -8,43 +8,31 @@ use super::{
 };
 use crate::application::ports::inbound::{
     list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
-    run_act_port::RunActPort,
+    run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
 };
 
-/// Entry point for the presentation layer.
-///
-/// Holds the fully-wired application ports (injected via [`Cli::new`]) and
-/// exposes [`run`](Cli::run) to parse CLI arguments and dispatch to the
-/// appropriate handler.
 pub struct Cli {
-    port: Box<dyn RunActPort>,
+    run_workflow_port: Box<dyn RunWorkflowPort>,
+    run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
     list_workflows_port: Box<dyn ListWorkflowsPort>,
     list_actions_port: Box<dyn ListActionsPort>,
 }
 
 impl Cli {
-    /// Creates a new [`Cli`] backed by the given application ports.
     pub fn new(
-        run_port: Box<dyn RunActPort>,
+        run_workflow_port: Box<dyn RunWorkflowPort>,
+        run_all_workflows_port: Box<dyn RunAllWorkflowsPort>,
         list_workflows_port: Box<dyn ListWorkflowsPort>,
         list_actions_port: Box<dyn ListActionsPort>,
     ) -> Self {
         Self {
-            port: run_port,
+            run_workflow_port,
+            run_all_workflows_port,
             list_workflows_port,
             list_actions_port,
         }
     }
 
-    /// Parses CLI arguments and dispatches to the appropriate handler.
-    ///
-    /// Running without arguments prints the help to stdout and exits cleanly.
-    /// On workflow failure the error is returned to the caller; `main.rs`
-    /// handles printing and exiting.
-    ///
-    /// Accepts an explicit argument iterator so that tests can inject CLI
-    /// args without touching process globals. Production code passes
-    /// `std::env::args_os()`.
     pub fn run<I, T>(self, args: I) -> Result<(), Box<dyn std::error::Error>>
     where
         I: IntoIterator<Item = T>,
@@ -65,7 +53,11 @@ impl Cli {
             }
         };
         match cli.command {
-            Command::Run(args) => RunHandler::handle(*args, &*self.port),
+            Command::Run(args) => RunHandler::handle(
+                *args,
+                &*self.run_workflow_port,
+                &*self.run_all_workflows_port,
+            ),
             Command::ListWorkflows(args) => {
                 ListWorkflowsHandler::handle(*args, &*self.list_workflows_port)
             }
