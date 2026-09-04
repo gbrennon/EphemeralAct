@@ -9,7 +9,7 @@ use super::{CompareOp, EvalContext, EvalError, Expr, Functions, Literal, Logical
 /// Walks an expression AST and evaluates it to a [`Value`].
 pub struct Evaluator<'a> {
     context: &'a EvalContext,
-    functions: Functions<'a>,
+    functions: Functions,
 }
 
 impl<'a> Evaluator<'a> {
@@ -18,7 +18,7 @@ impl<'a> Evaluator<'a> {
     pub fn new(context: &'a EvalContext) -> Self {
         Self {
             context,
-            functions: Functions::new(context),
+            functions: Functions::new(),
         }
     }
 

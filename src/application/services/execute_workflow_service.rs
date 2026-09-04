@@ -1,34 +1,36 @@
-use std::error::Error;
+use std::{error::Error, sync::Arc};
 
+use crate::application::commands::ExecuteJobCommand;
 use crate::{
     application::{
-        dtos::{
-            ExecuteJobRequest, ExecuteWorkflowRequest, JobSummary, LoadWorkflowRequest,
-            WorkflowExecution,
-        },
-        ports::outbound::{
-            execute_job_port::ExecuteJobPort, execute_workflow_port::ExecuteWorkflowPort,
-            load_workflow_port::LoadWorkflowPort,
+        dtos::{ExecuteWorkflowRequest, JobSummary, LoadWorkflowRequest, WorkflowExecution},
+        ports::{
+            inbound::execute_workflow_port::ExecuteWorkflowPort,
+            outbound::{command_bus_port::CommandBusPort, load_workflow_port::LoadWorkflowPort},
         },
     },
     domain::planner::Planner,
 };
 
-/// Service that runs every job of one workflow file in the order the planner
-/// derives from their dependencies.
+/// Application service coordinating the execution of a single workflow.
+///
+/// Loads the workflow definition through an outbound port, plans its job
+/// stages, and publishes one [`ExecuteJobCommand`] per planned run. The job
+/// command handler is what turns each command into an execution, so this
+/// service never depends on the job entrypoint itself.
 pub struct ExecuteWorkflowService {
     workflow_loader: Box<dyn LoadWorkflowPort>,
-    job_executor: Box<dyn ExecuteJobPort>,
+    command_bus: Arc<dyn CommandBusPort>,
 }
 
 impl ExecuteWorkflowService {
     pub fn new(
         workflow_loader: Box<dyn LoadWorkflowPort>,
-        job_executor: Box<dyn ExecuteJobPort>,
+        command_bus: Arc<dyn CommandBusPort>,
     ) -> Self {
         Self {
             workflow_loader,
-            job_executor,
+            command_bus,
         }
     }
 }
@@ -39,7 +41,7 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
         request: ExecuteWorkflowRequest<'_>,
     ) -> Result<WorkflowExecution, Box<dyn Error>> {
         let workflow = self.workflow_loader.execute(LoadWorkflowRequest {
-            workflow_file: request.workflow_file,
+            workflow_content: request.workflow_content,
         })?;
         let workflow_name = workflow.name.clone().unwrap_or_else(|| "unnamed".into());
         let plan = Planner.plan(&workflow).map_err(|e| format!("{:?}", e))?;
@@ -50,12 +52,13 @@ impl ExecuteWorkflowPort for ExecuteWorkflowService {
 
         for stage in &plan.stages {
             for run in &stage.runs {
-                let execution = self.job_executor.execute(ExecuteJobRequest {
-                    run,
-                    workflow: &workflow,
-                    repo_path: request.repo_path,
-                    context: request.context,
-                })?;
+                let execution = self.command_bus.dispatch_job(ExecuteJobCommand::new(
+                    run.job.clone(),
+                    run.job_id.clone(),
+                    workflow.clone(),
+                    request.repo_path.to_path_buf(),
+                    request.context.clone(),
+                ))?;
                 success &= execution.job_summary.success;
                 job_summaries.push(execution.job_summary);
                 container_names.push(execution.container_name);

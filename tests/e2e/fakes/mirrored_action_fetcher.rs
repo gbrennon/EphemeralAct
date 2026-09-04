@@ -1,8 +1,9 @@
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use parking_lot::Mutex;
+use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
-    application::ports::outbound::ActionFetcherPort,
     domain::{errors::ActionError, value_objects::RemoteActionReference},
+    infrastructure::actions::ActionFetcherPort,
 };
 
 /// Action fetcher that resolves every remote reference to one checkout already
@@ -10,25 +11,29 @@ use ephact::{
 #[derive(Clone)]
 pub struct MirroredActionFetcher {
     action_directory: PathBuf,
-    fetched: Rc<RefCell<Vec<RemoteActionReference>>>,
+    fetched: Arc<Mutex<Vec<RemoteActionReference>>>,
 }
 
 impl MirroredActionFetcher {
     pub fn mirroring(action_directory: PathBuf) -> Self {
         Self {
             action_directory,
-            fetched: Rc::new(RefCell::new(Vec::new())),
+            fetched: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn fetched(&self) -> Vec<RemoteActionReference> {
-        self.fetched.borrow().clone()
+        self.fetched.lock().clone()
     }
 }
 
 impl ActionFetcherPort for MirroredActionFetcher {
     fn fetch(&self, reference: &RemoteActionReference) -> Result<PathBuf, ActionError> {
-        self.fetched.borrow_mut().push(reference.clone());
+        self.fetched.lock().push(reference.clone());
         Ok(self.action_directory.clone())
+    }
+
+    fn clone_box(&self) -> Box<dyn ActionFetcherPort> {
+        Box::new(self.clone())
     }
 }

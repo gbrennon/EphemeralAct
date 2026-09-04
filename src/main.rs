@@ -38,7 +38,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let container = Container::build();
     let app = CompositionRoot::compose(
-        container.run_act_port,
+        container.run_workflow_port,
+        container.run_all_workflows_port,
         container.list_workflows_port,
         container.list_actions_port,
     );

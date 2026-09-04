@@ -1,16 +1,19 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, rc::Rc};
+use parking_lot::Mutex;
+use std::sync::Arc;
 
-use ephact::application::ports::outbound::{
-    ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
-};
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
+use ephact::infrastructure::containers::ContainerConfig;
+use ephact::infrastructure::containers::ContainerRuntimePort;
+use ephact::infrastructure::containers::HostInfo;
 
 use super::stub_container::StubContainer;
 
 #[derive(Clone, Default)]
 pub struct SpyContainerRuntime {
-    stopped_containers: Rc<RefCell<Vec<String>>>,
-    removed_containers: Rc<RefCell<Vec<String>>>,
+    stopped_containers: Arc<Mutex<Vec<String>>>,
+    removed_containers: Arc<Mutex<Vec<String>>>,
 }
 
 impl SpyContainerRuntime {
@@ -19,11 +22,11 @@ impl SpyContainerRuntime {
     }
 
     pub fn stopped_containers(&self) -> Vec<String> {
-        self.stopped_containers.borrow().clone()
+        self.stopped_containers.lock().clone()
     }
 
     pub fn removed_containers(&self) -> Vec<String> {
-        self.removed_containers.borrow().clone()
+        self.removed_containers.lock().clone()
     }
 }
 
@@ -40,12 +43,12 @@ impl ContainerRuntimePort for SpyContainerRuntime {
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.removed_containers.borrow_mut().push(name.to_string());
+        self.removed_containers.lock().push(name.to_string());
         Ok(())
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.stopped_containers.borrow_mut().push(name.to_string());
+        self.stopped_containers.lock().push(name.to_string());
         Ok(())
     }
 

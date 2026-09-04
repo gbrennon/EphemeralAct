@@ -52,9 +52,14 @@ impl EveryWorkflowRun {
             .with_workflow("lint.yml", LINT_WORKFLOW)
             .with_workflow("test.yml", TEST_WORKFLOW);
         let activity = ContainerActivity::new();
+        let workflow_source = Arc::new(
+            crate::common::fakes::fake_workflow_source::FakeWorkflowSource::new()
+                .with_all_workflow_contents(vec![LINT_WORKFLOW.into(), TEST_WORKFLOW.into()]),
+        );
         let application = EphactApplication::compose(
             Arc::new(SucceedingRuntime::recording(activity.clone())),
             Box::new(MirroredActionFetcher::mirroring(repository.path())),
+            workflow_source,
         );
 
         let outcome = application

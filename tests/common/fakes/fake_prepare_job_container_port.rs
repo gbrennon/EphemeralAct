@@ -1,10 +1,9 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use ephact::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
+use parking_lot::Mutex;
+use std::sync::Arc;
 
-use ephact::application::{
-    dtos::{PrepareJobContainerRequest, PreparedJobContainer},
-    ports::outbound::prepare_job_container_port::PrepareJobContainerPort,
-};
+use ephact::application::dtos::{PrepareJobContainerRequest, PreparedJobContainer};
 
 use super::stub_container::StubContainer;
 
@@ -13,7 +12,7 @@ use super::stub_container::StubContainer;
 pub struct FakePrepareJobContainerPort {
     container_name: String,
     failure: Option<String>,
-    job_ids: Rc<RefCell<Vec<String>>>,
+    job_ids: Arc<Mutex<Vec<String>>>,
 }
 
 impl FakePrepareJobContainerPort {
@@ -21,7 +20,7 @@ impl FakePrepareJobContainerPort {
         Self {
             container_name: container_name.to_string(),
             failure: None,
-            job_ids: Rc::new(RefCell::new(Vec::new())),
+            job_ids: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -29,12 +28,12 @@ impl FakePrepareJobContainerPort {
         Self {
             container_name: String::new(),
             failure: Some(message.to_string()),
-            job_ids: Rc::new(RefCell::new(Vec::new())),
+            job_ids: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn job_ids(&self) -> Vec<String> {
-        self.job_ids.borrow().clone()
+        self.job_ids.lock().clone()
     }
 }
 
@@ -43,7 +42,7 @@ impl PrepareJobContainerPort for FakePrepareJobContainerPort {
         &self,
         request: PrepareJobContainerRequest<'_>,
     ) -> Result<PreparedJobContainer, Box<dyn std::error::Error>> {
-        self.job_ids.borrow_mut().push(request.job_id.to_string());
+        self.job_ids.lock().push(request.job_id.to_string());
         if let Some(message) = &self.failure {
             return Err(message.clone().into());
         }

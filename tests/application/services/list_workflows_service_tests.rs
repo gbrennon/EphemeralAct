@@ -1,121 +1,65 @@
-use std::fs;
-
-use ephact::application::{
-    dtos::ListWorkflowsRequest, ports::inbound::list_workflows_port::ListWorkflowsPort,
-    services::list_workflows_service::ListWorkflowsService,
+use ephact::{
+    application::{
+        dtos::{ListWorkflowsRequest, WorkflowListItem},
+        ports::inbound::list_workflows_port::ListWorkflowsPort,
+        services::list_workflows_service::ListWorkflowsService,
+    },
+    domain::{RepoPath, Repository, RepositoryName},
 };
 
-use crate::common::fakes::fake_workflow_file_parser::FakeWorkflowFileParser;
+use crate::common::fakes::fake_workflow_source::FakeWorkflowSource;
 
-fn write_workflow(dir: &std::path::Path, name: &str, body: &str) {
-    fs::create_dir_all(dir.join(".forgejo/workflows")).unwrap();
-    fs::write(dir.join(".forgejo/workflows").join(name), body).unwrap();
-}
-
-fn write_github_workflow(dir: &std::path::Path, name: &str, body: &str) {
-    fs::create_dir_all(dir.join(".github/workflows")).unwrap();
-    fs::write(dir.join(".github/workflows").join(name), body).unwrap();
+fn make_repo() -> Repository {
+    let repo_path = RepoPath::new(env!("CARGO_MANIFEST_DIR")).unwrap();
+    let name = RepositoryName::new("test-repo".into()).unwrap();
+    Repository::new(repo_path, name)
 }
 
 #[test]
-fn list_when_repository_has_workflows() {
-    let tmp = tempfile::tempdir().unwrap();
-    let repo_path = tmp.path();
+fn execute_returns_the_workflows_reported_by_the_source() {
+    let workflows = vec![
+        WorkflowListItem::new(Some("CI".into()), Some("ci.yml".into())),
+        WorkflowListItem::new(Some("Release".into()), Some("release.yml".into())),
+        WorkflowListItem::new(None, Some("unnamed.yml".into())),
+    ];
+    let source = FakeWorkflowSource::new().with_workflows(workflows.clone());
+    let service = ListWorkflowsService::new(Box::new(source));
+    let request = ListWorkflowsRequest::new(make_repo());
 
-    write_workflow(
-        repo_path,
-        "ci.yml",
-        "name: CI\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hello\n",
-    );
-
-    let service = ListWorkflowsService::new(Box::new(FakeWorkflowFileParser::new()));
-    let request = ListWorkflowsRequest::new(repo_path.into());
     let response = service.execute(request).unwrap();
 
-    assert_eq!(response.workflows.len(), 1);
-    assert_eq!(response.workflows[0].name, Some("CI".to_string()));
-    assert_eq!(response.workflows[0].file, Some("workflow.yml".to_string()));
+    assert_eq!(response.workflows, workflows);
 }
 
 #[test]
-fn list_when_multiple_workflows() {
-    let tmp = tempfile::tempdir().unwrap();
-    let repo_path = tmp.path();
+fn execute_forwards_the_request_repository_to_the_source() {
+    let source = FakeWorkflowSource::new();
+    let service = ListWorkflowsService::new(Box::new(source.clone()));
+    let repository = make_repo();
+    let request = ListWorkflowsRequest::new(repository.clone());
 
-    write_workflow(
-        repo_path,
-        "ci.yml",
-        "name: CI\non: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n",
-    );
-    write_workflow(
-        repo_path,
-        "deploy.yml",
-        "name: Deploy\non: [release]\njobs:\n  deploy:\n    runs-on: ubuntu-latest\n",
-    );
+    service.execute(request).unwrap();
 
-    let service = ListWorkflowsService::new(Box::new(FakeWorkflowFileParser::new()));
-    let request = ListWorkflowsRequest::new(repo_path.into());
-    let response = service.execute(request).unwrap();
-
-    assert_eq!(response.workflows.len(), 2);
+    assert_eq!(source.list_workflows_calls(), vec![repository]);
 }
 
 #[test]
-fn list_when_github_workflows_directory() {
-    let tmp = tempfile::tempdir().unwrap();
-    let repo_path = tmp.path();
+fn execute_returns_an_empty_response_when_the_source_finds_no_workflows() {
+    let service = ListWorkflowsService::new(Box::new(FakeWorkflowSource::new()));
+    let request = ListWorkflowsRequest::new(make_repo());
 
-    write_github_workflow(
-        repo_path,
-        "build.yml",
-        "name: Build\non: [push]\njobs:\n  build:\n    runs-on: ubuntu-latest\n",
-    );
-
-    let service = ListWorkflowsService::new(Box::new(FakeWorkflowFileParser::new()));
-    let request = ListWorkflowsRequest::new(repo_path.into());
-    let response = service.execute(request).unwrap();
-
-    assert_eq!(response.workflows.len(), 1);
-    assert_eq!(response.workflows[0].name, Some("Build".to_string()));
-}
-
-#[test]
-fn list_when_no_name_falls_back_to_none() {
-    let tmp = tempfile::tempdir().unwrap();
-    let repo_path = tmp.path();
-
-    write_workflow(
-        repo_path,
-        "ci.yml",
-        "on: [push]\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo hello\n",
-    );
-
-    let service = ListWorkflowsService::new(Box::new(FakeWorkflowFileParser::new()));
-    let request = ListWorkflowsRequest::new(repo_path.into());
-    let response = service.execute(request).unwrap();
-
-    assert_eq!(response.workflows.len(), 1);
-    assert!(response.workflows[0].name.is_none());
-}
-
-#[test]
-fn list_when_repository_has_no_workflows() {
-    let tmp = tempfile::tempdir().unwrap();
-    let repo_path = tmp.path();
-
-    // No workflow directories
-    let service = ListWorkflowsService::new(Box::new(FakeWorkflowFileParser::new()));
-    let request = ListWorkflowsRequest::new(repo_path.into());
     let response = service.execute(request).unwrap();
 
     assert!(response.workflows.is_empty());
 }
 
 #[test]
-fn list_when_path_is_invalid() {
-    let service = ListWorkflowsService::new(Box::new(FakeWorkflowFileParser::new()));
-    let request = ListWorkflowsRequest::new(std::path::PathBuf::from("/nonexistent"));
-    let response = service.execute(request).unwrap();
+fn execute_propagates_a_source_failure() {
+    let source = FakeWorkflowSource::new().failing_list_workflows("cannot list workflows");
+    let service = ListWorkflowsService::new(Box::new(source));
+    let request = ListWorkflowsRequest::new(make_repo());
 
-    assert!(response.workflows.is_empty());
+    let error = service.execute(request).unwrap_err();
+
+    assert!(error.to_string().contains("cannot list workflows"));
 }

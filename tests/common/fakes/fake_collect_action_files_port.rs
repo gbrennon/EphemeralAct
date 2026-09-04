@@ -1,12 +1,11 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use parking_lot::Mutex;
+use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
-    application::{
-        dtos::{CollectActionFilesRequest, CollectActionFilesResponse},
-        ports::{outbound::FileEntry, outbound::collect_action_files_port::CollectActionFilesPort},
-    },
+    application::dtos::{CollectActionFilesRequest, CollectActionFilesResponse, FileEntry},
     domain::errors::StepError,
+    infrastructure::actions::collect_action_files_port::CollectActionFilesPort,
 };
 
 /// Returns a prepared set of files, recording the directories it walked.
@@ -14,7 +13,7 @@ use ephact::{
 pub struct FakeCollectActionFilesPort {
     files: Vec<FileEntry>,
     failure: Option<String>,
-    walked: Rc<RefCell<Vec<PathBuf>>>,
+    walked: Arc<Mutex<Vec<PathBuf>>>,
 }
 
 impl FakeCollectActionFilesPort {
@@ -22,7 +21,7 @@ impl FakeCollectActionFilesPort {
         Self {
             files,
             failure: None,
-            walked: Rc::new(RefCell::new(Vec::new())),
+            walked: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -30,12 +29,12 @@ impl FakeCollectActionFilesPort {
         Self {
             files: Vec::new(),
             failure: Some(message.to_string()),
-            walked: Rc::new(RefCell::new(Vec::new())),
+            walked: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn walked(&self) -> Vec<PathBuf> {
-        self.walked.borrow().clone()
+        self.walked.lock().clone()
     }
 }
 
@@ -44,9 +43,7 @@ impl CollectActionFilesPort for FakeCollectActionFilesPort {
         &self,
         request: CollectActionFilesRequest<'_>,
     ) -> Result<CollectActionFilesResponse, StepError> {
-        self.walked
-            .borrow_mut()
-            .push(request.action_dir.to_path_buf());
+        self.walked.lock().push(request.action_dir.to_path_buf());
         match &self.failure {
             Some(message) => Err(StepError::new(message.clone())),
             None => Ok(CollectActionFilesResponse {

@@ -4,7 +4,7 @@ use crate::domain::workflow::Workflow;
 
 /// Request DTO for the
 /// [`BuildJobEnvironmentPort`](crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort)
-/// inbound port.
+/// outbound port.
 pub struct BuildJobEnvironmentRequest<'a> {
     /// Workflow the job belongs to, for its workflow-level environment.
     pub workflow: &'a Workflow,

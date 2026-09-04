@@ -1,7 +1,12 @@
 use super::run_args::RunArgs;
-use crate::application::{
-    dtos::{RunActRequest, RunSummary, StepType},
-    ports::inbound::run_act_port::RunActPort,
+use crate::{
+    application::{
+        dtos::{RunAllWorkflowsRequest, RunSummary, RunWorkflowRequest},
+        ports::inbound::{
+            run_all_workflows_port::RunAllWorkflowsPort, run_workflow_port::RunWorkflowPort,
+        },
+    },
+    domain::workflow::StepType,
 };
 
 /// Handles the `run` subcommand by dispatching parsed CLI arguments to the
@@ -14,18 +19,23 @@ pub struct RunHandler;
 
 impl RunHandler {
     /// Executes the `run` subcommand: converts CLI args to domain objects,
-    /// calls the application port, renders the run summary to stderr, and
-    /// returns an error when the workflow reports failure.
-    pub fn handle(args: RunArgs, port: &dyn RunActPort) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn handle(
+        args: RunArgs,
+        run_workflow_port: &dyn RunWorkflowPort,
+        run_all_workflows_port: &dyn RunAllWorkflowsPort,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let (config, repository) = args.to_domain()?;
-        let summary = port.execute(RunActRequest::new(config, repository))?;
+        let summary = if config.all_workflows() {
+            run_all_workflows_port.execute(RunAllWorkflowsRequest::new(config, repository))?
+        } else {
+            run_workflow_port.execute(RunWorkflowRequest::new(config, repository))?
+        };
         eprint!("{}", Self::render(&summary));
         if !summary.success {
             return Err("workflow failed".into());
         }
         Ok(())
     }
-
     /// Renders the run summary as plain text for the terminal: a workflow
     /// header, per-job and per-step status lines, and each step's raw output.
     pub fn render(summary: &RunSummary) -> String {

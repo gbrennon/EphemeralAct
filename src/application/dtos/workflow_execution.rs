@@ -1,6 +1,6 @@
 use crate::application::dtos::JobSummary;
 
-/// Aggregated outcome of executing the jobs of one or more workflow files.
+#[derive(Debug, Clone)]
 pub struct WorkflowExecution {
     /// Name reported for the execution as a whole.
     pub workflow_name: String,

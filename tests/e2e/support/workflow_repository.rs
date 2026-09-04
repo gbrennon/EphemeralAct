@@ -8,18 +8,23 @@ use tempfile::TempDir;
 /// Git repository fixture on disk, holding the workflow and action files a
 /// scenario needs. The directory is removed when the fixture is dropped.
 pub struct WorkflowRepository {
-    root: TempDir,
+    _root: TempDir,
     name: String,
+    canonical_path: PathBuf,
 }
 
 impl WorkflowRepository {
     pub fn named(name: &str) -> Self {
         let root = tempfile::tempdir().unwrap();
+        let canonical_path = root.path().canonicalize().unwrap();
         let repository = Self {
-            root,
+            _root: root,
             name: name.into(),
+            canonical_path,
         };
-        create_dir_all(repository.path().join(".git")).unwrap();
+        let repo_path = repository.path();
+        create_dir_all(&repo_path).unwrap();
+        create_dir_all(repo_path.join(".git")).unwrap();
         repository
     }
 
@@ -38,7 +43,7 @@ impl WorkflowRepository {
     }
 
     pub fn path(&self) -> PathBuf {
-        self.root.path().join(&self.name)
+        self.canonical_path.join(&self.name)
     }
 
     pub fn path_argument(&self) -> String {

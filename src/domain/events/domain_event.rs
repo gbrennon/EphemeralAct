@@ -1,20 +1,11 @@
 /// Domain events published by application services.
 ///
-/// These events are dispatched in-memory via the [`EventPublisherPort`] outbound
-/// port. Infrastructure handlers subscribe to specific event variants to
-/// perform side effects (e.g. container cleanup) or to run work the publishing
-/// service must not depend on directly (e.g. action execution).
-///
-/// [`EventPublisherPort`]: crate::application::ports::outbound::event_publisher::EventPublisherPort
+/// Events state a fact about something that already happened. They are
+/// dispatched in-memory through the application's event bus outbound port, and
+/// infrastructure handlers subscribe to the variants they react to (e.g.
+/// container cleanup once a run completed).
 #[derive(Debug, Clone)]
 pub enum DomainEvent {
     /// Published when a workflow run completes (success or failure).
     ActRunCompleted(super::act_run_completed_payload::ActRunCompletedPayload),
-
-    /// Published when a step references an action that has to be resolved and
-    /// executed. The payload is boxed because it carries a whole execution
-    /// request, which dwarfs the other variants.
-    ActionExecutionRequested(
-        Box<super::action_execution_requested_payload::ActionExecutionRequestedPayload>,
-    ),
 }

@@ -1,12 +1,11 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, rc::Rc, sync::Arc};
-
-use ephact::application::{
-    dtos::CreateJobContainerRequest,
-    ports::{outbound::ContainerPort, outbound::create_job_container_port::CreateJobContainerPort},
-};
+use parking_lot::Mutex;
+use std::sync::Arc;
 
 use super::stub_container::StubContainer;
+use ephact::application::dtos::CreateJobContainerRequest;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::infrastructure::containers::create_job_container_port::CreateJobContainerPort;
 
 /// Records the creation requests it receives and hands back a stub container.
 ///
@@ -14,9 +13,9 @@ use super::stub_container::StubContainer;
 /// injecting it into a service.
 #[derive(Clone, Default)]
 pub struct FakeCreateJobContainerPort {
-    images: Rc<RefCell<Vec<String>>>,
-    container_names: Rc<RefCell<Vec<String>>>,
-    legacy_container_names: Rc<RefCell<Vec<String>>>,
+    images: Arc<Mutex<Vec<String>>>,
+    container_names: Arc<Mutex<Vec<String>>>,
+    legacy_container_names: Arc<Mutex<Vec<String>>>,
 }
 
 impl FakeCreateJobContainerPort {
@@ -25,15 +24,15 @@ impl FakeCreateJobContainerPort {
     }
 
     pub fn images(&self) -> Vec<String> {
-        self.images.borrow().clone()
+        self.images.lock().clone()
     }
 
     pub fn container_names(&self) -> Vec<String> {
-        self.container_names.borrow().clone()
+        self.container_names.lock().clone()
     }
 
     pub fn legacy_container_names(&self) -> Vec<String> {
-        self.legacy_container_names.borrow().clone()
+        self.legacy_container_names.lock().clone()
     }
 }
 
@@ -42,12 +41,12 @@ impl CreateJobContainerPort for FakeCreateJobContainerPort {
         &self,
         request: CreateJobContainerRequest<'_>,
     ) -> Result<Arc<dyn ContainerPort>, Box<dyn std::error::Error>> {
-        self.images.borrow_mut().push(request.image.to_string());
+        self.images.lock().push(request.image.to_string());
         self.container_names
-            .borrow_mut()
+            .lock()
             .push(request.container_name.to_string());
         self.legacy_container_names
-            .borrow_mut()
+            .lock()
             .push(request.legacy_container_name.to_string());
         Ok(Arc::new(StubContainer))
     }

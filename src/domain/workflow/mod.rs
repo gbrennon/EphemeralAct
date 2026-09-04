@@ -14,6 +14,7 @@ pub mod on_visitor;
 pub mod permissions;
 pub mod run_defaults;
 pub mod step;
+pub mod step_type;
 pub mod strategy;
 #[allow(clippy::module_inception)]
 pub mod workflow;
@@ -34,6 +35,7 @@ pub use on_visitor::*;
 pub use permissions::*;
 pub use run_defaults::*;
 pub use step::*;
+pub use step_type::*;
 pub use strategy::*;
 pub use workflow::*;
 pub use workflow_dispatch_input::*;

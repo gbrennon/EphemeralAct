@@ -1,18 +1,16 @@
-use std::path::PathBuf;
+use crate::domain::entities::repository::Repository;
 
-/// Request DTO for the
-/// [`ListActionsPort`](crate::application::ports::inbound::list_actions_port::ListActionsPort)
-/// inbound port.
+/// Request DTO for listing actions referenced across a repository's workflows.
+///
+/// Carries the domain repository only: no filesystem paths are exposed to the
+/// application layer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ListActionsRequest {
-    /// Path to the repository whose workflows are searched for referenced
-    /// actions.
-    pub path: PathBuf,
+    pub repository: Repository,
 }
 
 impl ListActionsRequest {
-    /// Creates a new list-actions request.
-    pub fn new(path: PathBuf) -> Self {
-        Self { path }
+    pub fn new(repository: Repository) -> Self {
+        Self { repository }
     }
 }

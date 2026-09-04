@@ -1,10 +1,7 @@
-use std::collections::HashMap;
+use crate::application::dtos::{BuildJobEnvironmentRequest, BuildJobEnvironmentResponse};
 
-use crate::application::dtos::BuildJobEnvironmentRequest;
-
-/// Inbound port for building the environment a job's container runs with.
-pub trait BuildJobEnvironmentPort {
-    /// Merges the workflow and job environments and adds the runner's own
-    /// variables.
-    fn execute(&self, request: BuildJobEnvironmentRequest<'_>) -> HashMap<String, String>;
+/// Outbound port for building the environment variables a job runs with.
+pub trait BuildJobEnvironmentPort: Send + Sync {
+    /// Returns the merged environment for the job's execution.
+    fn execute(&self, request: BuildJobEnvironmentRequest<'_>) -> BuildJobEnvironmentResponse;
 }

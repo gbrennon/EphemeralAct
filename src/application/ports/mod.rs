@@ -2,6 +2,7 @@ pub mod inbound;
 pub mod outbound;
 
 pub use inbound::{
-    container_cleanup_port::ContainerCleanupPort, list_actions_port::ListActionsPort,
-    list_workflows_port::ListWorkflowsPort, run_act_port::RunActPort,
+    list_actions_port::ListActionsPort, list_workflows_port::ListWorkflowsPort,
+    run_action_port::RunActionPort, run_all_workflows_port::RunAllWorkflowsPort,
+    run_workflow_port::RunWorkflowPort,
 };

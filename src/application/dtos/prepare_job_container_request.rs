@@ -1,7 +1,7 @@
 use std::path::Path;
 
 /// Request DTO for the
-/// [`PrepareJobContainerPort`](crate::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort)
+/// [`PrepareJobContainerPort`](crate::application::ports::inbound::prepare_job_container_port::PrepareJobContainerPort)
 /// inbound port.
 pub struct PrepareJobContainerRequest<'a> {
     /// Identifier of the job the container is prepared for.

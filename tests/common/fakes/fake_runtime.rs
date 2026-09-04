@@ -1,43 +1,47 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use parking_lot::Mutex;
+use std::{collections::HashMap, sync::Arc};
 
-use ephact::application::ports::outbound::{
-    ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, ExecResult, HostInfo,
-};
+use ephact::application::dtos::ExecResult;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
+use ephact::infrastructure::containers::ContainerConfig;
+use ephact::infrastructure::containers::ContainerRuntimePort;
+use ephact::infrastructure::containers::HostInfo;
 
 use super::fake_container_handle::FakeContainerHandle;
 
 /// Container runtime that hands out containers replaying queued exec results
 /// and recording every command and file copy they receive.
 pub struct FakeRuntime {
-    pub pulled_images: RefCell<Vec<String>>,
-    pub created_containers: RefCell<Vec<ContainerConfig>>,
-    pub exec_results: Rc<RefCell<Vec<ExecResult>>>,
-    pub executed_commands: Rc<RefCell<Vec<Vec<String>>>>,
-    pub exec_environments: Rc<RefCell<Vec<HashMap<String, String>>>>,
-    pub copied_paths: Rc<RefCell<Vec<String>>>,
-    pub removed_containers: RefCell<Vec<String>>,
-    pub stopped_containers: RefCell<Vec<String>>,
+    pub pulled_images: Mutex<Vec<String>>,
+    pub created_containers: Mutex<Vec<ContainerConfig>>,
+    pub exec_results: Arc<Mutex<Vec<ExecResult>>>,
+    pub executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
+    pub exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
+    pub copied_paths: Arc<Mutex<Vec<String>>>,
+    pub removed_containers: Mutex<Vec<String>>,
+    pub stopped_containers: Mutex<Vec<String>>,
 }
 
 impl FakeRuntime {
     pub fn new() -> Self {
         Self {
-            pulled_images: RefCell::new(vec![]),
-            created_containers: RefCell::new(vec![]),
-            exec_results: Rc::new(RefCell::new(vec![])),
-            executed_commands: Rc::new(RefCell::new(vec![])),
-            exec_environments: Rc::new(RefCell::new(vec![])),
-            copied_paths: Rc::new(RefCell::new(vec![])),
-            removed_containers: RefCell::new(vec![]),
-            stopped_containers: RefCell::new(vec![]),
+            pulled_images: Mutex::new(vec![]),
+            created_containers: Mutex::new(vec![]),
+            exec_results: Arc::new(Mutex::new(vec![])),
+            executed_commands: Arc::new(Mutex::new(vec![])),
+            exec_environments: Arc::new(Mutex::new(vec![])),
+            copied_paths: Arc::new(Mutex::new(vec![])),
+            removed_containers: Mutex::new(vec![]),
+            stopped_containers: Mutex::new(vec![]),
         }
     }
 
     /// Returns the scripts passed to `bash -c`, in execution order.
     pub fn executed_scripts(&self) -> Vec<String> {
         self.executed_commands
-            .borrow()
+            .lock()
             .iter()
             .filter(|command| command.len() == 3 && command[1] == "-c")
             .map(|command| command[2].clone())
@@ -47,7 +51,7 @@ impl FakeRuntime {
 
 impl ContainerRuntimePort for FakeRuntime {
     fn pull_image(&self, image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
-        self.pulled_images.borrow_mut().push(image.to_string());
+        self.pulled_images.lock().push(image.to_string());
         Ok(())
     }
 
@@ -55,7 +59,7 @@ impl ContainerRuntimePort for FakeRuntime {
         &self,
         config: &ContainerConfig,
     ) -> Result<Box<dyn ContainerPort>, ContainerError> {
-        self.created_containers.borrow_mut().push(config.clone());
+        self.created_containers.lock().push(config.clone());
         Ok(Box::new(FakeContainerHandle::new(
             self.exec_results.clone(),
             self.executed_commands.clone(),
@@ -65,12 +69,12 @@ impl ContainerRuntimePort for FakeRuntime {
     }
 
     fn remove_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.removed_containers.borrow_mut().push(name.to_string());
+        self.removed_containers.lock().push(name.to_string());
         Ok(())
     }
 
     fn stop_container(&self, name: &str) -> Result<(), ContainerError> {
-        self.stopped_containers.borrow_mut().push(name.to_string());
+        self.stopped_containers.lock().push(name.to_string());
         Ok(())
     }
 

@@ -1,13 +1,8 @@
 use crate::application::dtos::{ListWorkflowsRequest, ListWorkflowsResponse};
 
-/// Inbound port for listing the workflows in a repository.
-///
-/// Implementing types discover the CI workflow files (e.g. under
-/// `.forgejo/workflows/` or `.github/workflows/`), parse each one, and return
-/// a raw summary of each in the response.
+/// Inbound port for listing workflows in a repository.
 pub trait ListWorkflowsPort {
-    /// Lists the workflows found in the repository and returns them in the
-    /// response.
+    /// Discovers and lists all workflows found in the repository.
     fn execute(
         &self,
         request: ListWorkflowsRequest,

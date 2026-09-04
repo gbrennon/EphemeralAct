@@ -1,23 +1,20 @@
 use serde_json::Value;
 
-use super::{EvalError, context::EvalContext};
+use super::EvalError;
 
 /// Built-in function dispatcher for GitHub Actions expressions.
 ///
-/// Wraps an [`EvalContext`] reference and exposes each built-in
-/// as a method, plus a generic [`call`](Self::call) dispatcher
-/// that routes by function name (case-insensitive).
-pub struct Functions<'a> {
-    /// Reference to the current evaluation context.
-    #[allow(dead_code)]
-    context: &'a EvalContext,
-}
+/// Exposes each built-in as a method, plus a generic
+/// [`call`](Self::call) dispatcher that routes by function name
+/// (case-insensitive).
+#[derive(Default)]
+pub struct Functions;
 
-impl<'a> Functions<'a> {
-    /// Creates a new `Functions` dispatcher bound to the given context.
+impl Functions {
+    /// Creates a new `Functions` dispatcher.
     #[must_use]
-    pub fn new(context: &'a EvalContext) -> Self {
-        Self { context }
+    pub fn new() -> Self {
+        Self
     }
 
     /// Returns `true` if `search` contains `item`.
@@ -311,58 +308,48 @@ mod tests {
 
     use super::*;
 
-    fn ctx() -> EvalContext {
-        EvalContext::new()
-    }
-
-    fn fns(ctx: &EvalContext) -> Functions<'_> {
-        Functions::new(ctx)
+    fn fns() -> Functions {
+        Functions::new()
     }
 
     #[test]
     fn contains_string_match_case_insensitive() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.contains(&json!("Hello World"), &json!("world")).unwrap();
         assert_eq!(result, json!(true));
     }
 
     #[test]
     fn contains_string_no_match() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.contains(&json!("Hello World"), &json!("xyz")).unwrap();
         assert_eq!(result, json!(false));
     }
 
     #[test]
     fn contains_array_match() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.contains(&json!(["a", "b", "c"]), &json!("b")).unwrap();
         assert_eq!(result, json!(true));
     }
 
     #[test]
     fn contains_array_no_match() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.contains(&json!(["a", "b"]), &json!("c")).unwrap();
         assert_eq!(result, json!(false));
     }
 
     #[test]
     fn contains_type_error_on_number() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.contains(&json!(42), &json!("x")).unwrap_err();
         assert!(matches!(err, EvalError::TypeError(_)));
     }
 
     #[test]
     fn starts_with_match() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f
             .starts_with(&json!("Hello World"), &json!("hello"))
             .unwrap();
@@ -371,8 +358,7 @@ mod tests {
 
     #[test]
     fn starts_with_no_match() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f
             .starts_with(&json!("Hello World"), &json!("World"))
             .unwrap();
@@ -381,32 +367,28 @@ mod tests {
 
     #[test]
     fn ends_with_match() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.ends_with(&json!("Hello World"), &json!("WORLD")).unwrap();
         assert_eq!(result, json!(true));
     }
 
     #[test]
     fn ends_with_no_match() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.ends_with(&json!("Hello World"), &json!("Hello")).unwrap();
         assert_eq!(result, json!(false));
     }
 
     #[test]
     fn format_basic() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.format(&json!("Hello {0}"), &[json!("world")]).unwrap();
         assert_eq!(result, json!("Hello world"));
     }
 
     #[test]
     fn format_multiple_args() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f
             .format(&json!("{0} + {1} = {2}"), &[json!(1), json!(2), json!(3)])
             .unwrap();
@@ -415,16 +397,14 @@ mod tests {
 
     #[test]
     fn format_no_placeholders() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.format(&json!("no placeholders"), &[]).unwrap();
         assert_eq!(result, json!("no placeholders"));
     }
 
     #[test]
     fn format_index_out_of_range() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f
             .format(&json!("Hello {5}"), &[json!("world")])
             .unwrap_err();
@@ -433,32 +413,28 @@ mod tests {
 
     #[test]
     fn join_basic() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.join(&json!(["a", "b", "c"]), &json!(", ")).unwrap();
         assert_eq!(result, json!("a, b, c"));
     }
 
     #[test]
     fn join_single_element() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.join(&json!(["only"]), &json!(", ")).unwrap();
         assert_eq!(result, json!("only"));
     }
 
     #[test]
     fn join_empty_array() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.join(&json!([]), &json!(", ")).unwrap();
         assert_eq!(result, json!(""));
     }
 
     #[test]
     fn to_json_roundtrip() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let original = json!({"key": "value", "num": 42});
         let json_str = f.to_json(&original).unwrap();
         let parsed = f.from_json(&json_str).unwrap();
@@ -467,60 +443,52 @@ mod tests {
 
     #[test]
     fn from_json_invalid() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.from_json(&json!("not json")).unwrap_err();
         assert!(matches!(err, EvalError::JsonError(_)));
     }
 
     #[test]
     fn success_returns_true() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(f.success().unwrap(), json!(true));
     }
 
     #[test]
     fn always_returns_true() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(f.always().unwrap(), json!(true));
     }
 
     #[test]
     fn cancelled_returns_false() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(f.cancelled().unwrap(), json!(false));
     }
 
     #[test]
     fn failure_returns_false() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(f.failure().unwrap(), json!(false));
     }
 
     #[test]
     fn call_unknown_function_error() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.call("nonexistent", &[]).unwrap_err();
         assert!(matches!(err, EvalError::TypeError(_)));
     }
 
     #[test]
     fn call_wrong_arg_count() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.call("contains", &[json!("only one")]).unwrap_err();
         assert!(matches!(err, EvalError::ArgCount(_)));
     }
 
     #[test]
     fn call_case_insensitive() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f
             .call("CoNtAiNs", &[json!("Hello World"), json!("world")])
             .unwrap();
@@ -529,64 +497,56 @@ mod tests {
 
     #[test]
     fn call_success_zero_args() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let result = f.call("success", &[]).unwrap();
         assert_eq!(result, json!(true));
     }
 
     #[test]
     fn call_success_with_args_is_error() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.call("success", &[json!("extra")]).unwrap_err();
         assert!(matches!(err, EvalError::ArgCount(_)));
     }
 
     #[test]
     fn contains_errors_when_search_string_and_item_not_string() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.contains(&json!("hello"), &json!(42)).unwrap_err();
         assert!(matches!(err, EvalError::TypeError(_)));
     }
 
     #[test]
     fn format_invalid_placeholder_character() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.format(&json!("{a}"), &[json!("x")]).unwrap_err();
         assert!(matches!(err, EvalError::FormatError(_)));
     }
 
     #[test]
     fn format_unclosed_placeholder() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.format(&json!("{0"), &[]).unwrap_err();
         assert!(matches!(err, EvalError::FormatError(_)));
     }
 
     #[test]
     fn format_invalid_placeholder_index() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.format(&json!("{}"), &[json!("x")]).unwrap_err();
         assert!(matches!(err, EvalError::FormatError(_)));
     }
 
     #[test]
     fn format_unexpected_closing_brace() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.format(&json!("a}b"), &[json!("x")]).unwrap_err();
         assert!(matches!(err, EvalError::FormatError(_)));
     }
 
     #[test]
     fn call_dispatches_starts_with() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(
             f.call("startswith", &[json!("Hello"), json!("he")])
                 .unwrap(),
@@ -596,8 +556,7 @@ mod tests {
 
     #[test]
     fn call_dispatches_ends_with() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(
             f.call("endswith", &[json!("Hello"), json!("lo")]).unwrap(),
             json!(true)
@@ -606,16 +565,14 @@ mod tests {
 
     #[test]
     fn call_format_with_no_args_errors() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         let err = f.call("format", &[]).unwrap_err();
         assert!(matches!(err, EvalError::ArgCount(_)));
     }
 
     #[test]
     fn call_dispatches_format() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(
             f.call("format", &[json!("Hi {0}"), json!("bob")]).unwrap(),
             json!("Hi bob")
@@ -624,8 +581,7 @@ mod tests {
 
     #[test]
     fn call_dispatches_join() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(
             f.call("join", &[json!(["a", "b"]), json!("-")]).unwrap(),
             json!("a-b")
@@ -634,8 +590,7 @@ mod tests {
 
     #[test]
     fn call_dispatches_to_json() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(
             f.call("tojson", &[json!({"a": 1})]).unwrap(),
             json!(r#"{"a":1}"#)
@@ -644,8 +599,7 @@ mod tests {
 
     #[test]
     fn call_dispatches_from_json() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(
             f.call("fromjson", &[json!(r#"{"a":1}"#)]).unwrap(),
             json!({"a": 1})
@@ -654,8 +608,7 @@ mod tests {
 
     #[test]
     fn call_dispatches_always_cancelled_failure() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(f.call("always", &[]).unwrap(), json!(true));
         assert_eq!(f.call("cancelled", &[]).unwrap(), json!(false));
         assert_eq!(f.call("failure", &[]).unwrap(), json!(false));
@@ -663,8 +616,7 @@ mod tests {
 
     #[test]
     fn expect_string_error_names_value_type() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert!(f.starts_with(&json!(null), &json!("a")).is_err());
         assert!(f.starts_with(&json!(true), &json!("a")).is_err());
         assert!(f.starts_with(&json!(42), &json!("a")).is_err());
@@ -674,8 +626,7 @@ mod tests {
 
     #[test]
     fn format_null_and_bool_and_array_replacement() {
-        let c = ctx();
-        let f = fns(&c);
+        let f = fns();
         assert_eq!(
             f.format(&json!("{0}"), &[json!(null)]).unwrap(),
             json!("null")

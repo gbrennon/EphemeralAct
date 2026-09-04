@@ -1,26 +1,29 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use ephact::{
     application::{
-        dtos::ExecuteWorkflowRequest, ports::outbound::execute_workflow_port::ExecuteWorkflowPort,
+        dtos::{ExecuteWorkflowRequest, WorkflowExecution},
+        ports::inbound::execute_workflow_port::ExecuteWorkflowPort,
         services::execute_workflow_service::ExecuteWorkflowService,
     },
     domain::expression::EvalContext,
 };
 
 use crate::common::fakes::{
-    fake_execute_job_port::FakeExecuteJobPort, fake_load_workflow_port::FakeLoadWorkflowPort,
+    fake_command_bus::FakeCommandBus, fake_load_workflow_port::FakeLoadWorkflowPort,
 };
 
 const TWO_JOBS: &str = "name: Ci\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n  publish:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: publish\n";
 
+const REQUESTED_CONTENT: &str = "name: Ci\non: push\njobs: {}\n";
+
 fn execute(
     loader: FakeLoadWorkflowPort,
-    job_executor: FakeExecuteJobPort,
-) -> Result<ephact::application::dtos::WorkflowExecution, Box<dyn std::error::Error>> {
-    ExecuteWorkflowService::new(Box::new(loader), Box::new(job_executor)).execute(
+    command_bus: FakeCommandBus,
+) -> Result<WorkflowExecution, Box<dyn std::error::Error>> {
+    ExecuteWorkflowService::new(Box::new(loader), Arc::new(command_bus)).execute(
         ExecuteWorkflowRequest {
-            workflow_file: Path::new("ci.yml"),
+            workflow_content: REQUESTED_CONTENT,
             repo_path: Path::new("/repo"),
             context: &EvalContext::new(),
         },
@@ -28,24 +31,32 @@ fn execute(
 }
 
 #[test]
-fn execute_runs_the_jobs_in_the_order_their_dependencies_require() {
-    let job_executor = FakeExecuteJobPort::new();
+fn execute_publishes_a_job_command_per_job_in_dependency_order() {
+    let command_bus = FakeCommandBus::new();
 
-    let execution = execute(
-        FakeLoadWorkflowPort::holding(TWO_JOBS),
-        job_executor.clone(),
-    )
-    .unwrap();
+    let execution = execute(FakeLoadWorkflowPort::holding(TWO_JOBS), command_bus.clone()).unwrap();
 
-    assert_eq!(job_executor.executed_job_ids(), vec!["build", "publish"]);
+    assert_eq!(command_bus.dispatched_job_ids(), vec!["build", "publish"]);
     assert_eq!(execution.job_summaries.len(), 2);
+}
+
+#[test]
+fn execute_publishes_job_commands_carrying_the_loaded_workflow_and_repo_path() {
+    let command_bus = FakeCommandBus::new();
+
+    execute(FakeLoadWorkflowPort::holding(TWO_JOBS), command_bus.clone()).unwrap();
+
+    let dispatched = command_bus.dispatched_jobs.lock();
+    let first = dispatched.first().expect("a job command");
+    assert_eq!(first.workflow.name.as_deref(), Some("Ci"));
+    assert_eq!(first.repo_path, Path::new("/repo"));
 }
 
 #[test]
 fn execute_reports_the_workflow_name() {
     let execution = execute(
         FakeLoadWorkflowPort::holding(TWO_JOBS),
-        FakeExecuteJobPort::new(),
+        FakeCommandBus::new(),
     )
     .unwrap();
 
@@ -58,7 +69,7 @@ fn execute_names_an_unnamed_workflow_unnamed() {
         FakeLoadWorkflowPort::holding(
             "on: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - run: build\n",
         ),
-        FakeExecuteJobPort::new(),
+        FakeCommandBus::new(),
     )
     .unwrap();
 
@@ -69,7 +80,7 @@ fn execute_names_an_unnamed_workflow_unnamed() {
 fn execute_returns_every_jobs_container_name() {
     let execution = execute(
         FakeLoadWorkflowPort::holding(TWO_JOBS),
-        FakeExecuteJobPort::new(),
+        FakeCommandBus::new(),
     )
     .unwrap();
 
@@ -86,7 +97,7 @@ fn execute_returns_every_jobs_container_name() {
 fn execute_fails_the_workflow_when_one_job_fails() {
     let execution = execute(
         FakeLoadWorkflowPort::holding(TWO_JOBS),
-        FakeExecuteJobPort::failing(vec!["publish".to_string()]),
+        FakeCommandBus::new().failing_jobs(vec!["publish".to_string()]),
     )
     .unwrap();
 
@@ -94,13 +105,23 @@ fn execute_fails_the_workflow_when_one_job_fails() {
 }
 
 #[test]
+fn execute_propagates_a_failed_job_dispatch() {
+    let result = execute(
+        FakeLoadWorkflowPort::holding(TWO_JOBS),
+        FakeCommandBus::new().failing_job_dispatch("job bus is down"),
+    );
+
+    let Err(error) = result else {
+        panic!("a failing job dispatch should fail the workflow");
+    };
+    assert_eq!(error.to_string(), "job bus is down");
+}
+
+#[test]
 fn execute_errors_on_a_cyclic_dependency() {
     let cyclic = "name: Ci\non: push\njobs:\n  a:\n    needs: b\n    runs-on: ubuntu-latest\n    steps:\n      - run: a\n  b:\n    needs: a\n    runs-on: ubuntu-latest\n    steps:\n      - run: b\n";
 
-    let result = execute(
-        FakeLoadWorkflowPort::holding(cyclic),
-        FakeExecuteJobPort::new(),
-    );
+    let result = execute(FakeLoadWorkflowPort::holding(cyclic), FakeCommandBus::new());
 
     assert!(result.is_err());
 }
@@ -109,7 +130,7 @@ fn execute_errors_on_a_cyclic_dependency() {
 fn execute_propagates_a_loader_error() {
     let Err(error) = execute(
         FakeLoadWorkflowPort::failing("cannot read ci.yml"),
-        FakeExecuteJobPort::new(),
+        FakeCommandBus::new(),
     ) else {
         panic!("a failing loader should fail the workflow");
     };

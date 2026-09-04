@@ -4,7 +4,7 @@ use crate::{
 };
 
 /// Inbound port for reading an action's `action.yml`.
-pub trait LoadActionDefinitionPort {
+pub trait LoadActionDefinitionPort: Send + Sync {
     /// Reads and parses the action's definition.
     fn execute(
         &self,

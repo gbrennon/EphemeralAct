@@ -1,30 +1,38 @@
-use std::{error::Error, time::Instant};
+use std::{error::Error, sync::Arc, time::Instant};
 
-use crate::application::{
-    dtos::{
-        BuildJobEnvironmentRequest, BuildStepContextRequest, ExecuteJobRequest, ExecuteStepRequest,
-        JobExecution, JobSummary, PrefixStepPathRequest, PrepareJobContainerRequest,
-        ReadStepExportsRequest, StepSummary, SummarizeStepRequest,
-    },
-    ports::outbound::{
-        build_job_environment_port::BuildJobEnvironmentPort,
-        build_step_context_port::BuildStepContextPort, execute_job_port::ExecuteJobPort,
-        execute_step_port::ExecuteStepPort, prefix_step_path_port::PrefixStepPathPort,
-        prepare_job_container_port::PrepareJobContainerPort,
-        read_step_exports_port::ReadStepExportsPort, summarize_step_port::SummarizeStepPort,
-    },
-};
+use crate::application::commands::ExecuteStepCommand;
+use crate::application::dtos::BuildJobEnvironmentRequest;
+use crate::application::dtos::BuildStepContextRequest;
+use crate::application::dtos::ExecuteJobRequest;
+use crate::application::dtos::JobExecution;
+use crate::application::dtos::JobSummary;
+use crate::application::dtos::PrefixStepPathRequest;
+use crate::application::dtos::PrepareJobContainerRequest;
+use crate::application::dtos::ReadStepExportsRequest;
+use crate::application::dtos::StepSummary;
+use crate::application::dtos::SummarizeStepRequest;
+use crate::application::ports::inbound::execute_job_port::ExecuteJobPort;
+use crate::application::ports::outbound::build_job_environment_port::BuildJobEnvironmentPort;
+use crate::application::ports::outbound::build_step_context_port::BuildStepContextPort;
+use crate::application::ports::outbound::command_bus_port::CommandBusPort;
+use crate::application::ports::outbound::prefix_step_path_port::PrefixStepPathPort;
+use crate::application::ports::outbound::prepare_job_container_port::PrepareJobContainerPort;
+use crate::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
+use crate::application::ports::outbound::summarize_step_port::SummarizeStepPort;
 
-/// Service that runs one planned job inside a fresh ephemeral container,
-/// carrying each step's exports over to the steps that follow it.
+/// Application service coordinating the execution of one job.
+///
+/// Builds the job environment and container through outbound ports, then
+/// publishes one [`ExecuteStepCommand`] per step: the step command handler
+/// runs each step, so this service never depends on the step entrypoint.
 pub struct ExecuteJobService {
     job_environment_builder: Box<dyn BuildJobEnvironmentPort>,
     container_preparer: Box<dyn PrepareJobContainerPort>,
     step_path_prefixer: Box<dyn PrefixStepPathPort>,
     step_context_builder: Box<dyn BuildStepContextPort>,
-    step_executor: Box<dyn ExecuteStepPort>,
     step_summarizer: Box<dyn SummarizeStepPort>,
     step_exports_reader: Box<dyn ReadStepExportsPort>,
+    command_bus: Arc<dyn CommandBusPort>,
 }
 
 impl ExecuteJobService {
@@ -34,18 +42,18 @@ impl ExecuteJobService {
         container_preparer: Box<dyn PrepareJobContainerPort>,
         step_path_prefixer: Box<dyn PrefixStepPathPort>,
         step_context_builder: Box<dyn BuildStepContextPort>,
-        step_executor: Box<dyn ExecuteStepPort>,
         step_summarizer: Box<dyn SummarizeStepPort>,
         step_exports_reader: Box<dyn ReadStepExportsPort>,
+        command_bus: Arc<dyn CommandBusPort>,
     ) -> Self {
         Self {
             job_environment_builder,
             container_preparer,
             step_path_prefixer,
             step_context_builder,
-            step_executor,
             step_summarizer,
             step_exports_reader,
+            command_bus,
         }
     }
 }
@@ -57,7 +65,8 @@ impl ExecuteJobPort for ExecuteJobService {
             .execute(BuildJobEnvironmentRequest {
                 workflow: request.workflow,
                 job_env: &request.run.job.env,
-            });
+            })
+            .env;
 
         let prepared = self
             .container_preparer
@@ -83,13 +92,13 @@ impl ExecuteJobPort for ExecuteJobService {
                 env: &step_env,
             });
 
-            let outcome = self.step_executor.execute(ExecuteStepRequest {
-                step,
-                context: &step_context,
-                container: prepared.container.clone(),
-                repo_path: request.repo_path,
-                env: &step_env,
-            });
+            let outcome = self.command_bus.dispatch_step(ExecuteStepCommand::new(
+                step.clone(),
+                step_env.clone(),
+                step_context,
+                prepared.container.clone(),
+                request.repo_path.to_path_buf(),
+            ));
 
             let summarized = self.step_summarizer.execute(SummarizeStepRequest {
                 step,

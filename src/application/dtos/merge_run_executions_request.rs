@@ -1,7 +1,7 @@
 use crate::application::dtos::WorkflowExecution;
 
 /// Request DTO for the
-/// [`MergeRunExecutionsPort`](crate::application::ports::outbound::merge_run_executions_port::MergeRunExecutionsPort)
+/// [`MergeRunExecutionsPort`](crate::application::ports::inbound::merge_run_executions_port::MergeRunExecutionsPort)
 /// inbound port.
 pub struct MergeRunExecutionsRequest {
     /// Executions to merge, in the order they ran.

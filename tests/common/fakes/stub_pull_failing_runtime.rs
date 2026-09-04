@@ -1,9 +1,11 @@
 #![allow(dead_code)]
-use std::cell::RefCell;
 
-use ephact::application::ports::outbound::{
-    ContainerConfig, ContainerError, ContainerPort, ContainerRuntimePort, HostInfo,
-};
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
+use ephact::infrastructure::containers::ContainerConfig;
+use ephact::infrastructure::containers::ContainerRuntimePort;
+use ephact::infrastructure::containers::HostInfo;
+use parking_lot::Mutex;
 
 use super::stub_container::StubContainer;
 
@@ -11,21 +13,21 @@ use super::stub_container::StubContainer;
 /// recording every image it was asked to pull.
 pub struct StubPullFailingRuntime {
     rejected_images: Vec<String>,
-    pub pulled_images: RefCell<Vec<String>>,
+    pub pulled_images: Mutex<Vec<String>>,
 }
 
 impl StubPullFailingRuntime {
     pub fn rejecting(rejected_images: Vec<String>) -> Self {
         Self {
             rejected_images,
-            pulled_images: RefCell::new(Vec::new()),
+            pulled_images: Mutex::new(Vec::new()),
         }
     }
 }
 
 impl ContainerRuntimePort for StubPullFailingRuntime {
     fn pull_image(&self, image: &str, _platform: Option<&str>) -> Result<(), ContainerError> {
-        self.pulled_images.borrow_mut().push(image.to_string());
+        self.pulled_images.lock().push(image.to_string());
         if self
             .rejected_images
             .iter()

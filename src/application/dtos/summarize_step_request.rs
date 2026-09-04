@@ -6,7 +6,7 @@ use crate::{
 };
 
 /// Request DTO for the
-/// [`SummarizeStepPort`](crate::application::ports::outbound::summarize_step_port::SummarizeStepPort)
+/// [`SummarizeStepPort`](crate::application::ports::inbound::summarize_step_port::SummarizeStepPort)
 /// inbound port.
 pub struct SummarizeStepRequest<'a> {
     /// The step as declared, before its expressions were resolved.

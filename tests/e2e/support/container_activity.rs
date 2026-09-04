@@ -1,4 +1,5 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use parking_lot::Mutex;
+use std::{collections::HashMap, sync::Arc};
 
 /// Records everything the application asks a container runtime to do, so an
 /// end-to-end test can assert on the commands a workflow produced without
@@ -8,11 +9,11 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 /// handed to a runtime and to the containers it creates.
 #[derive(Clone, Default)]
 pub struct ContainerActivity {
-    commands: Rc<RefCell<Vec<Vec<String>>>>,
-    environments: Rc<RefCell<Vec<HashMap<String, String>>>>,
-    copied_paths: Rc<RefCell<Vec<String>>>,
-    pulled_images: Rc<RefCell<Vec<String>>>,
-    stopped_containers: Rc<RefCell<Vec<String>>>,
+    commands: Arc<Mutex<Vec<Vec<String>>>>,
+    environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
+    copied_paths: Arc<Mutex<Vec<String>>>,
+    pulled_images: Arc<Mutex<Vec<String>>>,
+    stopped_containers: Arc<Mutex<Vec<String>>>,
 }
 
 impl ContainerActivity {
@@ -21,27 +22,27 @@ impl ContainerActivity {
     }
 
     pub fn record_command(&self, command: &[String], environment: &HashMap<String, String>) {
-        self.commands.borrow_mut().push(command.to_vec());
-        self.environments.borrow_mut().push(environment.clone());
+        self.commands.lock().push(command.to_vec());
+        self.environments.lock().push(environment.clone());
     }
 
     pub fn record_copy(&self, container_path: &str) {
-        self.copied_paths.borrow_mut().push(container_path.into());
+        self.copied_paths.lock().push(container_path.into());
     }
 
     pub fn record_pulled_image(&self, image: &str) {
-        self.pulled_images.borrow_mut().push(image.into());
+        self.pulled_images.lock().push(image.into());
     }
 
     pub fn record_stopped_container(&self, name: &str) {
-        self.stopped_containers.borrow_mut().push(name.into());
+        self.stopped_containers.lock().push(name.into());
     }
 
     /// Returns the script of every executed command, which for a shell step is
     /// the payload of `bash -c`.
     pub fn scripts(&self) -> Vec<String> {
         self.commands
-            .borrow()
+            .lock()
             .iter()
             .filter_map(|command| command.last().cloned())
             .collect()
@@ -53,14 +54,14 @@ impl ContainerActivity {
 
     pub fn ran_command_containing(&self, fragment: &str) -> bool {
         self.commands
-            .borrow()
+            .lock()
             .iter()
             .any(|command| command.iter().any(|argument| argument.contains(fragment)))
     }
 
     pub fn ran_command_with_environment(&self, name: &str, value: &str) -> bool {
         self.environments
-            .borrow()
+            .lock()
             .iter()
             .any(|environment| environment.get(name).is_some_and(|found| found == value))
     }
@@ -79,16 +80,16 @@ impl ContainerActivity {
 
     pub fn copied_to_path_containing(&self, fragment: &str) -> bool {
         self.copied_paths
-            .borrow()
+            .lock()
             .iter()
             .any(|path| path.contains(fragment))
     }
 
     pub fn pulled_images(&self) -> Vec<String> {
-        self.pulled_images.borrow().clone()
+        self.pulled_images.lock().clone()
     }
 
     pub fn stopped_containers(&self) -> Vec<String> {
-        self.stopped_containers.borrow().clone()
+        self.stopped_containers.lock().clone()
     }
 }

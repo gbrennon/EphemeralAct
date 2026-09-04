@@ -1,18 +1,17 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use ephact::application::ports::outbound::read_step_exports_port::ReadStepExportsPort;
+use parking_lot::Mutex;
+use std::{collections::HashMap, sync::Arc};
 
-use ephact::application::{
-    dtos::{ReadStepExportsRequest, StepExports},
-    ports::outbound::read_step_exports_port::ReadStepExportsPort,
-};
+use ephact::application::dtos::{ReadStepExportsRequest, StepExports};
 
 type QueuedStepExports = (Vec<String>, HashMap<String, String>);
 
 /// Hands out the next queued set of exports, or nothing once drained.
 #[derive(Clone, Default)]
 pub struct FakeReadStepExportsPort {
-    queued: Rc<RefCell<Vec<QueuedStepExports>>>,
-    calls: Rc<RefCell<usize>>,
+    queued: Arc<Mutex<Vec<QueuedStepExports>>>,
+    calls: Arc<Mutex<usize>>,
 }
 
 impl FakeReadStepExportsPort {
@@ -22,20 +21,20 @@ impl FakeReadStepExportsPort {
 
     pub fn queueing(exports: Vec<QueuedStepExports>) -> Self {
         Self {
-            queued: Rc::new(RefCell::new(exports)),
-            calls: Rc::new(RefCell::new(0)),
+            queued: Arc::new(Mutex::new(exports)),
+            calls: Arc::new(Mutex::new(0)),
         }
     }
 
     pub fn calls(&self) -> usize {
-        *self.calls.borrow()
+        *self.calls.lock()
     }
 }
 
 impl ReadStepExportsPort for FakeReadStepExportsPort {
     fn execute(&self, _request: ReadStepExportsRequest<'_>) -> StepExports {
-        *self.calls.borrow_mut() += 1;
-        let mut queued = self.queued.borrow_mut();
+        *self.calls.lock() += 1;
+        let mut queued = self.queued.lock();
         if queued.is_empty() {
             return StepExports {
                 path_additions: Vec::new(),

@@ -1,9 +1,12 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use parking_lot::Mutex;
+use std::{collections::HashMap, sync::Arc};
 
-use ephact::application::ports::outbound::{
-    ContainerError, ContainerPort, ExecResult, FileEntry, RunnerContext,
-};
+use ephact::application::dtos::ExecResult;
+use ephact::application::dtos::FileEntry;
+use ephact::application::dtos::RunnerContext;
+use ephact::application::ports::outbound::container_port::ContainerPort;
+use ephact::domain::errors::ContainerError;
 
 /// Container handle a [`super::fake_runtime::FakeRuntime`] creates.
 ///
@@ -12,18 +15,18 @@ use ephact::application::ports::outbound::{
 /// queue is drained. Reading a file the runner writes (`cat`) fails, the way a
 /// container that never wrote the file behaves.
 pub struct FakeContainerHandle {
-    exec_results: Rc<RefCell<Vec<ExecResult>>>,
-    executed_commands: Rc<RefCell<Vec<Vec<String>>>>,
-    exec_environments: Rc<RefCell<Vec<HashMap<String, String>>>>,
-    copied_paths: Rc<RefCell<Vec<String>>>,
+    exec_results: Arc<Mutex<Vec<ExecResult>>>,
+    executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
+    exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
+    copied_paths: Arc<Mutex<Vec<String>>>,
 }
 
 impl FakeContainerHandle {
     pub fn new(
-        exec_results: Rc<RefCell<Vec<ExecResult>>>,
-        executed_commands: Rc<RefCell<Vec<Vec<String>>>>,
-        exec_environments: Rc<RefCell<Vec<HashMap<String, String>>>>,
-        copied_paths: Rc<RefCell<Vec<String>>>,
+        exec_results: Arc<Mutex<Vec<ExecResult>>>,
+        executed_commands: Arc<Mutex<Vec<Vec<String>>>>,
+        exec_environments: Arc<Mutex<Vec<HashMap<String, String>>>>,
+        copied_paths: Arc<Mutex<Vec<String>>>,
     ) -> Self {
         Self {
             exec_results,
@@ -48,10 +51,10 @@ impl ContainerPort for FakeContainerHandle {
             ));
         }
 
-        self.executed_commands.borrow_mut().push(cmd.to_vec());
-        self.exec_environments.borrow_mut().push(env.clone());
+        self.executed_commands.lock().push(cmd.to_vec());
+        self.exec_environments.lock().push(env.clone());
 
-        let mut results = self.exec_results.borrow_mut();
+        let mut results = self.exec_results.lock();
         if results.is_empty() {
             Ok(ExecResult {
                 exit_code: 0,
@@ -64,7 +67,7 @@ impl ContainerPort for FakeContainerHandle {
     }
 
     fn copy_to(&self, path: &str, _entries: &[FileEntry]) -> Result<(), ContainerError> {
-        self.copied_paths.borrow_mut().push(path.to_string());
+        self.copied_paths.lock().push(path.to_string());
         Ok(())
     }
 

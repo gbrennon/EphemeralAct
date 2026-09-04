@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::domain::expression::EvalContext;
 
 /// Request DTO for the
-/// [`BuildStepContextPort`](crate::application::ports::outbound::build_step_context_port::BuildStepContextPort)
+/// [`BuildStepContextPort`](crate::application::ports::inbound::build_step_context_port::BuildStepContextPort)
 /// inbound port.
 pub struct BuildStepContextRequest<'a> {
     /// Context of the run the step belongs to.

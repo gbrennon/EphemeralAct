@@ -6,8 +6,8 @@ use std::{
 };
 
 use crate::{
-    application::ports::outbound::ActionFetcherPort,
     domain::{errors::ActionError, value_objects::RemoteActionReference},
+    infrastructure::actions::ActionFetcherPort,
 };
 
 /// Directory name, under the cache root, that holds fetched action trees.
@@ -21,6 +21,7 @@ const CACHE_DIRECTORY: &str = "ephemeral-act/actions";
 /// the same code path. A shallow clone of the requested revision is attempted
 /// first; when the revision is a commit SHA that a shallow clone cannot name,
 /// the repository is cloned and the revision fetched explicitly.
+#[derive(Clone)]
 pub struct GitActionFetcher {
     cache_root: PathBuf,
 }
@@ -109,5 +110,9 @@ impl ActionFetcherPort for GitActionFetcher {
         })?;
 
         Ok(destination)
+    }
+
+    fn clone_box(&self) -> Box<dyn ActionFetcherPort> {
+        Box::new(self.clone())
     }
 }

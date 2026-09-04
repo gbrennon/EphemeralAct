@@ -4,7 +4,7 @@ use crate::application::dtos::PrefixStepPathRequest;
 
 /// Inbound port for prefixing a step's `PATH` with directories earlier steps
 /// exported.
-pub trait PrefixStepPathPort {
+pub trait PrefixStepPathPort: Send + Sync {
     /// Returns the environment with its `PATH` prefixed by the additions.
     fn execute(&self, request: PrefixStepPathRequest<'_>) -> HashMap<String, String>;
 }

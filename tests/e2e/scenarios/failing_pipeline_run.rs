@@ -49,9 +49,14 @@ impl FailingPipelineRun {
             .with_workflow("release.yml", RELEASE_WORKFLOW)
             .with_action(".forgejo/actions/release", RELEASE_ACTION);
         let activity = ContainerActivity::new();
+        let workflow_source = Arc::new(
+            crate::common::fakes::fake_workflow_source::FakeWorkflowSource::new()
+                .with_workflow_content(RELEASE_WORKFLOW),
+        );
         let application = EphactApplication::compose(
             Arc::new(FailingRuntime::recording(activity.clone())),
             Box::new(MirroredActionFetcher::mirroring(repository.path())),
+            workflow_source,
         );
 
         let outcome = application

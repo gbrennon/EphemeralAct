@@ -1,48 +1,47 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, rc::Rc};
+use parking_lot::Mutex;
+use std::sync::Arc;
 
 use ephact::{
-    application::{
-        dtos::RunCompositeStepRequest,
-        ports::{outbound::ExecResult, outbound::run_composite_step_port::RunCompositeStepPort},
-    },
+    application::dtos::{ExecResult, RunCompositeStepRequest},
     domain::{errors::StepError, workflow::Step},
+    infrastructure::steps::run_composite_step_port::RunCompositeStepPort,
 };
 
 /// Answers each composite step with the next queued result, recording the
 /// steps it was asked to run.
 #[derive(Clone, Default)]
 pub struct FakeRunCompositeStepPort {
-    results: Rc<RefCell<Vec<ExecResult>>>,
+    results: Arc<Mutex<Vec<ExecResult>>>,
     failure: Option<(String, String, String)>,
-    steps: Rc<RefCell<Vec<Step>>>,
+    steps: Arc<Mutex<Vec<Step>>>,
 }
 
 impl FakeRunCompositeStepPort {
     pub fn queueing(results: Vec<ExecResult>) -> Self {
         Self {
-            results: Rc::new(RefCell::new(results)),
+            results: Arc::new(Mutex::new(results)),
             failure: None,
-            steps: Rc::new(RefCell::new(Vec::new())),
+            steps: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn failing(error: StepError) -> Self {
         Self {
-            results: Rc::new(RefCell::new(Vec::new())),
+            results: Arc::new(Mutex::new(Vec::new())),
             failure: Some((error.message, error.stdout, error.stderr)),
-            steps: Rc::new(RefCell::new(Vec::new())),
+            steps: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn steps(&self) -> Vec<Step> {
-        self.steps.borrow().clone()
+        self.steps.lock().clone()
     }
 }
 
 impl RunCompositeStepPort for FakeRunCompositeStepPort {
     fn execute(&self, request: RunCompositeStepRequest<'_>) -> Result<ExecResult, StepError> {
-        self.steps.borrow_mut().push(request.step.clone());
+        self.steps.lock().push(request.step.clone());
 
         if let Some((message, stdout, stderr)) = &self.failure {
             return Err(StepError {
@@ -52,7 +51,7 @@ impl RunCompositeStepPort for FakeRunCompositeStepPort {
             });
         }
 
-        let mut queued = self.results.borrow_mut();
+        let mut queued = self.results.lock();
         if queued.is_empty() {
             return Ok(ExecResult {
                 exit_code: 0,

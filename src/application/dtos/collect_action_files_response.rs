@@ -1,7 +1,7 @@
-use crate::application::ports::outbound::FileEntry;
+use crate::application::dtos::FileEntry;
 
 /// Response DTO for the
-/// [`CollectActionFilesPort`](crate::application::ports::outbound::collect_action_files_port::CollectActionFilesPort)
+/// [`CollectActionFilesPort`](crate::application::ports::inbound::collect_action_files_port::CollectActionFilesPort)
 /// inbound port.
 #[derive(Debug)]
 pub struct CollectActionFilesResponse {

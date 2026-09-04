@@ -60,9 +60,14 @@ impl RemoteActionPipelineRun {
             .with_file(Self::ENTRY_POINT_FILE, SETUP_NODE_ENTRY_POINT);
         let activity = ContainerActivity::new();
         let fetcher = MirroredActionFetcher::mirroring(mirror.path());
+        let workflow_source = Arc::new(
+            crate::common::fakes::fake_workflow_source::FakeWorkflowSource::new()
+                .with_workflow_content(TOOLCHAIN_WORKFLOW),
+        );
         let application = EphactApplication::compose(
             Arc::new(SucceedingRuntime::recording(activity.clone())),
             Box::new(fetcher.clone()),
+            workflow_source,
         );
 
         let outcome = application

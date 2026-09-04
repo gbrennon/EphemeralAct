@@ -1,8 +1,6 @@
 use crate::{application::dtos::LoadWorkflowRequest, domain::workflow::Workflow};
 
-/// Inbound port for reading and parsing a workflow file.
-pub trait LoadWorkflowPort {
-    /// Reads the workflow file and parses it.
+pub trait LoadWorkflowPort: Send + Sync {
     fn execute(
         &self,
         request: LoadWorkflowRequest<'_>,

@@ -1,11 +1,10 @@
 #![allow(dead_code)]
-use std::{cell::RefCell, path::PathBuf, rc::Rc};
+use ephact::infrastructure::actions::fetch_remote_action_port::FetchRemoteActionPort;
+use parking_lot::Mutex;
+use std::{path::PathBuf, sync::Arc};
 
 use ephact::{
-    application::{
-        dtos::FetchRemoteActionRequest,
-        ports::outbound::fetch_remote_action_port::FetchRemoteActionPort,
-    },
+    application::dtos::FetchRemoteActionRequest,
     domain::{errors::ActionError, value_objects::RemoteActionReference},
 };
 
@@ -13,32 +12,32 @@ use ephact::{
 #[derive(Clone)]
 pub struct FakeFetchRemoteActionPort {
     result: Result<PathBuf, String>,
-    fetched: Rc<RefCell<Vec<RemoteActionReference>>>,
+    fetched: Arc<Mutex<Vec<RemoteActionReference>>>,
 }
 
 impl FakeFetchRemoteActionPort {
     pub fn returning(directory: PathBuf) -> Self {
         Self {
             result: Ok(directory),
-            fetched: Rc::new(RefCell::new(Vec::new())),
+            fetched: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn failing(message: &str) -> Self {
         Self {
             result: Err(message.to_string()),
-            fetched: Rc::new(RefCell::new(Vec::new())),
+            fetched: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn fetched(&self) -> Vec<RemoteActionReference> {
-        self.fetched.borrow().clone()
+        self.fetched.lock().clone()
     }
 }
 
 impl FetchRemoteActionPort for FakeFetchRemoteActionPort {
     fn execute(&self, request: FetchRemoteActionRequest<'_>) -> Result<PathBuf, ActionError> {
-        self.fetched.borrow_mut().push(request.reference.clone());
+        self.fetched.lock().push(request.reference.clone());
         self.result.clone().map_err(ActionError::FetchFailed)
     }
 }
