@@ -1,4 +1,4 @@
-use crate::application::ports::outbound::ImageMapperPort;
+use crate::infrastructure::images::ImageMapperPort;
 
 /// Maps CI platform `runs-on` labels to container image names.
 ///
@@ -10,7 +10,7 @@ use crate::application::ports::outbound::ImageMapperPort;
 /// # Examples
 ///
 /// ```
-/// use ephact::application::ports::outbound::ImageMapperPort;
+/// use ephact::infrastructure::images::ImageMapperPort;
 /// use ephact::infrastructure::PlatformImageMapper;
 ///
 /// let mapper = PlatformImageMapper;
@@ -37,5 +37,9 @@ impl ImageMapperPort for PlatformImageMapper {
 
     fn fallback(&self) -> String {
         "catthehacker/ubuntu:act-latest".to_string()
+    }
+
+    fn clone_box(&self) -> Box<dyn ImageMapperPort> {
+        Box::new(Self)
     }
 }

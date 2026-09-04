@@ -2,53 +2,69 @@ use std::sync::Arc;
 
 use crate::{
     application::{
-        ports::outbound::{ContainerRuntimePort, EventPublisherPort},
+        ports::outbound::{EventBusPort, WorkflowSourcePort},
         services::{
-            container_cleanup_service::ContainerCleanupService,
             list_actions_service::ListActionsService, list_workflows_service::ListWorkflowsService,
+            run_action_service::RunActionService,
+            run_all_workflows_service::RunAllWorkflowsService,
+            run_workflow_service::RunWorkflowService,
         },
     },
     infrastructure::{
-        actions::GitActionFetcher,
-        di::{
-            action_execution_wiring::ActionExecutionWiring, app_container::AppContainer,
-            run_act_wiring::RunActWiring,
-        },
-        events::InMemoryEventBus,
-        images::PlatformImageMapper,
-        runners::ContainerRuntimeAdapter,
-        workflows::FilesystemWorkflowFileParser,
+        actions::{ActionFetcherPort, GitActionFetcher},
+        containers::{ContainerCleanupHandler, ContainerRuntimeAdapter, ContainerRuntimePort},
+        di::{app_container::AppContainer, command_bus_wiring::CommandBusWiring},
+        images::{ImageMapperPort, PlatformImageMapper},
+        messaging::InMemoryEventBus,
+        workflows::FilesystemWorkflowSource,
     },
 };
 
-/// Dependency-injection container that constructs and wires all application
-/// dependencies. Returns a fully-wired [`AppContainer`] ready for the
-/// presentation layer to consume.
 pub struct Container;
 
 impl Container {
-    /// Builds the application service graph and returns all three ports.
-    #[allow(clippy::arc_with_non_send_sync)]
     pub fn build() -> AppContainer {
         let runtime: Arc<dyn ContainerRuntimePort> = Arc::new(
             ContainerRuntimeAdapter::detect()
                 .expect("no container runtime available (Docker or Podman required)"),
         );
-        let event_bus: Arc<dyn EventPublisherPort> = Arc::new(InMemoryEventBus::new(
-            Box::new(ContainerCleanupService::new(runtime.clone())),
-            Box::new(ActionExecutionWiring::build(Box::new(
-                GitActionFetcher::with_default_cache_root(),
-            ))),
-        ));
+        Self::with_runtime(runtime)
+    }
 
-        let list_workflows_service =
-            ListWorkflowsService::new(Box::new(FilesystemWorkflowFileParser));
-        let list_actions_service = ListActionsService::new(Box::new(FilesystemWorkflowFileParser));
-        let run_act_service =
-            RunActWiring::build(runtime, Box::new(PlatformImageMapper), event_bus);
+    pub fn with_runtime(runtime: Arc<dyn ContainerRuntimePort>) -> AppContainer {
+        Self::with_collaborators(
+            runtime,
+            Box::new(PlatformImageMapper),
+            Box::new(GitActionFetcher::with_default_cache_root()),
+            Arc::new(FilesystemWorkflowSource::default()),
+        )
+    }
+
+    pub fn with_collaborators(
+        runtime: Arc<dyn ContainerRuntimePort>,
+        image_mapper: Box<dyn ImageMapperPort>,
+        action_fetcher: Box<dyn ActionFetcherPort>,
+        workflow_source: Arc<dyn WorkflowSourcePort>,
+    ) -> AppContainer {
+        let event_bus: Arc<dyn EventBusPort> = Arc::new(InMemoryEventBus::new(Box::new(
+            ContainerCleanupHandler::new(runtime.clone()),
+        )));
+        let command_bus = CommandBusWiring::build(runtime, image_mapper, action_fetcher);
+        let list_workflows_service = ListWorkflowsService::new(Box::new(workflow_source.clone()));
+        let list_actions_service = ListActionsService::new(Box::new(workflow_source.clone()));
+        let run_workflow_service = RunWorkflowService::new(
+            Box::new(workflow_source.clone()),
+            command_bus.clone(),
+            event_bus.clone(),
+        );
+        let run_all_workflows_service =
+            RunAllWorkflowsService::new(Box::new(workflow_source), command_bus.clone(), event_bus);
+        let run_action_service = RunActionService::new(command_bus);
 
         AppContainer {
-            run_act_port: Box::new(run_act_service),
+            run_all_workflows_port: Box::new(run_all_workflows_service),
+            run_workflow_port: Box::new(run_workflow_service),
+            run_action_port: Box::new(run_action_service),
             list_workflows_port: Box::new(list_workflows_service),
             list_actions_port: Box::new(list_actions_service),
         }
